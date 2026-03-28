@@ -6,6 +6,7 @@ import About from "../pages/About";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import ClientDashboard from "../pages/Client/ClientDashboard";
 import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
+import MyBookings from "../pages/Client/MyBookings";
 
 export default function AppRouter() {
   return (
@@ -22,6 +23,7 @@ export default function AppRouter() {
         <Route path="/client" element={<ClientDashboard />} />
         <Route path="/provider" element={<ProviderDashboard />} />
 
+        <Route path="/client/my-bookings" element={<MyBookings />} />
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />
       </Routes>

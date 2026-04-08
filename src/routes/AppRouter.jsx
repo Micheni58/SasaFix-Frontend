@@ -6,6 +6,7 @@ import About from "../pages/About";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import ClientDashboard from "../pages/Client/ClientDashboard";
 import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
+import ProtectedRoute from "../components/ProtectedRoutes";
 
 export default function AppRouter() {
   return (
@@ -18,13 +19,34 @@ export default function AppRouter() {
         <Route path="/about" element={<About />} />
 
         {/* Protected/Dashboard Routes */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/client" element={<ClientDashboard />} />
-        <Route path="/provider" element={<ProviderDashboard />} />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/client"
+          element={
+            <ProtectedRoute>
+              <ClientDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/provider"
+          element={
+            <ProtectedRoute>
+              <ProviderDashboard />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />
       </Routes>
     </Router>
   );
-}  
+}

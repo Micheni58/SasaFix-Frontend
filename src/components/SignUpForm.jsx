@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
+import { useAuth } from "../hooks/useAuth";
 
 const validationSchema = Yup.object().shape({
   full_name: Yup.string()
@@ -28,12 +30,15 @@ const validationSchema = Yup.object().shape({
   }),
 });
 
+const ROLE_ROUTES = { admin: "/admin", provider: "/provider", client: "/client" };
+
 const SignUpForm = () => {
   const [success, setSuccess] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (values, { setSubmitting, setStatus }) => {
     setStatus("");
-
     const userData = {
       full_name: values.full_name,
       email: values.email,
@@ -42,33 +47,21 @@ const SignUpForm = () => {
       location: values.location || null,
       phone_number: values.phone_number || null,
     };
-
     try {
       const response = await fetch("http://localhost:8000/api/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(userData),
       });
-
       const data = await response.json();
-
       if (response.ok) {
-        localStorage.setItem("token", data.access_token || "");
-        localStorage.setItem("user", JSON.stringify(data.user));
+        login(data.user, data.access_token || "");
         setSuccess(true);
-
-        setTimeout(() => {
-          const userRole = data.user.role || "client";
-          if (userRole === "provider") {
-            window.location.href = "/pages/Serviceprovider/dashboard";
-          } else {
-            window.location.href = "/dashboard";
-          }
-        }, 500);
+        setTimeout(() => navigate(ROLE_ROUTES[data.user.role] || "/client"), 500);
       } else {
         setStatus(data.detail || data.error || "Registration failed");
       }
-    } catch (err) {
+    } catch {
       setStatus("Network error. Please try again.");
     } finally {
       setSubmitting(false);

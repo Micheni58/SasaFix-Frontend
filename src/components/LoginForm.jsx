@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 
@@ -408,9 +410,17 @@ const styles = `
   }
 `;
 
+const ROLE_ROUTES = {
+  admin: "/admin",
+  provider: "/provider",
+  client: "/client",
+};
+
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (values, { setSubmitting, setStatus }) => {
     setStatus("");
@@ -422,13 +432,8 @@ const LoginForm = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        localStorage.setItem("token", data.access_token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        const userRole = data.user.role || "client";
-        window.location.href =
-          userRole === "provider"
-            ? "/pages/Serviceprovider/dashboard"
-            : "/dashboard";
+        login(data.user, data.access_token);
+        navigate(ROLE_ROUTES[data.user.role] || "/client");
       } else {
         setStatus(data.detail || data.error || "Login failed");
       }
@@ -578,7 +583,7 @@ const LoginForm = () => {
 
                   <p className="sh-signup-text">
                     Don't have an account?{" "}
-                    <a href="/register" className="sh-signup-link">
+                    <a href="/signup" className="sh-signup-link">
                       Sign up
                     </a>
                   </p>

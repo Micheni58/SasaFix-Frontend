@@ -133,7 +133,7 @@ function MyBookings() {
               onClick={() => setActiveTab(tab)}
               className={`flex items-center gap-2 border-b-[3px] px-6 py-3.5 text-base font-semibold transition-colors ${
                 activeTab === tab
-                  ? "border-[#2563eb] bg-blue-50 text-[#2563eb]"
+                  ? "border-[#056db3] bg-blue-50 text-[#056db3]"
                   : "border-transparent text-gray-600 hover:bg-gray-50"
               }`}
             >
@@ -141,7 +141,7 @@ function MyBookings() {
               <span
                 className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-semibold ${
                   activeTab === tab
-                    ? "bg-[#2563eb] text-white"
+                    ? "bg-[#056db3] text-white"
                     : "bg-gray-100 text-gray-600"
                 }`}
               >
@@ -231,12 +231,12 @@ function MyBookings() {
                   </td>
                   <td className="px-4 py-5">
                     <div className="flex items-center gap-4 whitespace-nowrap">
-                      <button className="rounded-xl border-2 border-[#2563eb] px-4 py-2 text-sm font-semibold text-[#2563eb] transition-colors hover:bg-blue-50">
+                      <button className="rounded-xl border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
                         View
                       </button>
                       {(booking.status === "Upcoming" || booking.status === "In Progress") && (
                         <>
-                          <button className="text-sm font-semibold text-[#2563eb] hover:bg-blue-50 rounded-md px-2 py-1">
+                          <button className="text-sm font-semibold text-[#056db3] hover:bg-blue-50 rounded-md px-2 py-1">
                             Reschedule
                           </button>
                           <button className="text-sm font-semibold text-red-600 hover:bg-red-50 rounded-md px-2 py-1">

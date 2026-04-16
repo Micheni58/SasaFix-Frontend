@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Calendar,
   CheckCircle2,
@@ -237,24 +238,33 @@ function MyJobs() {
                           <button className="rounded-xl border-2 border-[#056db3] px-3 py-1.5 text-sm font-semibold text-[#056db3] transition-colors hover:bg-red-50">
                             Decline
                           </button>
-                          <button className="rounded-xl  px-3 py-1.5 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
+                          <Link
+                            to={`/provider/my-jobs/${job.id}`}
+                            className="rounded-xl px-3 py-1.5 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50"
+                          >
                             View
-                          </button>
+                          </Link>
                         </>
                       )}
                       {job.status === "Accepted" && (
-                        <button className="rounded-xl  px-3 py-1.5 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
+                        <Link
+                          to={`/provider/my-jobs/${job.id}`}
+                          className="rounded-xl px-3 py-1.5 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50"
+                        >
                           View
-                        </button>
+                        </Link>
                       )}
                       {job.status === "In Progress" && (
                         <>
                           <button className="text-sm font-semibold text-green-700 hover:bg-green-50 rounded-md px-2 py-1">
                             Complete
                           </button>
-                          <button className="rounded-xl  px-3 py-1.5 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
+                          <Link
+                            to={`/provider/my-jobs/${job.id}`}
+                            className="rounded-xl px-3 py-1.5 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50"
+                          >
                             View
-                          </button>
+                          </Link>
                         </>
                       )}
                       {job.status === "Completed" && (
@@ -262,9 +272,12 @@ function MyJobs() {
                           <button className="text-sm font-semibold text-gray-600 hover:bg-gray-50 rounded-md px-2 py-1">
                             Receipt
                           </button>
-                          <button className="rounded-xl  px-3 py-1.5 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
+                          <Link
+                            to={`/provider/my-jobs/${job.id}`}
+                            className="rounded-xl px-3 py-1.5 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50"
+                          >
                             View
-                          </button>
+                          </Link>
                         </>
                       )}
                     </div>

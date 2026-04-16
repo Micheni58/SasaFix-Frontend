@@ -8,6 +8,7 @@ import ClientDashboard from "../pages/Client/ClientDashboard";
 import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
 import MyBookings from "../pages/Client/MyBookings";
 import MyJobs from "../pages/ServiceProvider/MyJobs";
+import MyBookingDetails from "../pages/Client/MyBookingDetails";
 export default function AppRouter() {
   return (
     <Router>
@@ -25,6 +26,7 @@ export default function AppRouter() {
 
         <Route path="/client/my-bookings" element={<MyBookings />} />
         <Route path="/provider/my-jobs" element={<MyJobs />} />
+        <Route path="/client/my-bookings/:bookingId" element={<MyBookingDetails />} />
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />
       </Routes>

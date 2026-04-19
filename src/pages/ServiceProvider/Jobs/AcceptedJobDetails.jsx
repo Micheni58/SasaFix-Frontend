@@ -1,31 +1,31 @@
 import { useState } from "react";
-import { Mail, Phone, CheckCircle2, Clock3, AlertCircle, MessageSquare, RotateCcw, Flag } from "lucide-react";
+import { Mail, Phone, CheckCircle2, Clock3, AlertCircle, MessageSquare, RotateCcw, Flag, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 
-function MyJobDetails() {
+function AcceptedJobDetails() {
     // Sample job data
     const job = {
-        id: "00001",
-        service: "Plumbing Repair",
-        description: "Fix leaking kitchen sink and check water pressure",
-        date: "Jan 8, 2026",
-        time: "10:00 AM",
-        location: "Westlands, Nairobi - House 23, Green Avenue",
-        duration: "2 hours",
-        status: "New Request",
+        id: "00002",
+        service: "Electrical Wiring",
+        description: "Install new light fixtures in living room and bedroom",
+        date: "Jan 12, 2026",
+        time: "02:00 PM",
+        location: "Karen, Nairobi - Apartment 5, Spring Gardens",
+        duration: "3 hours",
+        status: "Accepted",
         client: {
-            name: "Sarah Wanjiku",
-            initials: "SW",
+            name: "John Kipchoge",
+            initials: "JK",
             type: "Regular Customer",
-            bookings: 5,
-            phone: "+254 712 345 678",
-            email: "sarah@email.com"
+            bookings: 8,
+            phone: "+254 723 456 789",
+            email: "john@email.com"
         },
-        serviceFee: "KES 2,000",
-        commission: "KES 200",
-        earnings: "KES 1,800",
+        serviceFee: "KES 3,500",
+        commission: "KES 350",
+        earnings: "KES 3,150",
         timeline: [
-            { task: "Job Accepted", completed: false },
+            { task: "Job Accepted", completed: true },
             { task: "Started Work", completed: false },
             { task: "Completed", completed: false },
             { task: "Client Approved", completed: false },
@@ -38,7 +38,7 @@ function MyJobDetails() {
     const closeModal = () => setModalType(null);
 
     const confirmModal = () => {
-        // Add accept/decline action logic here
+        // Add action logic here
         setModalType(null);
     };
 
@@ -153,7 +153,7 @@ function MyJobDetails() {
                     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-6">Payment Breakdown</h2>
                         <div className="space-y-4">
-                            <div className="flex justify-between items-center py-2  border-gray-100">
+                            <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                 <span className="font-light text-gray-700">Service Fee</span>
                                 <span className="text-gray-800 font-semibold">{job.serviceFee}</span>
                             </div>
@@ -177,13 +177,14 @@ function MyJobDetails() {
                     <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                         <h2 className="text-xl font-bold text-gray-800">Actions</h2>
                         
-                        <button onClick={() => setModalType("accept")} className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white font-semibold py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors">
-                            <CheckCircle2 className="w-5 h-5" />
-                            Accept Job
+                        <button onClick={() => setModalType("start")} className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white font-semibold py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors">
+                            <Play className="w-5 h-5" />
+                            Start Work
                         </button>
                         
-                        <button onClick={() => setModalType("decline")} className="w-full flex items-center justify-center gap-2 border-2 border-red-100 text-red-600 py-2 px-2 rounded-lg hover:bg-red-50 transition-colors">
-                            Decline Request
+                        <button onClick={() => setModalType("complete")} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-2 px-2 rounded-lg hover:bg-green-700 transition-colors">
+                            <CheckCircle2 className="w-5 h-5" />
+                            Mark as Completed
                         </button>
                         
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
@@ -196,7 +197,7 @@ function MyJobDetails() {
                             Request Reschedule
                         </button>
                         
-                        <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
+                        <button className="w-full flex items-center justify-center gap-2 border-2 border-red-200 text-red-600 font-semibold py-2 px-2 rounded-lg hover:bg-red-50 transition-colors">
                             <Flag className="w-5 h-5" />
                             Report Issue
                         </button>
@@ -231,19 +232,19 @@ function MyJobDetails() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
                     <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
                         <h3 className="text-xl font-bold text-gray-800 mb-3">
-                            {modalType === "accept" ? "Confirm Accept Job" : "Confirm Decline Job"}
+                            {modalType === "start" ? "Confirm Start Work" : "Confirm Mark as Completed"}
                         </h3>
                         <p className="text-sm text-gray-600 mb-6">
-                            {modalType === "accept"
-                                ? "Are you sure you want to accept this job? The client will be notified and the status will update."
-                                : "Are you sure you want to decline this job? The client will be notified and the request will be rejected."}
+                            {modalType === "start"
+                                ? "Are you sure you want to start work on this job? The client will be notified of the status update."
+                                : "Are you sure you want to mark this job as completed? Please make sure all work has been finished before confirming."}
                         </p>
                         <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                             <button onClick={closeModal} className="w-full sm:w-auto rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
                                 Cancel
                             </button>
                             <button onClick={confirmModal} className="w-full sm:w-auto rounded-lg bg-[#056db3] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900 transition-colors">
-                                {modalType === "accept" ? "Yes, Accept" : "Yes, Decline"}
+                                {modalType === "start" ? "Yes, Start Work" : "Yes, Mark Completed"}
                             </button>
                         </div>
                     </div>
@@ -253,4 +254,4 @@ function MyJobDetails() {
     );
 }
 
-export default MyJobDetails;
+export default AcceptedJobDetails;

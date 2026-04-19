@@ -7,7 +7,7 @@ import AdminDashboard from "../pages/Admin/AdminDashboard";
 import ClientDashboard from "../pages/Client/ClientDashboard";
 import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
 import MyBookings from "../pages/Client/MyBookings";
-import MyJobs from "../pages/ServiceProvider/MyJobs";
+import MyJobs from "../pages/ServiceProvider/Jobs/MyJobs";
 import MyBookingDetails from "../pages/Client/MyBookingDetails";
 export default function AppRouter() {
   return (

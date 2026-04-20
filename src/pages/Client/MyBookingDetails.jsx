@@ -1,4 +1,4 @@
-import { Mail, Phone, CheckCircle2, Clock3, AlertCircle, MessageSquare, RotateCcw, Flag } from "lucide-react";
+import { Mail, Phone, CheckCircle2, Clock3, AlertCircle, MessageSquare, RotateCcw, Flag, Calendar, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 
 function MyBookingDetails() {
@@ -53,46 +53,43 @@ function MyBookingDetails() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-6">Booking Summary</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <p className="text-sm text-gray-600 font-medium">Service</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{booking.service}</p>
+                        <h2 className="text-xl font-bold text-gray-800 mb-6">Booking Details</h2>
+                        <div className="space-y-6">                            
+                                <div>
+                                    <p className="text-sm text-gray-600 font-medium">Service</p>
+                                    <p className="text-lg  text-gray-800 mt-1">{booking.service}</p>
+                                </div>
+                            {/* Date and Time - Horizontal on same line */}
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="flex items-start gap-3">
+                                    <Calendar className="w-5 h-5 text-[#056db3] mt-0.5 shrink-0" />
+                                    <div>
+                                        <p className="text-sm text-gray-600 font-medium">Date</p>
+                                        <p className="text-lg  text-gray-800 mt-1">{booking.date}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3">
+                                    <Clock3 className="w-5 h-5 text-[#056db3] mt-0.5 shrink-0" />
+                                    <div>
+                                        <p className="text-sm text-gray-600 font-medium">Time</p>
+                                        <p className="text-lg text-gray-800 mt-1">{booking.time}</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-600 font-medium">Estimated Duration</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{booking.duration}</p>
+
+                            {/* Location - Full width with icon */}
+                            <div className="flex items-start gap-3">
+                                <MapPin className="w-5 h-5 text-[#056db3] mt-0.5 shrink-0" />
+                                <div className="flex-1">
+                                    <p className="text-sm text-gray-600 font-medium">Location</p>
+                                    <p className="text-gray-800  mt-1">{booking.location}</p>
+                                </div>
                             </div>
-                            <div className="md:col-span-2">
+
+                            {/* Description - Full width */}
+                            <div>
                                 <p className="text-sm text-gray-600 font-medium">Description</p>
                                 <p className="text-gray-800 mt-1">{booking.description}</p>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-6">Schedule & Location</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="flex items-start gap-3">
-                                <Clock3 className="w-5 h-5 text-[#056db3] mt-0.5" />
-                                <div>
-                                    <p className="text-sm text-gray-600 font-medium">Date</p>
-                                    <p className="text-gray-800 font-semibold">{booking.date}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3">
-                                <Clock3 className="w-5 h-5 text-[#056db3] mt-0.5" />
-                                <div>
-                                    <p className="text-sm text-gray-600 font-medium">Time</p>
-                                    <p className="text-gray-800 font-semibold">{booking.time}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-3 md:col-span-3">
-                                <AlertCircle className="w-5 h-5 text-[#056db3] mt-0.5" />
-                                <div>
-                                    <p className="text-sm text-gray-600 font-medium">Location</p>
-                                    <p className="text-gray-800 font-semibold">{booking.location}</p>
-                                </div>
                             </div>
                         </div>
                     </section>
@@ -149,26 +146,22 @@ function MyBookingDetails() {
                     </section>
 
                     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-6">Payment Breakdown</h2>
-                        <div className="overflow-x-auto mb-4">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-gray-200">
-                                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Service Fee</th>
-                                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Platform Commission (10%)</th>
-                                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Total Paid</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td className="px-4 py-3 text-gray-800 font-semibold">{booking.serviceFee}</td>
-                                        <td className="px-4 py-3 text-gray-800 font-semibold">{booking.commission}</td>
-                                        <td className="px-4 py-3 font-semibold text-green-600">{booking.totalPaid}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <h2 className="text-xl font-bold text-gray-800 mb-6">Payment Details</h2>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center py-2">
+                                <span className="font-light text-gray-700">Service Cost</span>
+                                <span className="text-gray-800 font-semibold">{booking.serviceFee}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b border-gray-300">
+                                <span className="font-light text-gray-700">Platform Fee</span>
+                                <span className="text-gray-800 font-semibold">{booking.commission}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                                <span className="font-semibold text-gray-700">Total Amount</span>
+                                <span className="font-semibold text-green-600 text-2xl">{booking.totalPaid}</span>
+                            </div>
                         </div>
-                        <p className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-sm text-[#056db3] bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
                             Payment will be charged when the service is completed and approved.
                         </p>
                     </section>
@@ -177,19 +170,18 @@ function MyBookingDetails() {
                 <div className="lg:col-span-1">
                     <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                         <h2 className="text-xl font-bold text-gray-800">Actions</h2>
-                        <button className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-900 transition-colors">
-                            <CheckCircle2 className="w-5 h-5" />
-                            Confirm Booking
-                        </button>
-                        <button className="w-full flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors">
-                            <RotateCcw className="w-5 h-5" />
-                            Request Reschedule
-                        </button>
-                        <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-3 px-4 rounded-lg hover:bg-blue-50 transition-colors">
+                        <button className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white  py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors">
                             <MessageSquare className="w-5 h-5" />
-                            Message Provider
+                            Message Worker
                         </button>
-                        <button className="w-full flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors">
+                        <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3]  py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
+                            <RotateCcw className="w-5 h-5" />
+                            Reschedule Booking
+                        </button>
+                        <button className="w-full flex items-center justify-center gap-2 border-2 border-red-300 text-red-500  py-2 px-2 rounded-lg hover:bg-red-100 transition-colors">
+                            Cancel Booking
+                        </button>
+                        <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             <Flag className="w-5 h-5" />
                             Report Issue
                         </button>

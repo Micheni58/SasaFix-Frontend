@@ -4,10 +4,12 @@ import {
   Clock3,
   EllipsisVertical,
   Eye,
+  Import,
   MapPin,
   RotateCcw,
   XCircle,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const bookings = [
   {
@@ -231,17 +233,15 @@ function MyBookings() {
                   </td>
                   <td className="px-4 py-5">
                     <div className="flex items-center gap-4 whitespace-nowrap">
-                      <button className="rounded-xl border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
+                      <Link to={`/my-bookings/${booking.id}`} className="rounded-xl border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
                         View
-                      </button>
+                      </Link>
                       {(booking.status === "Upcoming" || booking.status === "In Progress") && (
                         <>
                           <button className="text-sm font-semibold text-[#056db3] hover:bg-blue-50 rounded-md px-2 py-1">
                             Reschedule
                           </button>
-                          <button className="text-sm font-semibold text-red-600 hover:bg-red-50 rounded-md px-2 py-1">
-                            Cancel
-                          </button>
+                         
                         </>
                       )}
                       <button className="text-gray-500 hover:text-gray-700">

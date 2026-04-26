@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Phone, CheckCircle2, Clock3, AlertCircle, MessageSquare, RotateCcw, Flag } from "lucide-react";
+import { Mail, Phone, CheckCircle2, Calendar, Clock3, MapPin, AlertCircle, MessageSquare, RotateCcw, Flag } from "lucide-react";
 import { Link } from "react-router-dom";
 
 function NewJobRequestDetails() {
@@ -69,28 +69,34 @@ function NewJobRequestDetails() {
                     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-6">Job Summary</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="md:col-span-3">
+                                <p className="text-sm text-gray-600 ">Service Type</p>
+                                <p className="text-lg  text-gray-800 mt-1">{job.service}</p>
+                            </div>
+                            
                             <div>
-                                <p className="text-sm text-gray-600 font-medium">Service Type</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.service}</p>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <Calendar className="h-4 w-4" />
+                                    <span>Date</span>
+                                </div>
+                                <p className="text-lg  text-gray-800 mt-1">{job.date}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-600 font-medium">Estimated Duration</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.duration}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600 font-medium">Date</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.date}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600 font-medium">Time</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.time}</p>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <Clock3 className="h-4 w-4" />
+                                    <span>Time</span>
+                                </div>
+                                <p className="text-lg  text-gray-800 mt-1">{job.time}</p>
                             </div>
                             <div className="md:col-span-3">
-                                <p className="text-sm text-gray-600 font-medium">Location</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.location}</p>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <MapPin className="h-4 w-4" />
+                                    <span>Location</span>
+                                </div>
+                                <p className="text-lg text-gray-800 mt-1">{job.location}</p>
                             </div>
                             <div className="md:col-span-3">
-                                <p className="text-sm text-gray-600 font-medium">Description</p>
+                                <p className="text-sm text-gray-600 ">Description</p>
                                 <p className="text-gray-800 mt-1">{job.description}</p>
                             </div>
                         </div>
@@ -166,7 +172,7 @@ function NewJobRequestDetails() {
                                 <span className="font-semibold text-green-600 text-2xl">{job.earnings}</span>
                             </div>
                         </div>
-                        <p className="text-sm text-[#6f10f4] bg-[#f0f4ff] border border-blue-200 rounded-lg p-3 mt-4">
+                        <p className="text-sm text-[#056db3] bg-[#f0f4ff] border border-[#056db3] rounded-lg p-3 mt-4">
                             Payment will be released to your wallet after job completion and client approval
                         </p>
                     </section>
@@ -178,7 +184,6 @@ function NewJobRequestDetails() {
                         <h2 className="text-xl font-bold text-gray-800">Actions</h2>
                         
                         <button onClick={() => setModalType("accept")} className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white font-semibold py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors">
-                            <CheckCircle2 className="w-5 h-5" />
                             Accept Job
                         </button>
                         
@@ -187,16 +192,14 @@ function NewJobRequestDetails() {
                         </button>
                         
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
-                            <MessageSquare className="w-5 h-5" />
                             Message Client
                         </button>
                         
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
-                            <RotateCcw className="w-5 h-5" />
                             Request Reschedule
                         </button>
                         
-                        <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
+                        <button className="w-full flex items-center justify-center gap-2 border-2 border-red-100 text-red-600 py-2 px-2 rounded-lg hover:bg-red-50 transition-colors">
                             <Flag className="w-5 h-5" />
                             Report Issue
                         </button>
@@ -228,23 +231,48 @@ function NewJobRequestDetails() {
             </div>
 
             {modalType && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-                    <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
-                        <h3 className="text-xl font-bold text-gray-800 mb-3">
-                            {modalType === "accept" ? "Confirm Accept Job" : "Confirm Decline Job"}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-6">
-                            {modalType === "accept"
-                                ? "Are you sure you want to accept this job? The client will be notified and the status will update."
-                                : "Are you sure you want to decline this job? The client will be notified and the request will be rejected."}
-                        </p>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                            <button onClick={closeModal} className="w-full sm:w-auto rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-                                Cancel
-                            </button>
-                            <button onClick={confirmModal} className="w-full sm:w-auto rounded-lg bg-[#056db3] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900 transition-colors">
-                                {modalType === "accept" ? "Yes, Accept" : "Yes, Decline"}
-                            </button>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4">
+                    <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
+                        <div className="border-b border-gray-200 px-6 py-4">
+                            <h3 className="text-lg font-bold text-gray-800">
+                                {modalType === "accept" ? "Confirm Accept" : "Confirm Decline"} Job
+                            </h3>
+                        </div>
+                        <div className="px-6 py-4">
+                            <p className="text-sm text-gray-600">
+                                {modalType === "accept"
+                                    ? `Are you sure you want to accept this job from ${job.client.name}? You will be notified of any further details.`
+                                    : `Are you sure you want to decline this job from ${job.client.name}? The client will be notified and the request will be rejected.`}
+                            </p>
+                            <div className="mt-4 rounded-lg bg-gray-50 p-4">
+                                <p className="text-sm font-semibold text-gray-800">{job.service}</p>
+                                <p className="mt-2 text-xs text-gray-600">
+                                    <span className="font-semibold">Date &amp; Time:</span> {job.date} at {job.time}
+                                </p>
+                                <p className="text-xs text-gray-600">
+                                    <span className="font-semibold">Location:</span> {job.location}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="border-t border-gray-200 px-6 py-4">
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={closeModal}
+                                    className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmModal}
+                                    className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors ${
+                                        modalType === "accept"
+                                            ? "bg-green-600 hover:bg-green-700"
+                                            : "bg-red-600 hover:bg-red-700"
+                                    }`}
+                                >
+                                    {modalType === "accept" ? "Yes, Accept" : "Yes, Decline"}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

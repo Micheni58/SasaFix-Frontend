@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Phone, CheckCircle2, Clock3, AlertCircle, MessageSquare, RotateCcw, Flag, Pause } from "lucide-react";
+import { Mail, Phone, CheckCircle2, Calendar, Clock3, MapPin, AlertCircle, MessageSquare, RotateCcw, Flag, Pause } from "lucide-react";
 import { Link } from "react-router-dom";
 
 function InProgressJobDetails() {
@@ -69,28 +69,33 @@ function InProgressJobDetails() {
                     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-6">Job Summary</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <p className="text-sm text-gray-600 font-medium">Service Type</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.service}</p>
+                            <div className="md:col-span-3">
+                                <p className="text-sm text-gray-600">Service Type</p>
+                                <p className="text-lg  text-gray-800 mt-1">{job.service}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-600 font-medium">Estimated Duration</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.duration}</p>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <Calendar className="h-4 w-4" />
+                                    <span>Date</span>
+                                </div>
+                                <p className="text-lg  text-gray-800 mt-1">{job.date}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-600 font-medium">Date</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.date}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600 font-medium">Time</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.time}</p>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <Clock3 className="h-4 w-4" />
+                                    <span>Time</span>
+                                </div>
+                                <p className="text-lg  text-gray-800 mt-1">{job.time}</p>
                             </div>
                             <div className="md:col-span-3">
-                                <p className="text-sm text-gray-600 font-medium">Location</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.location}</p>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <MapPin className="h-4 w-4" />
+                                    <span>Location</span>
+                                </div>
+                                <p className="text-lg  text-gray-800 mt-1">{job.location}</p>
                             </div>
                             <div className="md:col-span-3">
-                                <p className="text-sm text-gray-600 font-medium">Description</p>
+                                <p className="text-sm text-gray-600">Description</p>
                                 <p className="text-gray-800 mt-1">{job.description}</p>
                             </div>
                         </div>
@@ -153,7 +158,7 @@ function InProgressJobDetails() {
                     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-6">Payment Breakdown</h2>
                         <div className="space-y-4">
-                            <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                            <div className="flex justify-between items-center py-2 border-gray-100">
                                 <span className="font-light text-gray-700">Service Fee</span>
                                 <span className="text-gray-800 font-semibold">{job.serviceFee}</span>
                             </div>
@@ -166,7 +171,7 @@ function InProgressJobDetails() {
                                 <span className="font-semibold text-green-600 text-2xl">{job.earnings}</span>
                             </div>
                         </div>
-                        <p className="text-sm text-[#6f10f4] bg-[#f0f4ff] border border-blue-200 rounded-lg p-3 mt-4">
+                        <p className="text-sm text-[#056db3] bg-[#f0f4ff] border border-[#056db3] rounded-lg p-3 mt-4">
                             Payment will be released to your wallet after job completion and client approval
                         </p>
                     </section>
@@ -177,25 +182,16 @@ function InProgressJobDetails() {
                     <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                         <h2 className="text-xl font-bold text-gray-800">Actions</h2>
                         
-                        <button onClick={() => setModalType("complete")} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-2 px-2 rounded-lg hover:bg-green-700 transition-colors">
+                        {/* <button onClick={() => setModalType("complete")} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-2 px-2 rounded-lg hover:bg-green-700 transition-colors">
                             <CheckCircle2 className="w-5 h-5" />
                             Mark as Completed
-                        </button>
+                        </button> */}
                         
-                        <button className="w-full flex items-center justify-center gap-2 border-2 border-orange-200 text-orange-600 font-semibold py-2 px-2 rounded-lg hover:bg-orange-50 transition-colors">
-                            <Pause className="w-5 h-5" />
-                            Pause Work
-                        </button>
                         
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
-                            <MessageSquare className="w-5 h-5" />
                             Message Client
                         </button>
-                        
-                        <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
-                            <RotateCcw className="w-5 h-5" />
-                            Request Reschedule
-                        </button>
+                    
                         
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-red-200 text-red-600 font-semibold py-2 px-2 rounded-lg hover:bg-red-50 transition-colors">
                             <Flag className="w-5 h-5" />

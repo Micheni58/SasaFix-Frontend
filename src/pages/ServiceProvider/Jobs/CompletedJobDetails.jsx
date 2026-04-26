@@ -1,5 +1,17 @@
 import { useState } from "react";
-import { Mail, Phone, CheckCircle2, Clock3, AlertCircle, MessageSquare, Star, Download, Flag } from "lucide-react";
+import {
+    Mail,
+    Phone,
+    CheckCircle2,
+    Calendar,
+    Clock3,
+    MapPin,
+    AlertCircle,
+    MessageSquare,
+    Star,
+    Download,
+    Flag
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 function CompletedJobDetails() {
@@ -72,28 +84,34 @@ function CompletedJobDetails() {
                     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-6">Job Summary</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="md:col-span-3">
+                                <p className="text-sm text-gray-600">Service Type</p>
+                                <p className="text-lg  text-gray-800 mt-1">{job.service}</p>
+                            </div>
+                        
                             <div>
-                                <p className="text-sm text-gray-600 font-medium">Service Type</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.service}</p>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <Calendar className="h-4 w-4" />
+                                    <span>Date</span>
+                                </div>
+                                <p className="text-lg  text-gray-800 mt-1">{job.date}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-600 font-medium">Estimated Duration</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.duration}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600 font-medium">Date</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.date}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600 font-medium">Time</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.time}</p>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <Clock3 className="h-4 w-4" />
+                                    <span>Time</span>
+                                </div>
+                                <p className="text-lg  text-gray-800 mt-1">{job.time}</p>
                             </div>
                             <div className="md:col-span-3">
-                                <p className="text-sm text-gray-600 font-medium">Location</p>
-                                <p className="text-lg font-semibold text-gray-800 mt-1">{job.location}</p>
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <MapPin className="h-4 w-4" />
+                                    <span>Location</span>
+                                </div>
+                                <p className=" text-gray-800 mt-1">{job.location}</p>
                             </div>
                             <div className="md:col-span-3">
-                                <p className="text-sm text-gray-600 font-medium">Description</p>
+                                <p className="text-sm text-gray-600">Description</p>
                                 <p className="text-gray-800 mt-1">{job.description}</p>
                             </div>
                         </div>
@@ -173,7 +191,7 @@ function CompletedJobDetails() {
                     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-6">Payment Breakdown</h2>
                         <div className="space-y-4">
-                            <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                            <div className="flex justify-between items-center py-2">
                                 <span className="font-light text-gray-700">Service Fee</span>
                                 <span className="text-gray-800 font-semibold">{job.serviceFee}</span>
                             </div>
@@ -186,8 +204,8 @@ function CompletedJobDetails() {
                                 <span className="font-semibold text-green-600 text-2xl">{job.earnings}</span>
                             </div>
                         </div>
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
-                            <p className="text-sm text-green-700 font-medium">✓ Payment released successfully on {job.completedDate}</p>
+                        <div className="bg-blue-50 border border-[#056db3] rounded-lg p-3 mt-4">
+                            <p className="text-sm text-[#056db3] font-medium">Payment will be released to your wallet after job completion and client approval</p>
                         </div>
                     </section>
                 </div>

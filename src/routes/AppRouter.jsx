@@ -6,6 +6,7 @@ import About from "../pages/About";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import ClientDashboard from "../pages/Client/ClientDashboard";
 import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
+import Reviews from "../pages/ServiceProvider/Reviews";
 import MyBookings from "../pages/Client/bookings/MyBookings";
 import MyJobs from "../pages/ServiceProvider/Jobs/MyJobs";
 import MyBookingDetails from "../pages/Client/bookings/MyBookingDetails";
@@ -23,6 +24,7 @@ export default function AppRouter() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/client" element={<ClientDashboard />} />
         <Route path="/provider" element={<ProviderDashboard />} />
+        <Route path="/provider/reviews" element={<Reviews />} />
 
         <Route path="/client/my-bookings" element={<MyBookings />} />
         <Route path="/provider/my-jobs" element={<MyJobs />} />

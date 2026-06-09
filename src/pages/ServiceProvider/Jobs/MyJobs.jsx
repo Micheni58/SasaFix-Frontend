@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Calendar,
@@ -9,116 +9,10 @@ import {
   Phone,
 } from "lucide-react";
 
-const jobs = [
-  {
-    id: 1,
-    service: "Plumbing Repair",
-    details: "Fix leaking kitchen sink and replace worn tap washer",
-    client: "Sarah Wanjiku",
-    initials: "SW",
-    date: "2026-04-14",
-    time: "10:00 AM",
-    location: "Westlands, Nairobi",
-    status: "New Requests",
-    amount: "KES 3,000",
-  },
-  {
-    id: 2,
-    service: "Electrical Repair",
-    details: "Restore power to living room sockets and inspect breaker",
-    client: "James Otieno",
-    initials: "JO",
-    date: "2026-04-15",
-    time: "2:00 PM",
-    location: "Kilimani, Nairobi",
-    status: "Accepted",
-    amount: "KES 1,500",
-  },
-  {
-    id: 3,
-    service: "Deep Cleaning",
-    details: "Clean a two-bedroom apartment before tenant move-in",
-    client: "Linet Achieng",
-    initials: "LA",
-    date: "2026-04-13",
-    time: "9:00 AM",
-    location: "Lavington, Nairobi",
-    status: "In Progress",
-    amount: "KES 4,200",
-  },
-  {
-    id: 4,
-    service: "Painting",
-    details: "Repaint bedroom walls and touch up the ceiling corners",
-    client: "Brian Mwangi",
-    initials: "BM",
-    date: "2026-04-11",
-    time: "1:00 PM",
-    location: "Karen, Nairobi",
-    status: "Completed",
-    amount: "KES 5,000",
-  },
-  {
-    id: 5,
-    service: "Appliance Repair",
-    details: "Repair washing machine drum and test full spin cycle",
-    client: "Mercy Njeri",
-    initials: "MN",
-    date: "2026-04-16",
-    time: "8:30 AM",
-    location: "Riverside, Nairobi",
-    status: "New Requests",
-    amount: "KES 2,300",
-  },
-  {
-    id: 6,
-    service: "Gardening",
-    details: "Trim overgrown hedges and clear front compound weeds",
-    client: "Daniel Kiptoo",
-    initials: "DK",
-    date: "2026-04-12",
-    time: "11:30 AM",
-    location: "South B, Nairobi",
-    status: "Completed",
-    amount: "KES 2,100",
-  },
-];
+import bookingService from "../../../api/bookingService";
 
-const rescheduleRequests = [
-  {
-    id: 1,
-    client: "Sarah Wanjiku",
-    initials: "SW",
-    service: "Plumbing Repair",
-    originalDate: "2026-04-14",
-    originalTime: "10:00 AM",
-    proposedDate: "2026-04-16",
-    proposedTime: "2:00 PM",
-    reason: "Family emergency",
-  },
-  {
-    id: 2,
-    client: "James Otieno",
-    initials: "JO",
-    service: "Electrical Repair",
-    originalDate: "2026-04-15",
-    originalTime: "2:00 PM",
-    proposedDate: "2026-04-17",
-    proposedTime: "11:00 AM",
-    reason: "Work conflict",
-  },
-  {
-    id: 3,
-    client: "Linet Achieng",
-    initials: "LA",
-    service: "Deep Cleaning",
-    originalDate: "2026-04-13",
-    originalTime: "9:00 AM",
-    proposedDate: "2026-04-18",
-    proposedTime: "10:00 AM",
-    reason: "Tenant delay",
-  },
-];
+// fetched state
+let /* local static fallback kept empty */ _unused = null;
 
 const tabs = ["New Requests", "Accepted", "In Progress", "Completed", "Request Reschedule"];
 
@@ -142,16 +36,95 @@ function MyJobs() {
   const [modalType, setModalType] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const [isRescheduleRequest, setIsRescheduleRequest] = useState(false);
+  const [jobsState, setJobsState] = useState([]);
+  const [rescheduleRequestsState, setRescheduleRequestsState] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
-  const filteredJobs = jobs.filter((job) => job.status === activeTab);
-  const filteredRescheduleRequests = activeTab === "Request Reschedule" ? rescheduleRequests : [];
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    setFetchError(null);
+
+    const storedUser = (() => {
+      try {
+        const raw = localStorage.getItem("user");
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    })();
+    const providerId = storedUser?.id || storedUser?.provider_id || Number(localStorage.getItem("userId") || 1);
+
+    bookingService.listProviderBookings(providerId)
+      .then((list) => {
+        if (!mounted) return;
+        const mapped = (list || []).map((b) => ({
+          id: b.id,
+          service: b.service || b.service_name,
+          details: b.details || b.description || "",
+          client: b.clientName || (b.client && (b.client.full_name || b.client.name)) || (b.clientId ? `Client #${b.clientId}` : "Client"),
+          initials:
+            (b.clientName || (b.client && (b.client.full_name || b.client.name)) || "").split(" ").map(s=>s[0]).slice(0,2).join("") || "--",
+          date: b.date || b.scheduled_date || null,
+          time: b.time || (b.scheduled_start_time ? b.scheduled_start_time : ""),
+          location: b.location || "",
+          status: b.status || "New Requests",
+          amount: b.amount || (b.amountRaw ? `KES ${b.amountRaw}` : ""),
+          raw: b,
+        }));
+        setJobsState(mapped);
+
+        // try fetching reschedule requests separately
+        fetch('/api/reschedule-requests').then(r => r.ok ? r.json() : Promise.reject()).then(data => {
+          if (!mounted) return;
+          const list2 = Array.isArray(data) ? data : (data.requests || []);
+          setRescheduleRequestsState(list2.map((rq) => ({
+            id: rq.id,
+            client: rq.client_name || rq.client_full_name || rq.client?.full_name || `Client #${rq.client_id || rq.client?.id}`,
+            initials: (rq.client_name || rq.client_full_name || rq.client?.full_name || '').split(' ').map(s=>s[0]).slice(0,2).join('') || '--',
+            service: rq.service || rq.service_name || '',
+            originalDate: rq.original_date || rq.originalDate || rq.originalDate,
+            originalTime: rq.original_time || rq.originalTime || '',
+            proposedDate: rq.proposed_date || rq.proposedDate || '',
+            proposedTime: rq.proposed_time || rq.proposedTime || '',
+            reason: rq.reason || rq.notes || '',
+          })));
+        }).catch(() => {
+          // fallback: derive reschedule-like requests from bookings if any flag present
+          const fallback = (list || []).filter(b => (b.status || '').toLowerCase().includes('resched') || b.requested_reschedule).map(b => ({
+            id: b.id,
+            client: b.clientName || (b.client && (b.client.full_name || b.client.name)) || (b.clientId ? `Client #${b.clientId}` : "Client"),
+            initials: (b.clientName || '').split(' ').map(s=>s[0]).slice(0,2).join('') || '--',
+            service: b.service || b.service_name || '',
+            originalDate: b.date || b.scheduled_date || null,
+            originalTime: b.time || b.scheduled_start_time || '',
+            proposedDate: b.proposed_date || b.proposedDate || '',
+            proposedTime: b.proposed_time || b.proposedTime || '',
+            reason: b.reschedule_reason || b.notes || '',
+          }));
+          setRescheduleRequestsState(fallback);
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!mounted) return;
+        setFetchError(err.message || 'Failed to load jobs');
+      })
+      .finally(() => mounted && setLoading(false));
+
+    return () => { mounted = false; };
+  }, []);
+
+  const filteredJobs = jobsState.filter((job) => job.status === activeTab);
+  const filteredRescheduleRequests = activeTab === "Request Reschedule" ? rescheduleRequestsState : [];
 
   const tabCounts = {
-    "New Requests": jobs.filter((job) => job.status === "New Requests").length,
-    Accepted: jobs.filter((job) => job.status === "Accepted").length,
-    "In Progress": jobs.filter((job) => job.status === "In Progress").length,
-    Completed: jobs.filter((job) => job.status === "Completed").length,
-    "Request Reschedule": rescheduleRequests.length,
+    "New Requests": jobsState.filter((job) => job.status === "New Requests").length,
+    Accepted: jobsState.filter((job) => job.status === "Accepted").length,
+    "In Progress": jobsState.filter((job) => job.status === "In Progress").length,
+    Completed: jobsState.filter((job) => job.status === "Completed").length,
+    "Request Reschedule": rescheduleRequestsState.length,
   };
 
   const handleAccept = (job, isReschedule = false) => {

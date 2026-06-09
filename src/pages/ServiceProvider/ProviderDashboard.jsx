@@ -1,25 +1,107 @@
+import { useEffect, useState } from "react";
 import { MapPin, Briefcase, CheckCircle, Wallet, Star, Clock, MessageCircle, Eye, DollarSign, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
+import bookingService from "../../api/bookingService";
 
 function ProviderDashboard() {
-  const providerBookings = [
-    { client: "John Doe", clientPic: "https://via.placeholder.com/32", service: "House Cleaning", time: "10:00am - 12:00pm", location: "Westlands", status: "In Progress", payments: "KES 4,000" },
-    { client: "Mary Ouma", clientPic: "https://via.placeholder.com/32", service: "AC Repair", time: "2:00pm - 4:00pm", location: "Karen", status: "Completed", payments: "KES 6,200" },
-    { client: "Kevin Kamau", clientPic: "https://via.placeholder.com/32", service: "Carpentry", time: "9:00am - 11:00am", location: "Kilimani", status: "Scheduled", payments: "KES 8,500" },
-  ];
+  const [providerBookings, setProviderBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [monthlyEarnings, setMonthlyEarnings] = useState(0);
+  const [todaysJobsCount, setTodaysJobsCount] = useState(0);
+  const [completionRate, setCompletionRate] = useState(0);
+  const [providerRating, setProviderRating] = useState(null);
+  const [availability, setAvailability] = useState(null);
+
+  // derive logged-in provider display name from stored auth user
+  const storedUser = (() => {
+    try {
+      const raw = localStorage.getItem("user");
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+
+  const displayName = storedUser
+    ? (storedUser.full_name || storedUser.name || `${storedUser.first_name || ""} ${storedUser.last_name || ""}`.trim() || storedUser.email || "Provider")
+    : "Provider";
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    setError(null);
+    const providerId = storedUser?.id || storedUser?.provider_id || Number(localStorage.getItem("userId") || 1);
+    bookingService
+      .listProviderBookings(providerId)
+      .then((list) => {
+        if (!mounted) return;
+        setProviderBookings(list || []);
+        try {
+          // compute stats
+          const now = new Date();
+          let monthSum = 0;
+          let todayCount = 0;
+          let completed = 0;
+          let total = 0;
+          (list || []).forEach((b) => {
+            total += 1;
+            if (b.status === 'Completed') completed += 1;
+            const amount = Number(b.amountRaw || 0);
+            // try to parse date; if invalid, include in month sum as fallback
+            let parsed = null;
+            if (b.date) parsed = new Date(b.date);
+            if (parsed && !isNaN(parsed.getTime())) {
+              if (parsed.getMonth() === now.getMonth() && parsed.getFullYear() === now.getFullYear()) monthSum += amount;
+              if (parsed.getFullYear() === now.getFullYear() && parsed.getMonth() === now.getMonth() && parsed.getDate() === now.getDate()) todayCount += 1;
+            } else {
+              monthSum += amount; // fallback
+            }
+          });
+          setMonthlyEarnings(monthSum);
+          setTodaysJobsCount(todayCount);
+          setCompletionRate(total > 0 ? Math.round((completed / total) * 100) : 0);
+        } catch (e) {
+          console.warn('Stats compute failed', e);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!mounted) return;
+        setError(err.message || "Failed to load bookings");
+      })
+      .finally(() => mounted && setLoading(false));
+
+    // also fetch availability and provider info
+    bookingService.getProviderAvailability(providerId).then((av) => {
+      if (mounted) setAvailability(av || null);
+    }).catch(() => {
+      if (mounted) setAvailability(null);
+    });
+
+    bookingService.listProviders().then((provList) => {
+      if (!mounted) return;
+      const prov = (provList || []).find((p) => p.id === providerId || p.provider_id === providerId);
+      if (prov && prov.rating) setProviderRating(prov.rating);
+    }).catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
       <section className="mb-8">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Welcome back, Sarah!</h1>
+            <h1 className="text-3xl font-bold text-gray-800">Welcome back, {displayName}!</h1>
             <div className="flex items-center mt-2">
               <h2 className="text-lg text-gray-600">Plumbing Specialist • Westlands, Nairobi</h2>
             </div>
           </div>
           <div>
-            <Link to="/new-requests">
+            <Link to="/provider/my-jobs">
               <button className="text-white bg-[#056db3] hover:bg-[#045ca0] font-medium border rounded-md py-2 px-4">View New Requests</button>
             </Link>
           </div>
@@ -30,8 +112,8 @@ function ProviderDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-medium text-gray-600">Today's Jobs</h2>
-                <p className="text-2xl font-bold text-gray-800 mt-1">6</p>
-                <p className="text-sm text-gray-600 font-medium">+2 from yesterday</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">{todaysJobsCount}</p>
+                <p className="text-sm text-gray-600 font-medium">{todaysJobsCount >= 0 ? (todaysJobsCount === 0 ? 'No change' : `+${todaysJobsCount} today`) : ''}</p>
               </div>
               <div className="p-2 bg-blue-100 rounded-full">
                 <Briefcase className="w-8 h-8 text-[#056db3]" />
@@ -43,8 +125,8 @@ function ProviderDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-medium text-gray-600">Monthly Earnings</h2>
-                <p className="text-2xl font-bold text-gray-800 mt-1">KES 78,500</p>
-                <p className="text-gray-600  text-sm">+15% from last month</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">KES {monthlyEarnings.toLocaleString()}</p>
+                <p className="text-gray-600  text-sm">{monthlyEarnings ? '+ updated' : '—'}</p>
               </div>
               <div className="p-2 bg-green-100 rounded-full">
                 <DollarSign className="w-8 h-8 text-green-600" />
@@ -56,8 +138,8 @@ function ProviderDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-medium text-gray-600">Completion Rate</h2>
-                <p className="text-2xl font-bold text-gray-800 mt-1">32</p>
-                <p className="text-sm text-gray-600">+5% from last month</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">{completionRate}%</p>
+                <p className="text-sm text-gray-600">{completionRate ? '+ updated' : '—'}</p>
               </div>
               <div className="p-2 bg-purple-100 rounded-full">
                 <TrendingUp className="w-8 h-8 text-purple-600" />
@@ -71,8 +153,8 @@ function ProviderDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-medium text-gray-600">Average Rating</h2>
-                <p className="text-2xl font-bold text-gray-800 mt-1">4.9</p>
-                <p className="text-sm text-gray-600">127 Reviews</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">{providerRating ?? '—'}</p>
+                <p className="text-sm text-gray-600">{providerRating ? 'based on provider data' : 'No rating yet'}</p>
               </div>
               <div className="p-2 bg-yellow-100 rounded-full">
                 <Star className="w-8 h-8 text-yellow-500" />
@@ -85,9 +167,9 @@ function ProviderDashboard() {
       
       <section className="bg-white rounded-xl shadow-sm">
         <div className="p-6 pb-0">
-          <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-6">
             <h2 className="font-bold text-xl text-gray-800">Todays Jobs</h2>
-            <button className="text-[#056db3] hover:underline font-medium">View All</button>
+            <Link to="/provider/my-jobs" className="text-[#056db3] hover:underline font-medium">View All</Link>
           </div>
         </div>
         <div className="border-t border-gray-200 ">
@@ -105,41 +187,53 @@ function ProviderDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {providerBookings.map((booking, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center">
-                        <img src={booking.clientPic} alt={booking.client} className="w-8 h-8 rounded-full mr-3" />
-                        <span className="font-medium">{booking.client}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">{booking.service}</td>
-                    <td className="py-4 px-6">{booking.time}</td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                        <span>{booking.location}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span
-                        className={`px-3 py-1 rounded-md text-xs font-medium ${
-                          booking.status === "Completed"
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-gray-500">Loading bookings...</td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-red-500">{error}</td>
+                  </tr>
+                ) : providerBookings.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-gray-500">No bookings found</td>
+                  </tr>
+                ) : (
+                  providerBookings.map((b, index) => (
+                    <tr key={b.id || index} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center">
+                          <img src={(b.client && (b.client.avatar || b.client.photo || b.client.profile_picture)) || 'https://via.placeholder.com/32'} alt={b.clientName || b.client?.full_name || 'Client'} className="w-8 h-8 rounded-full mr-3" />
+                          <span className="font-medium">{b.clientName || (b.client && (b.client.full_name || b.client.name)) || (b.clientId ? `Client #${b.clientId}` : 'Client')}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">{b.service || b.service_name}</td>
+                      <td className="py-4 px-6">{b.time || (b.date ? b.date : '')}</td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center">
+                          <MapPin className="w-4 h-4 text-gray-400 mr-2" />
+                          <span>{b.location || ''}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`px-3 py-1 rounded-md text-xs font-medium ${
+                          b.status === "Completed"
                             ? "bg-green-100 text-green-800"
-                            : booking.status === "In Progress"
+                            : b.status === "In Progress"
                             ? "bg-blue-50 text-blue-800"
                             : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {booking.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 font-bold">{booking.payments}</td>
-                    <td className="py-4 px-6">
-                      <button className="text-[#056db3] hover:bg-blue-200 font-medium border-2 border-[#056db3] rounded-md py-1 px-3">View</button>
-                    </td>
-                  </tr>
-                ))}
+                        }`}>
+                          {b.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 font-bold">{b.amount || b.amountRaw ? (b.amount || `KES ${b.amountRaw}`) : ''}</td>
+                      <td className="py-4 px-6">
+                        <Link to={`/provider/my-jobs`} className="text-[#056db3] hover:underline font-medium">View</Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -153,61 +247,43 @@ function ProviderDashboard() {
           <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h1 className="font-bold text-lg text-gray-800">Today</h1>
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">3 Booked</span>
+              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">{availability && availability.today ? `${availability.today.length} Booked` : `${todaysJobsCount} Booked`}</span>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-2 border border-blue-100 rounded-md bg-blue-50">
-                <span className="text-sm font-medium">10:00 AM</span>
-                <span className="text-xs text-gray-600">Booked</span>
-              </div>
-              <div className="flex items-center justify-between p-2 border border-green-100 rounded-md bg-green-50">
-                <span className="text-sm font-medium">12:00 PM</span>
-                <span className="text-xs text-green-600">Available</span>
-              </div>
-              <div className="flex items-center justify-between p-2 border border-blue-100 rounded-md bg-blue-50">
-                <span className="text-sm font-medium">2:00 PM</span>
-                <span className="text-xs text-gray-600">Booked</span>
-              </div>
+              {(availability && availability.today && Array.isArray(availability.today) ? availability.today : []).slice(0,3).map((slot, i) => (
+                <div key={i} className={`flex items-center justify-between p-2 border rounded-md ${slot.booked ? 'border-blue-100 bg-blue-50' : 'border-green-100 bg-green-50'}`}>
+                  <span className="text-sm font-medium">{slot.time || slot.start || slot.label || `Slot ${i+1}`}</span>
+                  <span className={`text-xs ${slot.booked ? 'text-gray-600' : 'text-green-600'}`}>{slot.booked ? 'Booked' : 'Available'}</span>
+                </div>
+              ))}
             </div>
           </div>
           <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h1 className="font-bold text-lg text-gray-800">Tomorrow</h1>
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">2 Booked</span>
+              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">{availability && availability.tomorrow ? `${availability.tomorrow.length} Booked` : '—'}</span>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-2 border border-green-100 rounded-md bg-green-50">
-                <span className="text-sm font-medium">10:00 AM</span>
-                <span className="text-xs text-green-600">Available</span>
-              </div>
-              <div className="flex items-center justify-between p-2 border border-blue-100 rounded-md bg-blue-50">
-                <span className="text-sm font-medium">12:00 PM</span>
-                <span className="text-xs text-gray-600">Booked</span>
-              </div>
-              <div className="flex items-center justify-between p-2 border border-green-100 rounded-md bg-green-50">
-                <span className="text-sm font-medium">2:00 PM</span>
-                <span className="text-xs text-green-600">Available</span>
-              </div>
+              {(availability && availability.tomorrow && Array.isArray(availability.tomorrow) ? availability.tomorrow : []).slice(0,3).map((slot, i) => (
+                <div key={i} className={`flex items-center justify-between p-2 border rounded-md ${slot.booked ? 'border-blue-100 bg-blue-50' : 'border-green-100 bg-green-50'}`}>
+                  <span className="text-sm font-medium">{slot.time || slot.start || slot.label || `Slot ${i+1}`}</span>
+                  <span className={`text-xs ${slot.booked ? 'text-gray-600' : 'text-green-600'}`}>{slot.booked ? 'Booked' : 'Available'}</span>
+                </div>
+              ))}
             </div>
           </div>
           <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
             <div className="flex justify-between items-center mb-4">
-              <h1 className="font-bold text-lg text-gray-800">Thursday, April 2</h1>
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">1 Booked</span>
+              <h1 className="font-bold text-lg text-gray-800">{availability && availability.nextDateLabel ? availability.nextDateLabel : 'Upcoming'}</h1>
+              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">{availability && availability.next ? `${(Array.isArray(availability.next) ? availability.next.length : 0)} Booked` : '—'}</span>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-2 border border-blue-100 rounded-md bg-blue-50">
-                <span className="text-sm font-medium">10:00 AM</span>
-                <span className="text-xs text-gray-600">Booked</span>
-              </div>
-              <div className="flex items-center justify-between p-2 border border-green-100 rounded-md bg-green-50">
-                <span className="text-sm font-medium">12:00 PM</span>
-                <span className="text-xs text-green-600">Available</span>
-              </div>
-              <div className="flex items-center justify-between p-2 border border-green-100 rounded-md bg-green-50">
-                <span className="text-sm font-medium">2:00 PM</span>
-                <span className="text-xs text-green-600">Available</span>
-              </div>
+              {(availability && availability.next && Array.isArray(availability.next) ? availability.next : []).slice(0,3).map((slot,i) => (
+                <div key={i} className={`flex items-center justify-between p-2 border rounded-md ${slot.booked ? 'border-blue-100 bg-blue-50' : 'border-green-100 bg-green-50'}`}>
+                  <span className="text-sm font-medium">{slot.time || slot.start || slot.label || `Slot ${i+1}`}</span>
+                  <span className={`text-xs ${slot.booked ? 'text-gray-600' : 'text-green-600'}`}>{slot.booked ? 'Booked' : 'Available'}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

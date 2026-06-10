@@ -31,44 +31,80 @@ function ProviderDashboard() {
     let mounted = true;
     setLoading(true);
     setError(null);
-    const providerId = storedUser?.id || storedUser?.provider_id || Number(localStorage.getItem("userId") || 1);
+    const providerId = Number(storedUser?.provider_id ?? storedUser?.id ?? localStorage.getItem("userId") ?? 1);
+    const setBookingsFromList = (list) => {
+      if (!mounted) return;
+      setProviderBookings(list || []);
+      try {
+        // compute stats
+        const now = new Date();
+        let monthSum = 0;
+        let todayCount = 0;
+        let completed = 0;
+        let total = 0;
+        (list || []).forEach((b) => {
+          total += 1;
+          if (b.status === 'Completed') completed += 1;
+          const amount = Number(b.amountRaw || 0);
+          let parsed = null;
+          if (b.date) parsed = new Date(b.date);
+          if (parsed && !isNaN(parsed.getTime())) {
+            if (parsed.getMonth() === now.getMonth() && parsed.getFullYear() === now.getFullYear()) monthSum += amount;
+            if (parsed.getFullYear() === now.getFullYear() && parsed.getMonth() === now.getMonth() && parsed.getDate() === now.getDate()) todayCount += 1;
+          } else {
+            monthSum += amount; // fallback
+          }
+        });
+        setMonthlyEarnings(monthSum);
+        setTodaysJobsCount(todayCount);
+        setCompletionRate(total > 0 ? Math.round((completed / total) * 100) : 0);
+      } catch (e) {
+        console.warn('Stats compute failed', e);
+      }
+    };
+
+    // Primary: try provider-specific endpoint
     bookingService
       .listProviderBookings(providerId)
       .then((list) => {
         if (!mounted) return;
-        setProviderBookings(list || []);
-        try {
-          // compute stats
-          const now = new Date();
-          let monthSum = 0;
-          let todayCount = 0;
-          let completed = 0;
-          let total = 0;
-          (list || []).forEach((b) => {
-            total += 1;
-            if (b.status === 'Completed') completed += 1;
-            const amount = Number(b.amountRaw || 0);
-            // try to parse date; if invalid, include in month sum as fallback
-            let parsed = null;
-            if (b.date) parsed = new Date(b.date);
-            if (parsed && !isNaN(parsed.getTime())) {
-              if (parsed.getMonth() === now.getMonth() && parsed.getFullYear() === now.getFullYear()) monthSum += amount;
-              if (parsed.getFullYear() === now.getFullYear() && parsed.getMonth() === now.getMonth() && parsed.getDate() === now.getDate()) todayCount += 1;
-            } else {
-              monthSum += amount; // fallback
-            }
+        if (list && list.length > 0) {
+          setBookingsFromList(list);
+        } else {
+          // Fallback: fetch active bookings and filter by provider name/email match
+          bookingService.listActiveBookings().then((active) => {
+            if (!mounted) return;
+            const providerName = displayName;
+            const providerEmail = storedUser?.email;
+            const filtered = (active || []).filter((b) => {
+              const nameMatch = (b.provider_full_name || b.providerName || b.worker || '').toString().toLowerCase().includes((providerName || '').toLowerCase());
+              const emailMatch = (b.service_provider && (b.service_provider.contact_email || b.service_provider.email) || '').toString().toLowerCase() === (providerEmail || '').toLowerCase();
+              return nameMatch || emailMatch;
+            });
+            setBookingsFromList(filtered);
+          }).catch(() => {
+            setBookingsFromList([]);
           });
-          setMonthlyEarnings(monthSum);
-          setTodaysJobsCount(todayCount);
-          setCompletionRate(total > 0 ? Math.round((completed / total) * 100) : 0);
-        } catch (e) {
-          console.warn('Stats compute failed', e);
         }
       })
       .catch((err) => {
         console.error(err);
         if (!mounted) return;
-        setError(err.message || "Failed to load bookings");
+        // try fallback to active bookings
+        bookingService.listActiveBookings().then((active) => {
+          if (!mounted) return;
+          const providerName = displayName;
+          const providerEmail = storedUser?.email;
+          const filtered = (active || []).filter((b) => {
+            const nameMatch = (b.provider_full_name || b.providerName || b.worker || '').toString().toLowerCase().includes((providerName || '').toLowerCase());
+            const emailMatch = (b.service_provider && (b.service_provider.contact_email || b.service_provider.email) || '').toString().toLowerCase() === (providerEmail || '').toLowerCase();
+            return nameMatch || emailMatch;
+          });
+          setBookingsFromList(filtered);
+        }).catch(() => {
+          if (!mounted) return;
+          setError(err.message || "Failed to load bookings");
+        });
       })
       .finally(() => mounted && setLoading(false));
 
@@ -229,7 +265,13 @@ function ProviderDashboard() {
                       </td>
                       <td className="py-4 px-6 font-bold">{b.amount || b.amountRaw ? (b.amount || `KES ${b.amountRaw}`) : ''}</td>
                       <td className="py-4 px-6">
-                        <Link to={`/provider/my-jobs`} className="text-[#056db3] hover:underline font-medium">View</Link>
+                        {(() => {
+                          const status = (b.status || '').toString().toLowerCase();
+                          if (status.includes('in progress')) return (<Link to={`/provider/my-jobs/in-progress/${b.id}`} className="text-[#056db3] hover:underline font-medium">View</Link>);
+                          if (status.includes('completed')) return (<Link to={`/provider/my-jobs/completed/${b.id}`} className="text-[#056db3] hover:underline font-medium">View</Link>);
+                          // treat upcoming/pending/accepted/new as new request
+                          return (<Link to={`/provider/my-jobs/new/${b.id}`} className="text-[#056db3] hover:underline font-medium">View</Link>);
+                        })()}
                       </td>
                     </tr>
                   ))

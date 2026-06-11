@@ -1,54 +1,117 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Star, ThumbsUp, MessageCircle } from "lucide-react";
+import bookingService from "../../api/bookingService";
+import reviewService from "../../api/reviewService";
 
 const reviewFilters = ["Most Recent", "Highest Rated", "Lowest Rated", "Unanswered"];
-const ratingBreakdown = [
-  { stars: 5, count: 72, percent: 72 },
-  { stars: 4, count: 21, percent: 21 },
-  { stars: 3, count: 9, percent: 9 },
-  { stars: 2, count: 4, percent: 4 },
-  { stars: 1, count: 2, percent: 2 },
-];
 
-const reviews = [
-  {
-    id: 1,
-    initials: "JK",
-    name: "Jane Kamau",
-    date: "Apr 25, 2026",
-    rating: 5,
-    summary: "Quick and professional service.",
-    body: "The technician arrived on time, resolved the problem quickly, and explained everything clearly. I will definitely book again.",
-    response: "Thank you Jane, we’re glad the service met your expectations!",
-  },
-  {
-    id: 2,
-    initials: "PO",
-    name: "Peter Omondi",
-    date: "Apr 20, 2026",
-    rating: 4,
-    summary: "Great work, minor delay.",
-    body: "The repair was solid, but the technician arrived a few minutes later than expected. Overall very happy with the result.",
-    response: "We appreciate the feedback, Peter. We’ll improve our schedule communications.",
-  },
-  {
-    id: 3,
-    initials: "LW",
-    name: "Lorna Wanjiru",
-    date: "Apr 16, 2026",
-    rating: 3,
-    summary: "Good effort, room to improve.",
-    body: "The work was completed, but I expected the final cleanup to be a bit neater. The technician was friendly and responsive.",
-    response: "Thanks for your note, Lorna. We’ll make sure our team keeps the workspace cleaner going forward.",
-  },
-];
+function getStoredProviderId() {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return Number(user.provider_id ?? user.service_provider_id ?? user.id ?? localStorage.getItem("userId") ?? 1);
+  } catch {
+    return Number(localStorage.getItem("userId") || 1);
+  }
+}
+
+function getInitials(name) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "--";
+}
+
+function formatDate(dateValue) {
+  if (!dateValue) return "";
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function getSummary(comment) {
+  if (!comment) return "";
+  const sentence = comment.split(".")[0];
+  return sentence.length > 80 ? `${sentence.slice(0, 77)}...` : sentence;
+}
 
 function Reviews() {
   const [activeFilter, setActiveFilter] = useState("Most Recent");
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState("");
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const providerId = getStoredProviderId();
+
+    async function loadReviews() {
+      try {
+        const [providerReviews, providerRatings] = await Promise.all([
+          reviewService.getProviderReviews(providerId),
+          reviewService.getProviderRatings(providerId).catch(() => []),
+        ]);
+
+        const ratingsByBookingId = new Map(
+          providerRatings.map((rating) => [Number(rating.bookingId), rating])
+        );
+
+        const enrichedReviews = await Promise.all(
+          providerReviews.map(async (review) => {
+            const rating = ratingsByBookingId.get(Number(review.bookingId));
+            let booking = null;
+
+            try {
+              booking = await bookingService.getBooking(review.bookingId);
+            } catch {
+              booking = null;
+            }
+
+            const clientName = booking?.clientName || `Client #${review.clientId}`;
+
+            return {
+              id: review.id,
+              initials: getInitials(clientName),
+              name: clientName,
+              date: formatDate(review.createdAt),
+              rating: Math.round(rating?.score || 0),
+              summary: getSummary(review.comment),
+              body: review.comment,
+              response: review.providerResponse,
+              thanked: review.providerThankedClient,
+              createdAt: review.createdAt,
+            };
+          })
+        );
+
+        if (!mounted) return;
+        setReviews(enrichedReviews);
+        setError(null);
+      } catch (err) {
+        console.error(err);
+        if (!mounted) return;
+        setError(err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadReviews();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filteredReviews = useMemo(() => {
+    const sortedReviews = [...reviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     if (activeFilter === "Highest Rated") {
       return [...reviews].sort((a, b) => b.rating - a.rating);
     }
@@ -58,14 +121,55 @@ function Reviews() {
     if (activeFilter === "Unanswered") {
       return reviews.filter((review) => !review.response);
     }
-    return reviews;
-  }, [activeFilter]);
+    return sortedReviews;
+  }, [activeFilter, reviews]);
 
-  const handleReply = (reviewId) => {
-    // In a real app, this would send to backend
-    console.log(`Replying to review ${reviewId}: ${replyText}`);
-    setReplyingTo(null);
-    setReplyText("");
+  const ratingBreakdown = useMemo(() => {
+    const total = reviews.length || 1;
+    return [5, 4, 3, 2, 1].map((stars) => {
+      const count = reviews.filter((review) => review.rating === stars).length;
+      return {
+        stars,
+        count,
+        percent: Math.round((count / total) * 100),
+      };
+    });
+  }, [reviews]);
+
+  const averageRating = useMemo(() => {
+    if (reviews.length === 0) return 0;
+    const total = reviews.reduce((sum, review) => sum + review.rating, 0);
+    return (total / reviews.length).toFixed(1);
+  }, [reviews]);
+
+  const handleReply = async (reviewId) => {
+    try {
+      const updated = await reviewService.respondToReview(reviewId, replyText);
+      setReviews((items) =>
+        items.map((review) =>
+          review.id === reviewId
+            ? { ...review, response: updated.providerResponse }
+            : review
+        )
+      );
+      setReplyingTo(null);
+      setReplyText("");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleThank = async (reviewId) => {
+    try {
+      await reviewService.thankClientForReview(reviewId);
+      setReviews((items) =>
+        items.map((review) =>
+          review.id === reviewId ? { ...review, thanked: true } : review
+        )
+      );
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -81,21 +185,21 @@ function Reviews() {
         <div className="lg:col-span-1 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium uppercase tracking-wide text-gray-500">Overall score</p>
           <div className="mt-4 flex items-center gap-4">
-            <span className="text-5xl font-bold text-gray-900">4.5</span>
+            <span className="text-5xl font-bold text-gray-900">{averageRating}</span>
             <div className="flex items-center gap-1 text-yellow-500">
-              {[...Array(5)].map((_, index) => (
+              {[...Array(Math.round(Number(averageRating)))].map((_, index) => (
                 <Star key={index} className="h-5 w-5" fill="yellow" stroke="none" />
               ))}
             </div>
           </div>
-          <p className="mt-3 text-sm text-gray-500">Based on 120 reviews</p>
+          <p className="mt-3 text-sm text-gray-500">Based on {reviews.length} reviews</p>
         </div>
 
         <div className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900">Rating Breakdown</h2>
             <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-[#056db3]">
-              120 reviews
+              {reviews.length} reviews
             </span>
           </div>
           <div className="mt-6 space-y-4">
@@ -134,6 +238,12 @@ function Reviews() {
         </div>
 
         <div className="space-y-5">
+          {(loading || error || filteredReviews.length === 0) && (
+            <div className="py-8 text-center text-sm text-gray-500">
+              {loading ? "Loading reviews..." : error ? "Unable to load reviews" : "No reviews"}
+            </div>
+          )}
+
           {filteredReviews.map((review) => (
             <div key={review.id} className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -163,8 +273,11 @@ function Reviews() {
                   <span>{review.response ? "Responded" : "Waiting for reply"}</span>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <button className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
-                    <ThumbsUp className="h-4 w-4" /> Thank
+                  <button
+                    onClick={() => handleThank(review.id)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                  >
+                    <ThumbsUp className="h-4 w-4" /> {review.thanked ? "Thanked" : "Thank"}
                   </button>
                   <button
                     onClick={() => setReplyingTo(review.id)}

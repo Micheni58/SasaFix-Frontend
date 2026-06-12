@@ -109,8 +109,13 @@ export async function getProviderRatings(providerId) {
 }
 
 export async function getProviderAverageRating(providerId) {
-  const response = await client.get(`/ratings/provider/${providerId}/average`);
-  return response.data;
+    const response = await client.get(`/ratings/provider/${providerId}/average`);
+    return {
+        providerId: response.data.provider_id,
+        averageScore: Number(response.data.average_score || 0),
+        totalRatings: Number(response.data.total_ratings || 0),
+        raw: response.data,
+    };
 }
 
 const reviewService = {

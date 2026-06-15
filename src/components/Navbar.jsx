@@ -1,9 +1,16 @@
 import { useState } from "react";
-import { Bell, ChevronDown, Search } from "lucide-react";
+import {
+  Bell,
+  ChevronDown,
+  Search,
+  User,
+  LogOut,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 function Navbar() {
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [showDropdown, setShowDropdown] =
+    useState(false);
 
   const navigate = useNavigate();
 
@@ -18,65 +25,97 @@ function Navbar() {
   };
 
   return (
-    <nav className="w-full bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-      {/* Search */}
-      <div className="relative w-[45%]">
+    <nav className="w-full bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center shadow-sm">
+      {/* Search Bar */}
+      <div className="relative w-[50%]">
         <Search
-          className="absolute left-4 top-3 text-gray-400"
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
           size={18}
         />
 
         <input
           type="text"
           placeholder="Search for services or workers..."
-          className="w-full pl-12 pr-4 py-3 border rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="
+            w-full
+            pl-12
+            pr-4
+            py-3
+            rounded-xl
+            border
+            border-gray-300
+            bg-[#f8fafc]
+            focus:outline-none
+            focus:ring-2
+            focus:ring-[#056db3]
+            focus:border-[#056db3]
+          "
         />
       </div>
 
-      {/* Right side */}
+      {/* Right Side */}
       <div className="flex items-center gap-6 relative">
-        {/* Notifications */}
-        <div className="relative cursor-pointer">
-          <Bell size={22} />
+        {/* Notification Bell */}
+        <button className="relative">
+          <Bell
+            size={22}
+            className="text-gray-700 hover:text-[#056db3] transition"
+          />
 
-          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
-        </div>
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500" />
+        </button>
 
         {/* Profile */}
-        <div
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="flex items-center gap-3 cursor-pointer relative"
-        >
-          <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
-            JD
-          </div>
+        <div className="relative">
+          <button
+            onClick={() =>
+              setShowDropdown(!showDropdown)
+            }
+            className="flex items-center gap-3"
+          >
+            {/* Avatar */}
+            <div className="w-11 h-11 rounded-full bg-[#056db3] flex items-center justify-center text-white font-semibold text-sm">
+              JD
+            </div>
 
-          <div className="hidden md:block">
-            <h4 className="font-semibold text-sm">
-              {user.name}
-            </h4>
+            {/* User Info */}
+            <div className="hidden md:block text-left">
+              <h3 className="font-semibold text-sm text-gray-800">
+                {user.name}
+              </h3>
 
-            <p className="text-xs text-gray-500">
-              {user.role}
-            </p>
-          </div>
+              <p className="text-xs text-gray-500">
+                {user.role}
+              </p>
+            </div>
 
-          <ChevronDown size={18} />
+            <ChevronDown
+              size={18}
+              className="text-gray-500"
+            />
+          </button>
 
           {/* Dropdown */}
           {showDropdown && (
-            <div className="absolute top-16 right-0 w-48 bg-white rounded-xl shadow-lg border z-50">
+            <div className="absolute right-0 mt-4 w-52 bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden z-50">
               <button
-                onClick={() => navigate("/profile")}
-                className="w-full text-left px-4 py-3 hover:bg-gray-100"
+                onClick={() =>
+                  navigate("/profile")
+                }
+                className="flex items-center gap-3 w-full px-5 py-4 hover:bg-gray-50 transition"
               >
+                <User
+                  size={18}
+                  color="#056db3"
+                />
                 My Profile
               </button>
 
               <button
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-3 text-red-500 hover:bg-red-50"
+                className="flex items-center gap-3 w-full px-5 py-4 text-red-500 hover:bg-red-50 transition"
               >
+                <LogOut size={18} />
                 Logout
               </button>
             </div>

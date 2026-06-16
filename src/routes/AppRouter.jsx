@@ -13,6 +13,7 @@ import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
 import MyBookings from "../pages/Client/bookings/MyBookings";
 import MyJobs from "../pages/ServiceProvider/Jobs/MyJobs";
 import MyBookingDetails from "../pages/Client/bookings/MyBookingDetails";
+import FindServices from "../pages/ServiceDiscovery/FindServices";
 
 export default function AppRouter() {
   return (
@@ -29,7 +30,7 @@ export default function AppRouter() {
           path="/admin"
           element={
             <>
-              <Navbar />
+              <Navbar role="admin" />
               <AdminDashboard />
             </>
           }
@@ -39,7 +40,7 @@ export default function AppRouter() {
           path="/client"
           element={
             <>
-              <Navbar />
+              <Navbar role="client" />
               <ClientDashboard />
             </>
           }
@@ -49,7 +50,7 @@ export default function AppRouter() {
           path="/provider"
           element={
             <>
-              <Navbar />
+              <Navbar role="provider" />
               <ProviderDashboard />
             </>
           }
@@ -59,7 +60,7 @@ export default function AppRouter() {
           path="/client/my-bookings"
           element={
             <>
-              <Navbar />
+              <Navbar role="client" />
               <MyBookings />
             </>
           }
@@ -69,8 +70,18 @@ export default function AppRouter() {
           path="/provider/my-jobs"
           element={
             <>
-              <Navbar />
+              <Navbar role="provider" />
               <MyJobs />
+            </>
+          }
+        />
+
+        <Route
+          path="/client/find-services"
+          element={
+            <>
+              <Navbar role="client" />
+              <FindServices />
             </>
           }
         />
@@ -79,7 +90,7 @@ export default function AppRouter() {
           path="/client/my-bookings/:bookingId"
           element={
             <>
-              <Navbar />
+              <Navbar role="client" />
               <MyBookingDetails />
             </>
           }

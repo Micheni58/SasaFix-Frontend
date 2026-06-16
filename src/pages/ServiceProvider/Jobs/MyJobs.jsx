@@ -180,7 +180,7 @@ function MyJobs() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] ml-64 p-5">
+    <div className="min-h-screen bg-[#f8fafc] ml-64 p-28 p-4">
       <section className="mb-6">
         <h1 className="text-3xl font-semibold text-gray-800">My Jobs</h1>
         <p className="mt-1 text-sm text-gray-600">

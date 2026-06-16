@@ -120,7 +120,7 @@ function MyBookings() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] ml-64 p-5">
+    <div className="min-h-screen bg-[#f8fafc] ml-64 p-28 p-6">
       <section className="mb-6">
         <h1 className="text-3xl font-semibold text-gray-800">My Bookings</h1>
         <p className="mt-1 text-sm text-gray-600">View and manage all your service bookings</p>
@@ -241,7 +241,7 @@ function MyBookings() {
                           <button className="text-sm font-semibold text-[#056db3] hover:bg-blue-50 rounded-md px-2 py-1">
                             Reschedule
                           </button>
-                         
+
                         </>
                       )}
                       <button className="text-gray-500 hover:text-gray-700">

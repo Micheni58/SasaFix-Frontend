@@ -1,15 +1,12 @@
-import { useMemo, useState } from "react";
-import { AlertTriangle, Users, DollarSign, MessageCircle, Bell, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, DollarSign, MessageCircle, Bell, Trash2 } from "lucide-react";
+import {
+  deleteNotification,
+  fetchNotifications,
+  markNotificationAsRead,
+} from "../../api/notificationService";
 
 const tabs = ["All", "Unread", "Reports", "Payments", "Messages"];
-
-const initialNotifications = [
-  { id: 1, type: "report", title: "Account flagged", text: "Provider account has been flagged for review.", timeAgo: "5 min ago", read: false },
-  { id: 2, type: "payment", title: "Platform payment", text: "KES 50,000 commission received from bookings.", timeAgo: "20 min ago", read: false },
-  { id: 3, type: "message", title: "New support message", text: "User reported an issue with a booking.", timeAgo: "1 hour ago", read: true },
-  { id: 4, type: "report", title: "New provider registered", text: "Alice Brown successfully registered as service provider.", timeAgo: "Yesterday", read: true },
-  { id: 5, type: "general", title: "System alert", text: "Daily system health check completed successfully.", timeAgo: "2 days ago", read: false },
-];
 
 function IconFor({ type }) {
   switch (type) {
@@ -26,7 +23,32 @@ function IconFor({ type }) {
 
 export default function AdminNotification() {
   const [activeTab, setActiveTab] = useState("All");
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    fetchNotifications()
+      .then((data) => {
+        if (!mounted) return;
+        setNotifications(data || []);
+        setError(null);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!mounted) return;
+        setError(err);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     if (activeTab === "Unread") return notifications.filter((n) => !n.read);
@@ -44,7 +66,32 @@ export default function AdminNotification() {
     Messages: notifications.filter((n) => n.type === "message").length,
   }), [notifications]);
 
-  const remove = (id) => setNotifications((s) => s.filter((n) => n.id !== id));
+  const markRead = async (id) => {
+    const notification = notifications.find((n) => n.id === id);
+    if (!notification || notification.read) return;
+
+    setNotifications((s) => s.map((n) => (n.id === id ? { ...n, read: true } : n)));
+
+    try {
+      const updated = await markNotificationAsRead(id);
+      setNotifications((s) => s.map((n) => (n.id === id ? updated : n)));
+    } catch (err) {
+      console.error(err);
+      setNotifications((s) => s.map((n) => (n.id === id ? { ...n, read: false } : n)));
+    }
+  };
+
+  const remove = async (id) => {
+    const previousNotifications = notifications;
+    setNotifications((s) => s.filter((n) => n.id !== id));
+
+    try {
+      await deleteNotification(id);
+    } catch (err) {
+      console.error(err);
+      setNotifications(previousNotifications);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] ml-64 p-6">
@@ -79,12 +126,18 @@ export default function AdminNotification() {
 
       <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="space-y-3">
-          {filtered.length === 0 && (
-            <div className="py-8 text-center text-sm text-gray-500">No notifications</div>
+          {(loading || error || filtered.length === 0) && (
+            <div className="py-8 text-center text-sm text-gray-500">
+              {loading ? "Loading notifications..." : error ? "Unable to load notifications" : "No notifications"}
+            </div>
           )}
 
           {filtered.map((n) => (
-            <div key={n.id} className={`flex items-center gap-4 rounded-lg px-4 py-3 ${n.read ? "bg-white" : "bg-blue-50"}`}>
+            <div
+              key={n.id}
+              onClick={() => markRead(n.id)}
+              className={`flex items-center gap-4 rounded-lg px-4 py-3 ${n.read ? "bg-white" : "bg-blue-50"}`}
+            >
               <div className="shrink-0">
                 <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-white border border-gray-100">
                   <IconFor type={n.type} />
@@ -99,7 +152,10 @@ export default function AdminNotification() {
               <div className="flex items-center gap-4">
                 <div className="text-sm text-gray-500">{n.timeAgo}</div>
                 <button
-                  onClick={() => remove(n.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    remove(n.id);
+                  }}
                   className="text-gray-400 hover:text-red-600"
                   aria-label="Delete notification"
                 >

@@ -1,37 +1,61 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
 import { Mail, Phone, CheckCircle2, Calendar, Clock3, MapPin, Flag } from "lucide-react";
-import { Link } from "react-router-dom";
+import bookingService from "../../../api/bookingService";
 
 function AcceptedJobDetails() {
-    // Sample job data
-    const job = {
-        id: "00002",
-        service: "Electrical Wiring",
-        description: "Install new light fixtures in living room and bedroom",
-        date: "Jan 12, 2026",
-        time: "02:00 PM",
-        location: "Karen, Nairobi - Apartment 5, Spring Gardens",
-        duration: "3 hours",
-        status: "Accepted",
-        client: {
-            name: "John Kipchoge",
-            initials: "JK",
-            type: "Regular Customer",
-            bookings: 8,
-            phone: "+254 723 456 789",
-            email: "john@email.com"
-        },
-        serviceFee: "KES 3,500",
-        commission: "KES 350",
-        earnings: "KES 3,150",
-        timeline: [
-            { task: "Job Accepted", completed: true },
-            { task: "Started Work", completed: false },
-            { task: "Completed", completed: false },
-            { task: "Client Approved", completed: false },
-            { task: "Payment Released", completed: false }
-        ]
-    };
+    const { id: bookingId } = useParams();
+    const [job, setJob] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        let mounted = true;
+        setLoading(true);
+        bookingService.getBooking(bookingId)
+            .then((b) => {
+                if (!mounted) return;
+                // map normalized booking to expected fields
+                const mapped = {
+                    id: b.id || bookingId,
+                    service: b.service || b.service_name || b.details || '',
+                    description: b.details || b.description || '',
+                    date: b.date || b.scheduled_date || (b.scheduled_start_time ? b.scheduled_start_time : ''),
+                    time: (b.time || (b.scheduled_start_time ? b.scheduled_start_time : '')) || '',
+                    location: b.location || '',
+                    duration: b.duration || b.estimated_duration || '',
+                    status: b.status || 'Accepted',
+                    client: {
+                        name: b.clientName || (b.client && (b.client.full_name || b.client.name)) || `Client #${b.clientId || (b.client && b.client.id)}`,
+                        initials: (b.clientName || (b.client && (b.client.full_name || b.client.name)) || '').split(' ').map(s=>s[0]).slice(0,2).join('') || '--',
+                        type: b.client?.type || 'Customer',
+                        bookings: b.client?.booking_count || b.client?.bookings || 0,
+                        phone: b.client?.phone || b.client_phone || '',
+                        email: b.client?.email || b.client_email || ''
+                    },
+                    serviceFee: b.amount || (b.amountRaw ? `KES ${b.amountRaw}` : ''),
+                    commission: b.commission || '',
+                    earnings: b.earnings || '',
+                    timeline: b.timeline || [
+                        { task: 'Job Accepted', completed: true },
+                        { task: 'Started Work', completed: b.status === 'In Progress' },
+                        { task: 'Completed', completed: b.status === 'Completed' },
+                        { task: 'Client Approved', completed: false },
+                        { task: 'Payment Released', completed: false }
+                    ],
+                    raw: b
+                };
+                setJob(mapped);
+            })
+            .catch((e) => {
+                console.error(e);
+                if (!mounted) return;
+                setError(e.message || 'Failed to load booking');
+            })
+            .finally(() => mounted && setLoading(false));
+
+        return () => { mounted = false; };
+    }, [bookingId]);
 
     const [modalType, setModalType] = useState(null);
 
@@ -41,6 +65,10 @@ function AcceptedJobDetails() {
         // Add action logic here
         setModalType(null);
     };
+
+    if (loading) return <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">Loading...</div>;
+    if (error) return <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">Error: {error}</div>;
+    if (!job) return <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">No booking found.</div>;
 
     return (
         <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">

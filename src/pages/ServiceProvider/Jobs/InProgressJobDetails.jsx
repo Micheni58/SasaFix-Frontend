@@ -1,46 +1,68 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Phone, CheckCircle2, Calendar, Clock3, MapPin, AlertCircle, MessageSquare, RotateCcw, Flag, Pause } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import bookingService from "../../../api/bookingService";
 
 function InProgressJobDetails() {
-    // Sample job data
-    const job = {
-        id: "00003",
-        service: "Home Cleaning",
-        description: "Full house cleaning including kitchen, bathrooms, and living areas",
-        date: "Jan 15, 2026",
-        time: "09:00 AM",
-        location: "Kilimani, Nairobi - House 45, Oak Street",
-        duration: "4 hours",
-        status: "In Progress",
-        client: {
-            name: "Mary Okonkwo",
-            initials: "MO",
-            type: "New Customer",
-            bookings: 1,
-            phone: "+254 734 567 890",
-            email: "mary@email.com"
-        },
-        serviceFee: "KES 2,500",
-        commission: "KES 250",
-        earnings: "KES 2,250",
-        timeline: [
-            { task: "Job Accepted", completed: true },
-            { task: "Started Work", completed: true },
-            { task: "Completed", completed: false },
-            { task: "Client Approved", completed: false },
-            { task: "Payment Released", completed: false }
-        ]
-    };
+    const { id: bookingId } = useParams();
+    const [job, setJob] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        let mounted = true;
+        setLoading(true);
+        bookingService.getBooking(bookingId)
+            .then((b) => {
+                if (!mounted) return;
+                const mapped = {
+                    id: b.id || bookingId,
+                    service: b.service || b.service_name || '',
+                    description: b.details || b.description || '',
+                    date: b.date || b.scheduled_date || '',
+                    time: b.time || b.scheduled_start_time || '',
+                    location: b.location || '',
+                    duration: b.duration || b.estimated_duration || '',
+                    status: b.status || 'In Progress',
+                    client: {
+                        name: b.clientName || (b.client && (b.client.full_name || b.client.name)) || `Client #${b.clientId || (b.client && b.client.id)}`,
+                        initials: (b.clientName || (b.client && (b.client.full_name || b.client.name)) || '').split(' ').map(s=>s[0]).slice(0,2).join('') || '--',
+                        type: b.client?.type || 'Customer',
+                        bookings: b.client?.booking_count || b.client?.bookings || 0,
+                        phone: b.client?.phone || b.client_phone || '',
+                        email: b.client?.email || b.client_email || ''
+                    },
+                    serviceFee: b.amount || (b.amountRaw ? `KES ${b.amountRaw}` : ''),
+                    commission: b.commission || '',
+                    earnings: b.earnings || '',
+                    rating: b.rating || null,
+                    review: b.review || b.client_review || '',
+                    timeline: b.timeline || [],
+                    raw: b
+                };
+                setJob(mapped);
+            })
+            .catch((e) => {
+                console.error(e);
+                if (!mounted) return;
+                setError(e.message || 'Failed to load booking');
+            })
+            .finally(() => mounted && setLoading(false));
+
+        return () => { mounted = false; };
+    }, [bookingId]);
 
     const [modalType, setModalType] = useState(null);
 
     const closeModal = () => setModalType(null);
 
     const confirmModal = () => {
-        // Add action logic here
         setModalType(null);
     };
+
+    if (loading) return <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">Loading...</div>;
+    if (error) return <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">Error: {error}</div>;
+    if (!job) return <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">No booking found.</div>;
 
     return (
         <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">

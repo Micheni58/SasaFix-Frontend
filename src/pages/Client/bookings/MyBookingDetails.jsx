@@ -1,34 +1,57 @@
 import { Mail, Phone, CheckCircle2, Clock3, AlertCircle, MessageSquare, RotateCcw, Flag, Calendar, MapPin } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import bookingService from "../../../api/bookingService";
 
 function MyBookingDetails() {
-    const booking = {
-        id: "00001",
-        service: "Plumbing Repair",
-        description: "Fix leaking kitchen sink and check water pressure",
-        date: "Jan 8, 2026",
-        time: "10:00 AM",
-        location: "Westlands, Nairobi - House 23, Green Avenue",
-        duration: "2 hours",
-        status: "Upcoming",
+    const { bookingId } = useParams();
+    const [booking, setBooking] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let mounted = true;
+        setLoading(true);
+        bookingService.getBooking(Number(bookingId))
+            .then((b) => {
+                if (!mounted) return;
+                setBooking(b);
+            })
+            .catch((err) => console.error(err))
+            .finally(() => mounted && setLoading(false));
+
+        return () => { mounted = false; };
+    }, [bookingId]);
+
+    if (loading) {
+        return <div className="min-h-screen ml-64 p-6">Loading booking...</div>;
+    }
+
+    if (!booking) {
+        return <div className="min-h-screen ml-64 p-6">Booking not found.</div>;
+    }
+
+    // map normalized booking fields to the UI shape used previously
+    const ui = {
+        id: booking.id,
+        service: booking.service || booking.service_name,
+        description: booking.details || booking.description,
+        date: booking.date || booking.scheduled_date,
+        time: booking.time || (booking.scheduled_start_time && `${booking.scheduled_start_time} - ${booking.scheduled_end_time}`),
+        location: booking.location,
+        duration: booking.duration || null,
+        status: booking.status,
         worker: {
-            name: "Michael Ochieng",
-            initials: "MO",
-            trade: "Professional Plumber",
-            rating: 4.9,
-            phone: "+254 712 345 678",
-            email: "michael@email.com"
+            name: booking.providerName || booking.provider_full_name || booking.worker || (booking.service_provider && (booking.service_provider.name || booking.service_provider.full_name)) || (booking.serviceProviderId ? `Provider #${booking.serviceProviderId}` : `Provider #${booking.service_provider_id}`),
+            initials: booking.initials || ((booking.providerName || booking.provider_full_name || booking.worker || "").split(" ").map(s=>s[0]).slice(0,2).join("")) || "--",
+            trade: booking.service_provider?.service_type || null,
+            rating: booking.service_provider?.rating || null,
+            phone: booking.service_provider?.contact_phone || booking.service_provider?.phone || null,
+            email: booking.service_provider?.contact_email || booking.service_provider?.email || null,
         },
-        serviceFee: "KES 2,000",
-        commission: "KES 200",
-        totalPaid: "KES 2,200",
-        timeline: [
-            { task: "Booking Confirmed", completed: true },
-            { task: "Provider Assigned", completed: true },
-            { task: "Service In Progress", completed: false },
-            { task: "Client Approval", completed: false },
-            { task: "Payment Released", completed: false }
-        ]
+        serviceFee: booking.amount || booking.amountRaw ? `KES ${booking.amountRaw?.toLocaleString?.() || booking.amount}` : "",
+        commission: booking.commission || "",
+        totalPaid: booking.amount || booking.amountRaw ? `KES ${booking.amountRaw?.toLocaleString?.() || booking.amount}` : "",
+        timeline: booking.timeline || [],
     };
 
     return (
@@ -37,15 +60,15 @@ function MyBookingDetails() {
                 <div className="flex justify-between items-start mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-800">Booking Details</h1>
-                        <p className="text-gray-600 mt-2">Booking ID #{booking.id}</p>
+                        <p className="text-gray-600 mt-2">Booking ID #{ui.id}</p>
                     </div>
                     <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                        booking.status === "Upcoming" ? "bg-sky-100 text-sky-800" :
-                        booking.status === "In Progress" ? "bg-blue-100 text-blue-800" :
-                        booking.status === "Completed" ? "bg-green-100 text-green-800" :
+                        ui.status === "Upcoming" ? "bg-sky-100 text-sky-800" :
+                        ui.status === "In Progress" ? "bg-blue-100 text-blue-800" :
+                        ui.status === "Completed" ? "bg-green-100 text-green-800" :
                         "bg-gray-100 text-gray-700"
                     }`}>
-                        {booking.status}
+                        {ui.status}
                     </span>
                 </div>
             </section>
@@ -57,7 +80,7 @@ function MyBookingDetails() {
                         <div className="space-y-6">                            
                                 <div>
                                     <p className="text-sm text-gray-600 font-medium">Service</p>
-                                    <p className="text-lg  text-gray-800 mt-1">{booking.service}</p>
+                                    <p className="text-lg  text-gray-800 mt-1">{ui.service}</p>
                                 </div>
                             {/* Date and Time - Horizontal on same line */}
                             <div className="grid grid-cols-2 gap-6">
@@ -65,14 +88,14 @@ function MyBookingDetails() {
                                     <Calendar className="w-5 h-5 text-[#056db3] mt-0.5 shrink-0" />
                                     <div>
                                         <p className="text-sm text-gray-600 font-medium">Date</p>
-                                        <p className="text-lg  text-gray-800 mt-1">{booking.date}</p>
+                                        <p className="text-lg  text-gray-800 mt-1">{ui.date}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-3">
                                     <Clock3 className="w-5 h-5 text-[#056db3] mt-0.5 shrink-0" />
                                     <div>
                                         <p className="text-sm text-gray-600 font-medium">Time</p>
-                                        <p className="text-lg text-gray-800 mt-1">{booking.time}</p>
+                                        <p className="text-lg text-gray-800 mt-1">{ui.time}</p>
                                     </div>
                                 </div>
                             </div>
@@ -82,14 +105,14 @@ function MyBookingDetails() {
                                 <MapPin className="w-5 h-5 text-[#056db3] mt-0.5 shrink-0" />
                                 <div className="flex-1">
                                     <p className="text-sm text-gray-600 font-medium">Location</p>
-                                    <p className="text-gray-800  mt-1">{booking.location}</p>
+                                    <p className="text-gray-800  mt-1">{ui.location}</p>
                                 </div>
                             </div>
 
                             {/* Description - Full width */}
                             <div>
                                 <p className="text-sm text-gray-600 font-medium">Description</p>
-                                <p className="text-gray-800 mt-1">{booking.description}</p>
+                                <p className="text-gray-800 mt-1">{ui.description}</p>
                             </div>
                         </div>
                     </section>
@@ -98,20 +121,20 @@ function MyBookingDetails() {
                         <h2 className="text-xl font-bold text-gray-800 mb-6">Provider Information</h2>
                         <div className="flex items-center gap-4 mb-6">
                             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-2xl font-bold text-white">
-                                {booking.worker.initials}
+                                {ui.worker.initials}
                             </div>
                             <div className="flex-1">
-                                <p className="text-lg font-semibold text-gray-800">{booking.worker.name}</p>
-                                <p className="text-sm text-gray-600">{booking.worker.trade}</p>
-                                <p className="text-sm text-gray-600">{booking.worker.rating} ★ rating</p>
+                                <p className="text-lg font-semibold text-gray-800">{ui.worker.name}</p>
+                                <p className="text-sm text-gray-600">{ui.worker.trade}</p>
+                                <p className="text-sm text-gray-600">{ui.worker.rating ? `${ui.worker.rating} ★ rating` : ''}</p>
                             </div>
                         </div>
                         <div className="flex flex-col gap-3 mb-6 sm:flex-row">
-                            <a href={`tel:${booking.worker.phone}`} className="flex items-center gap-2 px-4 py-2 text-[#056db3] hover:bg-blue-50 rounded-lg transition-colors">
+                            <a href={ui.worker.phone ? `tel:${ui.worker.phone}` : '#'} className="flex items-center gap-2 px-4 py-2 text-[#056db3] hover:bg-blue-50 rounded-lg transition-colors">
                                 <Phone className="w-4 h-4" />
                                 <span className="text-sm font-medium">Call Provider</span>
                             </a>
-                            <a href={`mailto:${booking.worker.email}`} className="flex items-center gap-2 px-4 py-2 text-[#056db3] hover:bg-blue-50 rounded-lg transition-colors">
+                            <a href={ui.worker.email ? `mailto:${ui.worker.email}` : '#'} className="flex items-center gap-2 px-4 py-2 text-[#056db3] hover:bg-blue-50 rounded-lg transition-colors">
                                 <Mail className="w-4 h-4" />
                                 <span className="text-sm font-medium">Email Provider</span>
                             </a>
@@ -126,7 +149,7 @@ function MyBookingDetails() {
                     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-6">Booking Timeline</h2>
                         <div className="space-y-4">
-                            {booking.timeline.map((item, index) => (
+                            {(ui.timeline || []).map((item, index) => (
                                 <div key={index} className="flex items-start gap-4">
                                     <div className="shrink-0 mt-1">
                                         {item.completed ? (
@@ -150,15 +173,15 @@ function MyBookingDetails() {
                         <div className="space-y-4">
                             <div className="flex justify-between items-center py-2">
                                 <span className="font-light text-gray-700">Service Cost</span>
-                                <span className="text-gray-800 font-semibold">{booking.serviceFee}</span>
+                                <span className="text-gray-800 font-semibold">{ui.serviceFee}</span>
                             </div>
                             <div className="flex justify-between items-center py-2 border-b border-gray-300">
                                 <span className="font-light text-gray-700">Platform Fee</span>
-                                <span className="text-gray-800 font-semibold">{booking.commission}</span>
+                                <span className="text-gray-800 font-semibold">{ui.commission}</span>
                             </div>
                             <div className="flex justify-between items-center py-2">
                                 <span className="font-semibold text-gray-700">Total Amount</span>
-                                <span className="font-semibold text-green-600 text-2xl">{booking.totalPaid}</span>
+                                <span className="font-semibold text-green-600 text-2xl">{ui.totalPaid}</span>
                             </div>
                         </div>
                         <p className="text-sm text-[#056db3] bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
@@ -206,6 +229,7 @@ function MyBookingDetails() {
                                     <span>Leave feedback after the service.</span>
                                 </li>
                             </ul>
+
                         </div>
                     </div>
                 </div>

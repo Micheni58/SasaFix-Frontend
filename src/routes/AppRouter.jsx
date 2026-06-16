@@ -4,10 +4,16 @@ import Login from "../pages/Login";
 import SignUp from "../pages/SignUp";
 import About from "../pages/About";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
+import AdminNotification from "../pages/Admin/Notification";
 import ClientDashboard from "../pages/Client/ClientDashboard";
+import ClientNotification from "../pages/Client/Notification";
 import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
+import ProviderNotification from "../pages/ServiceProvider/Notification";
 import MyBookings from "../pages/Client/bookings/MyBookings";
 import MyJobs from "../pages/ServiceProvider/Jobs/MyJobs";
+import NewJobRequestDetails from "../pages/ServiceProvider/Jobs/NewJobRequestDetails";
+import InProgressJobDetails from "../pages/ServiceProvider/Jobs/InProgressJobDetails";
+import CompletedJobDetails from "../pages/ServiceProvider/Jobs/CompletedJobDetails";
 import MyBookingDetails from "../pages/Client/bookings/MyBookingDetails";
 export default function AppRouter() {
   return (
@@ -21,11 +27,17 @@ export default function AppRouter() {
 
         {/* Protected/Dashboard Routes */}
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/notifications" element={<AdminNotification />} />
         <Route path="/client" element={<ClientDashboard />} />
+        <Route path="/client/notifications" element={<ClientNotification />} />
         <Route path="/provider" element={<ProviderDashboard />} />
+        <Route path="/provider/notifications" element={<ProviderNotification />} />
 
         <Route path="/client/my-bookings" element={<MyBookings />} />
         <Route path="/provider/my-jobs" element={<MyJobs />} />
+        <Route path="/provider/my-jobs/new/:id" element={<NewJobRequestDetails />} />
+        <Route path="/provider/my-jobs/in-progress/:id" element={<InProgressJobDetails />} />
+        <Route path="/provider/my-jobs/completed/:id" element={<CompletedJobDetails />} />
         <Route path="/client/my-bookings/:bookingId" element={<MyBookingDetails />} />
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />

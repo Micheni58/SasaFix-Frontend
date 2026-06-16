@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Calendar,
   Clock3,
@@ -10,81 +10,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const bookings = [
-  {
-    id: 1,
-    service: "Plumbing Repair",
-    details: "Fix leaking kitchen sink",
-    worker: "Michael Ochieng",
-    initials: "MO",
-    date: "2026-01-08",
-    time: "10:00 AM",
-    location: "Westlands, Nairobi",
-    status: "Upcoming",
-    amount: "KES 3,000",
-  },
-  {
-    id: 2,
-    service: "Electrical Repair",
-    details: "Restore living room sockets",
-    worker: "Jane Smith",
-    initials: "JS",
-    date: "2026-01-09",
-    time: "2:00 PM",
-    location: "Kilimani, Nairobi",
-    status: "In Progress",
-    amount: "KES 1,500",
-  },
-  {
-    id: 3,
-    service: "Cleaning",
-    details: "Deep clean two-bedroom apartment",
-    worker: "Bob Johnson",
-    initials: "BJ",
-    date: "2026-03-26",
-    time: "9:00 AM",
-    location: "Lavington, Nairobi",
-    status: "Completed",
-    amount: "KES 800",
-  },
-  {
-    id: 4,
-    service: "Gardening",
-    details: "Lawn trimming and hedge shaping",
-    worker: "Alice Brown",
-    initials: "AB",
-    date: "2026-03-24",
-    time: "1:00 PM",
-    location: "Karen, Nairobi",
-    status: "Cancelled",
-    amount: "KES 1,200",
-  },
-  {
-    id: 5,
-    service: "Appliance Repair",
-    details: "Repair washing machine drum",
-    worker: "David Mwangi",
-    initials: "DM",
-    date: "2026-04-05",
-    time: "8:30 AM",
-    location: "Riverside, Nairobi",
-    status: "Upcoming",
-    amount: "KES 2,300",
-  },
-  {
-    id: 6,
-    service: "Painting",
-    details: "Bedroom wall repainting",
-    worker: "Faith Njeri",
-    initials: "FN",
-    date: "2026-03-20",
-    time: "11:30 AM",
-    location: "South B, Nairobi",
-    status: "Completed",
-    amount: "KES 4,100",
-  },
-];
+import bookingService from "../../../api/bookingService";
 
 const tabs = ["All Bookings", "Upcoming", "In Progress", "Completed", "Cancelled"];
 
@@ -105,6 +31,33 @@ function formatBookingDate(date) {
 
 function MyBookings() {
   const [activeTab, setActiveTab] = useState("All Bookings");
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Once auth is working replace the hardcoded ID with the actual logged in user:
+
+    const clientId = Number(localStorage.getItem("userId") || 1);
+    let mounted = true;
+    setLoading(true);
+    bookingService
+      .listClientBookings(clientId)
+      .then((data) => {
+        if (!mounted) return;
+        setBookings(data || []);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!mounted) return;
+        setError(err);
+      })
+      .finally(() => mounted && setLoading(false));
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filteredBookings =
     activeTab === "All Bookings"
@@ -194,10 +147,24 @@ function MyBookings() {
                   <td className="px-4 py-5">
                     <div className="flex items-center gap-3">
                       <div className="flex h-11 w-11 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
-                        {booking.initials}
+                        {(() => {
+                          const displayName =
+                            booking.providerName ||
+                            booking.provider_full_name ||
+                            booking.worker ||
+                            (booking.service_provider && (booking.service_provider.name || booking.service_provider.full_name)) ||
+                            (booking.serviceProviderId ? `Provider #${booking.serviceProviderId}` : (booking.service_provider_id ? `Provider #${booking.service_provider_id}` : "Provider"));
+                          const initials = displayName
+                            .toString()
+                            .split(" ")
+                            .map((s) => (s ? s[0] : ""))
+                            .slice(0, 2)
+                            .join("");
+                          return initials || booking.initials || "--";
+                        })()}
                       </div>
                       <div className="max-w-30 text-sm font-semibold leading-6 text-gray-800">
-                        {booking.worker}
+                        {booking.providerName || booking.provider_full_name || booking.worker || (booking.service_provider && (booking.service_provider.name || booking.service_provider.full_name)) || (booking.serviceProviderId ? `Provider #${booking.serviceProviderId}` : (booking.service_provider_id ? `Provider #${booking.service_provider_id}` : "Provider"))}
                       </div>
                     </div>
                   </td>
@@ -233,7 +200,7 @@ function MyBookings() {
                   </td>
                   <td className="px-4 py-5">
                     <div className="flex items-center gap-4 whitespace-nowrap">
-                      <Link to={`/my-bookings/${booking.id}`} className="rounded-xl border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
+                      <Link to={`/client/my-bookings/${booking.id}`} className="rounded-xl border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
                         View
                       </Link>
                       {(booking.status === "Upcoming" || booking.status === "In Progress") && (

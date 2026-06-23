@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Mail,
     Phone,
@@ -12,70 +12,115 @@ import {
     Download,
     Flag
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import bookingService from "../../../api/bookingService";
+import Sidebar from "../../../layout/Sidebar";
+import Navbar from "../../../components/Navbar";
 
 function CompletedJobDetails() {
-    // Sample job data
-    const job = {
-        id: "00004",
-        service: "Furniture Assembly",
-        description: "Assemble IKEA bedroom furniture set (bed, wardrobe, nightstands)",
-        date: "Jan 10, 2026",
-        time: "11:00 AM",
-        location: "Lavington, Nairobi - Apartment 12, Maple Court",
-        duration: "2.5 hours",
-        status: "Completed",
-        client: {
-            name: "David Kariuki",
-            initials: "DK",
-            type: "Regular Customer",
-            bookings: 12,
-            phone: "+254 745 678 901",
-            email: "david@email.com"
-        },
-        serviceFee: "KES 1,800",
-        commission: "KES 180",
-        earnings: "KES 1,620",
-        rating: 5,
-        review: "Excellent work! The furniture is assembled perfectly. Very professional and courteous. Would definitely recommend!",
-        completedDate: "Jan 10, 2026 at 1:30 PM",
-        timeline: [
-            { task: "Job Accepted", completed: true },
-            { task: "Started Work", completed: true },
-            { task: "Completed", completed: true },
-            { task: "Client Approved", completed: true },
-            { task: "Payment Released", completed: true }
-        ]
-    };
+    const { id: bookingId } = useParams();
+    const [job, setJob] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        let mounted = true;
+        setLoading(true);
+        bookingService.getBooking(bookingId)
+            .then((b) => {
+                if (!mounted) return;
+                const mapped = {
+                    id: b.id || bookingId,
+                    service: b.service || b.service_name || '',
+                    description: b.details || b.description || '',
+                    date: b.date || b.scheduled_date || '',
+                    time: b.time || b.scheduled_start_time || '',
+                    location: b.location || '',
+                    duration: b.duration || b.estimated_duration || '',
+                    status: b.status || 'Completed',
+                    client: {
+                        name: b.clientName || (b.client && (b.client.full_name || b.client.name)) || `Client #${b.clientId || (b.client && b.client.id)}`,
+                        initials: (b.clientName || (b.client && (b.client.full_name || b.client.name)) || '').split(' ').map(s=>s[0]).slice(0,2).join('') || '--',
+                        type: b.client?.type || 'Customer',
+                        bookings: b.client?.booking_count || b.client?.bookings || 0,
+                        phone: b.client?.phone || b.client_phone || '',
+                        email: b.client?.email || b.client_email || ''
+                    },
+                    serviceFee: b.amount || (b.amountRaw ? `KES ${b.amountRaw}` : ''),
+                    commission: b.commission || '',
+                    earnings: b.earnings || '',
+                    rating: b.rating || null,
+                    review: b.review || b.client_review || '',
+                    completedDate: b.completed_at || b.completedDate || '',
+                    timeline: b.timeline || [] ,
+                    raw: b
+                };
+                setJob(mapped);
+            })
+            .catch((e) => {
+                console.error(e);
+                if (!mounted) return;
+                setError(e.message || 'Failed to load booking');
+            })
+            .finally(() => mounted && setLoading(false));
+
+        return () => { mounted = false; };
+    }, [bookingId]);
 
     const [modalType, setModalType] = useState(null);
 
     const closeModal = () => setModalType(null);
 
     const confirmModal = () => {
-        // Add action logic here
         setModalType(null);
     };
 
-    return (
-        <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
-            {/* Header */}
-            <section className="mb-8">
-                <div className="flex justify-between items-start mb-6">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-800">Job Details</h1>
-                        <p className="text-gray-600 mt-2">Request ID #{job.id}</p>
-                    </div>
-                    <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                        job.status === "New Request" ? "bg-amber-100 text-amber-800" :
-                        job.status === "Accepted" ? "bg-sky-100 text-sky-800" :
-                        job.status === "In Progress" ? "bg-blue-100 text-blue-800" :
-                        "bg-green-100 text-green-800"
-                    }`}>
-                        {job.status}
-                    </span>
+    if (loading) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">Loading...</p>
+                    </main>
                 </div>
-            </section>
+            </div>
+        );
+    }
+    if (error) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-red-500">Error: {error}</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+    if (!job) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">No booking found.</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+        return (
+        <div className="flex min-h-screen bg-[#f8fafc]">
+            <Sidebar role="provider" />
+            <div className="flex-1 ml-72">
+                <Navbar />
+                <main className="pt-24 px-6 pb-6">
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Content */}
@@ -88,7 +133,7 @@ function CompletedJobDetails() {
                                 <p className="text-sm text-gray-600">Service Type</p>
                                 <p className="text-lg  text-gray-800 mt-1">{job.service}</p>
                             </div>
-                        
+
                             <div>
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                     <Calendar className="h-4 w-4" />
@@ -214,17 +259,17 @@ function CompletedJobDetails() {
                 <div className="lg:col-span-1">
                     <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                         <h2 className="text-xl font-bold text-gray-800">Actions</h2>
-                        
+
                         <button className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white font-semibold py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors">
                             <Download className="w-5 h-5" />
                             Download Invoice
                         </button>
-                        
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             <MessageSquare className="w-5 h-5" />
                             Message Client
                         </button>
-                        
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             <Star className="w-5 h-5" />
                             View More Jobs
@@ -254,6 +299,8 @@ function CompletedJobDetails() {
                         </div>
                     </div>
                 </div>
+            </div>
+                </main>
             </div>
         </div>
     );

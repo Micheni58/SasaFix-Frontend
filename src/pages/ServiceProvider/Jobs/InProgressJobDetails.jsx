@@ -1,49 +1,115 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Phone, CheckCircle2, Calendar, Clock3, MapPin, AlertCircle, MessageSquare, RotateCcw, Flag, Pause } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import bookingService from "../../../api/bookingService";
+import Sidebar from "../../../layout/Sidebar";
+import Navbar from "../../../components/Navbar";
 
 function InProgressJobDetails() {
-    // Sample job data
-    const job = {
-        id: "00003",
-        service: "Home Cleaning",
-        description: "Full house cleaning including kitchen, bathrooms, and living areas",
-        date: "Jan 15, 2026",
-        time: "09:00 AM",
-        location: "Kilimani, Nairobi - House 45, Oak Street",
-        duration: "4 hours",
-        status: "In Progress",
-        client: {
-            name: "Mary Okonkwo",
-            initials: "MO",
-            type: "New Customer",
-            bookings: 1,
-            phone: "+254 734 567 890",
-            email: "mary@email.com"
-        },
-        serviceFee: "KES 2,500",
-        commission: "KES 250",
-        earnings: "KES 2,250",
-        timeline: [
-            { task: "Job Accepted", completed: true },
-            { task: "Started Work", completed: true },
-            { task: "Completed", completed: false },
-            { task: "Client Approved", completed: false },
-            { task: "Payment Released", completed: false }
-        ]
-    };
+    const { id: bookingId } = useParams();
+    const [job, setJob] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        let mounted = true;
+        setLoading(true);
+        bookingService.getBooking(bookingId)
+            .then((b) => {
+                if (!mounted) return;
+                const mapped = {
+                    id: b.id || bookingId,
+                    service: b.service || b.service_name || '',
+                    description: b.details || b.description || '',
+                    date: b.date || b.scheduled_date || '',
+                    time: b.time || b.scheduled_start_time || '',
+                    location: b.location || '',
+                    duration: b.duration || b.estimated_duration || '',
+                    status: b.status || 'In Progress',
+                    client: {
+                        name: b.clientName || (b.client && (b.client.full_name || b.client.name)) || `Client #${b.clientId || (b.client && b.client.id)}`,
+                        initials: (b.clientName || (b.client && (b.client.full_name || b.client.name)) || '').split(' ').map(s=>s[0]).slice(0,2).join('') || '--',
+                        type: b.client?.type || 'Customer',
+                        bookings: b.client?.booking_count || b.client?.bookings || 0,
+                        phone: b.client?.phone || b.client_phone || '',
+                        email: b.client?.email || b.client_email || ''
+                    },
+                    serviceFee: b.amount || (b.amountRaw ? `KES ${b.amountRaw}` : ''),
+                    commission: b.commission || '',
+                    earnings: b.earnings || '',
+                    rating: b.rating || null,
+                    review: b.review || b.client_review || '',
+                    timeline: b.timeline || [],
+                    raw: b
+                };
+                setJob(mapped);
+            })
+            .catch((e) => {
+                console.error(e);
+                if (!mounted) return;
+                setError(e.message || 'Failed to load booking');
+            })
+            .finally(() => mounted && setLoading(false));
+
+        return () => { mounted = false; };
+    }, [bookingId]);
 
     const [modalType, setModalType] = useState(null);
 
     const closeModal = () => setModalType(null);
 
     const confirmModal = () => {
-        // Add action logic here
         setModalType(null);
     };
 
+    if (loading) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">Loading...</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-red-500">Error: {error}</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+    if (!job) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">No booking found.</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
+        <div className="flex min-h-screen bg-[#f8fafc]">
+            <Sidebar role="provider" />
+            <div className="flex-1 ml-72">
+                <Navbar />
+                <main className="pt-24 px-6 pb-6">
             {/* Header */}
             <section className="mb-8">
                 <div className="flex justify-between items-start mb-6">
@@ -181,18 +247,18 @@ function InProgressJobDetails() {
                 <div className="lg:col-span-1">
                     <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                         <h2 className="text-xl font-bold text-gray-800">Actions</h2>
-                        
+
                         {/* <button onClick={() => setModalType("complete")} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-2 px-2 rounded-lg hover:bg-green-700 transition-colors">
                             <CheckCircle2 className="w-5 h-5" />
                             Mark as Completed
                         </button> */}
-                        
-                        
+
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             Message Client
                         </button>
-                    
-                        
+
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-red-200 text-red-600 font-semibold py-2 px-2 rounded-lg hover:bg-red-50 transition-colors">
                             <Flag className="w-5 h-5" />
                             Report Issue
@@ -244,6 +310,8 @@ function InProgressJobDetails() {
                     </div>
                 </div>
             )}
+                </main>
+            </div>
         </div>
     );
 }

@@ -1,37 +1,63 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
 import { Mail, Phone, CheckCircle2, Calendar, Clock3, MapPin, Flag } from "lucide-react";
-import { Link } from "react-router-dom";
+import bookingService from "../../../api/bookingService";
+import Sidebar from "../../../layout/Sidebar";
+import Navbar from "../../../components/Navbar";
 
 function AcceptedJobDetails() {
-    // Sample job data
-    const job = {
-        id: "00002",
-        service: "Electrical Wiring",
-        description: "Install new light fixtures in living room and bedroom",
-        date: "Jan 12, 2026",
-        time: "02:00 PM",
-        location: "Karen, Nairobi - Apartment 5, Spring Gardens",
-        duration: "3 hours",
-        status: "Accepted",
-        client: {
-            name: "John Kipchoge",
-            initials: "JK",
-            type: "Regular Customer",
-            bookings: 8,
-            phone: "+254 723 456 789",
-            email: "john@email.com"
-        },
-        serviceFee: "KES 3,500",
-        commission: "KES 350",
-        earnings: "KES 3,150",
-        timeline: [
-            { task: "Job Accepted", completed: true },
-            { task: "Started Work", completed: false },
-            { task: "Completed", completed: false },
-            { task: "Client Approved", completed: false },
-            { task: "Payment Released", completed: false }
-        ]
-    };
+    const { id: bookingId } = useParams();
+    const [job, setJob] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        let mounted = true;
+        setLoading(true);
+        bookingService.getBooking(bookingId)
+            .then((b) => {
+                if (!mounted) return;
+                // map normalized booking to expected fields
+                const mapped = {
+                    id: b.id || bookingId,
+                    service: b.service || b.service_name || b.details || '',
+                    description: b.details || b.description || '',
+                    date: b.date || b.scheduled_date || (b.scheduled_start_time ? b.scheduled_start_time : ''),
+                    time: (b.time || (b.scheduled_start_time ? b.scheduled_start_time : '')) || '',
+                    location: b.location || '',
+                    duration: b.duration || b.estimated_duration || '',
+                    status: b.status || 'Accepted',
+                    client: {
+                        name: b.clientName || (b.client && (b.client.full_name || b.client.name)) || `Client #${b.clientId || (b.client && b.client.id)}`,
+                        initials: (b.clientName || (b.client && (b.client.full_name || b.client.name)) || '').split(' ').map(s=>s[0]).slice(0,2).join('') || '--',
+                        type: b.client?.type || 'Customer',
+                        bookings: b.client?.booking_count || b.client?.bookings || 0,
+                        phone: b.client?.phone || b.client_phone || '',
+                        email: b.client?.email || b.client_email || ''
+                    },
+                    serviceFee: b.amount || (b.amountRaw ? `KES ${b.amountRaw}` : ''),
+                    commission: b.commission || '',
+                    earnings: b.earnings || '',
+                    timeline: b.timeline || [
+                        { task: 'Job Accepted', completed: true },
+                        { task: 'Started Work', completed: b.status === 'In Progress' },
+                        { task: 'Completed', completed: b.status === 'Completed' },
+                        { task: 'Client Approved', completed: false },
+                        { task: 'Payment Released', completed: false }
+                    ],
+                    raw: b
+                };
+                setJob(mapped);
+            })
+            .catch((e) => {
+                console.error(e);
+                if (!mounted) return;
+                setError(e.message || 'Failed to load booking');
+            })
+            .finally(() => mounted && setLoading(false));
+
+        return () => { mounted = false; };
+    }, [bookingId]);
 
     const [modalType, setModalType] = useState(null);
 
@@ -42,9 +68,53 @@ function AcceptedJobDetails() {
         setModalType(null);
     };
 
+    if (loading) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">Loading...</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+    if (error) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-red-500">Error: {error}</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+    if (!job) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">No booking found.</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
-            {/* Header */}
+        <div className="flex min-h-screen bg-[#f8fafc]">
+            <Sidebar role="provider" />
+            <div className="flex-1 ml-72">
+                <Navbar />
+                <main className="pt-24 px-6 pb-6">
+                    {/* Header */}
             <section className="mb-8">
                 <div className="flex justify-between items-start mb-6">
                     <div>
@@ -181,23 +251,23 @@ function AcceptedJobDetails() {
                 <div className="lg:col-span-1">
                     <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                         <h2 className="text-xl font-bold text-gray-800">Actions</h2>
-                        
+
                         <button onClick={() => setModalType("start")} className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white  py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors">
                             Start Work
                         </button>
-                        
+
                         <button onClick={() => setModalType("complete")} className="w-full flex border-2 border-[#056db3] items-center justify-center gap-2 text-[#056db3] py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             Mark as Completed
                         </button>
-                        
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             Message Client
                         </button>
-                        
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             Request Reschedule
                         </button>
-                        
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-red-200 text-red-600  py-2 px-2 rounded-lg hover:bg-red-50 transition-colors">
                             <Flag className="w-5 h-5" />
                             Report Issue
@@ -251,6 +321,8 @@ function AcceptedJobDetails() {
                     </div>
                 </div>
             )}
+                </main>
+            </div>
         </div>
     );
 }

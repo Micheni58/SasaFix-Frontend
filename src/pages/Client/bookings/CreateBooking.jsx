@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Clock3, MapPin, FileText, ShieldCheck } from "lucide-react";
+import bookingService from "../../../api/bookingService";
+import Sidebar from "../../../layout/Sidebar";
+import Navbar from "../../../components/Navbar";
 
 function CreateBooking() {
     const navigate = useNavigate();
@@ -10,13 +13,63 @@ function CreateBooking() {
     const [serviceLocation, setServiceLocation] = useState("");
     const [jobDescription, setJobDescription] = useState("");
     const [urgency, setUrgency] = useState("normal");
+    const [providerId, setProviderId] = useState(null);
+    const [providerName, setProviderName] = useState("");
+    const [providerTrade, setProviderTrade] = useState("");
+    const [providerRate, setProviderRate] = useState(0);
+    const [durationHours, setDurationHours] = useState(1);
+    const [submitting, setSubmitting] = useState(false);
+    const [providers, setProviders] = useState([]);
+    const [providerAvailability, setProviderAvailability] = useState(null);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
 
+    // open confirmation modal instead of submitting immediately
     const handleSubmit = (event) => {
-        event.preventDefault();
-        const bookingData = { serviceType, preferredDate, preferredTime, serviceLocation, jobDescription, urgency };
-        console.log(bookingData);
-        // Navigate to MyBookings page
-        navigate("/client/mybookings");
+        event && event.preventDefault();
+        setShowConfirmModal(true);
+    };
+
+    const doCreateBooking = async () => {
+        setShowConfirmModal(false);
+        setSubmitting(true);
+        try {
+            const clientId = Number(localStorage.getItem("userId") || 1);
+            // compute end time from preferredTime and durationHours
+            let endTime = null;
+            if (preferredTime) {
+                // preferredTime may be like '09:00' or '9:00'
+                const [h, m] = preferredTime.split(":").map((s) => Number(s));
+                const base = new Date();
+                base.setHours(h, m || 0, 0, 0);
+                const ms = base.getTime() + (Number(durationHours) || 0) * 60 * 60 * 1000;
+                const end = new Date(ms);
+                const pad = (n) => n.toString().padStart(2, "0");
+                endTime = `${pad(end.getHours())}:${pad(end.getMinutes())}:00`;
+            }
+
+            const payload = {
+                client_id: clientId,
+                service_provider_id: providerId,
+                service_name: serviceType,
+                description: jobDescription,
+                scheduled_date: preferredDate || null,
+                scheduled_start_time: preferredTime ? `${preferredTime}:00` : null,
+                scheduled_end_time: endTime,
+                location: serviceLocation,
+                amount: providerRate ? Math.round(providerRate * Number(durationHours || 1)) : undefined,
+            };
+
+            try {
+                await bookingService.createBooking(payload);
+            } catch (e) {
+                console.log("Booking payload (no backend):", payload);
+            }
+
+            navigate("/client/my-bookings");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleCancel = () => {
@@ -26,10 +79,42 @@ function CreateBooking() {
         setServiceLocation("");
         setJobDescription("");
         setUrgency("normal");
+        setProviderId(null);
+        setProviderName("");
+        setProviderTrade("");
+        setProviderRate(0);
+        setDurationHours(1);
+        setShowCancelModal(false);
     };
 
+    useEffect(() => {
+        let mounted = true;
+        bookingService.listProviders().then((list) => {
+            if (!mounted) return;
+            setProviders(list);
+        }).catch((e)=>{console.error(e)});
+        return () => { mounted = false; };
+    }, []);
+
+    useEffect(() => {
+        let mounted = true;
+        if (providerId) {
+            bookingService.getProviderAvailability(providerId).then((av)=>{
+                if (!mounted) return;
+                setProviderAvailability(av);
+            }).catch(()=>setProviderAvailability(null));
+        } else {
+            setProviderAvailability(null);
+        }
+        return () => { mounted = false; };
+    }, [providerId]);
+
     return (
-        <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
+        <div className="flex min-h-screen bg-[#f8fafc]">
+            <Sidebar role="client" />
+            <div className="flex-1 ml-72">
+                <Navbar />
+                <main className="pt-24 px-6 pb-6">
             <section className="mb-8">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -45,16 +130,43 @@ function CreateBooking() {
                     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-6">Service Provider</h2>
                         <div className="border-b border-gray-200 pb-6">
-                            {/* The service provider profile with circle initials of names,speciality,and rate per hr */}
                             <div className="flex items-center gap-4">
                                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-2xl font-bold text-white">
-                                    JD
+                                    {(() => (providerName ? providerName.split(" ").map(s => s[0]).slice(0,2).join("") : "--"))()}
                                 </div>
                                 <div>
-                                    <p className="text-lg font-semibold text-gray-800">Jane Doe</p>
-                                    <p className="text-sm text-gray-600">Certified Plumber</p>
-                                    <p className="text-sm text-gray-600 mt-1">KES 1,500 / hr</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-lg font-semibold text-gray-800">{providerName || "Select a provider"}</p>
+                                    </div>
+                                    <p className="text-sm text-gray-600">{providerTrade || "Trade / speciality"}</p>
+                                    <p className="text-sm text-gray-600 mt-1">{providerRate ? `KES ${providerRate} / hr` : "Rate not set"}</p>
                                 </div>
+                            </div>
+
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Choose Provider</label>
+                                <select
+                                    value={providerId || ""}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (!val) {
+                                            setProviderId(null); setProviderName(""); setProviderTrade(""); setProviderRate(0);
+                                            return;
+                                        }
+                                        const pid = Number(val);
+                                        const p = providers.find((x) => Number(x.id) === pid) || {};
+                                        setProviderId(pid);
+                                        setProviderName(p.name || p.full_name || p.provider_full_name || "");
+                                        setProviderTrade(p.service_type || p.trade || "");
+                                        setProviderRate(p.rate || p.hourly_rate || p.default_rate || 0);
+                                    }}
+                                    className="w-full rounded-xl border border-gray-300 bg-gray-100 px-4 py-3 text-gray-800  focus:outline-none focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3]"
+                                >
+                                    <option value="">Select provider</option>
+                                    {providers.map((p) => (
+                                        <option key={p.id} value={p.id}>{p.name || p.full_name || p.provider_full_name || `Provider #${p.id}`}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
                     </section>
@@ -190,6 +302,18 @@ function CreateBooking() {
                                     </label>
                                 </div>
                             </div>
+                            {/* Duration input */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Estimated Duration (hours)</label>
+                                <input
+                                    type="number"
+                                    min="0.5"
+                                    step="0.5"
+                                    value={durationHours}
+                                    onChange={(e) => setDurationHours(e.target.value)}
+                                    className="w-32 rounded-xl border border-gray-300 bg-gray-100 px-4 py-3 text-gray-800  focus:outline-none focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3]"
+                                />
+                            </div>
                         </form>
                     </section>
 
@@ -209,18 +333,18 @@ function CreateBooking() {
                                 </div>
 
                                 <div className="space-y-3">
-                                    <div className="flex justify-between items-center py-2 border-gray-100">
-                                        <span className="font-light text-sm text-gray-700">Estimated Service Cost</span>
-                                        <span className="text-gray-800 font-semibold text-sm">KES 2,000</span>
-                                    </div>
-                                    <div className="flex justify-between items-center py-2 border-b border-gray-300">
-                                        <span className="font-light text-sm text-gray-700">Platform Fee</span>
-                                        <span className="text-gray-800 font-semibold text-sm">KES 200</span>
-                                    </div>
-                                    <div className="flex justify-between items-center py-2">
-                                        <span className="font-semibold text-sm text-gray-700">Total Amount</span>
-                                        <span className="text-green-600 font-semibold text-lg">KES 2,200</span>
-                                    </div>
+                                        <div className="flex justify-between items-center py-2 border-gray-100">
+                                            <span className="font-light text-sm text-gray-700">Estimated Service Cost</span>
+                                            <span className="text-gray-800 font-semibold text-sm">{providerRate ? `KES ${providerRate * Number(durationHours || 1)}` : "KES 0"}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b border-gray-300">
+                                            <span className="font-light text-sm text-gray-700">Platform Fee</span>
+                                            <span className="text-gray-800 font-semibold text-sm">{providerRate ? `KES ${Math.round((providerRate * Number(durationHours || 1)) * 0.1)}` : "KES 0"}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2">
+                                            <span className="font-semibold text-sm text-gray-700">Total Amount</span>
+                                            <span className="text-green-600 font-semibold text-lg">{providerRate ? `KES ${Math.round((providerRate * Number(durationHours || 1)) * 1.1)}` : "KES 0"}</span>
+                                        </div>
                                 </div>
                             </div>
 
@@ -242,7 +366,7 @@ function CreateBooking() {
                                 </button>
                             </div>
 
-                          
+
                             {/* Separator */}
                             <div className="border-t border-gray-300 my-6"></div>
 

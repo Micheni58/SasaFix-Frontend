@@ -1,49 +1,110 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Phone, CheckCircle2, Calendar, Clock3, MapPin, AlertCircle, MessageSquare, RotateCcw, Flag } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import bookingService from "../../../api/bookingService";
+import Sidebar from "../../../layout/Sidebar";
+import Navbar from "../../../components/Navbar";
 
 function NewJobRequestDetails() {
-    // Sample job data
-    const job = {
-        id: "00001",
-        service: "Plumbing Repair",
-        description: "Fix leaking kitchen sink and check water pressure",
-        date: "Jan 8, 2026",
-        time: "10:00 AM",
-        location: "Westlands, Nairobi - House 23, Green Avenue",
-        duration: "2 hours",
-        status: "New Request",
-        client: {
-            name: "Sarah Wanjiku",
-            initials: "SW",
-            type: "Regular Customer",
-            bookings: 5,
-            phone: "+254 712 345 678",
-            email: "sarah@email.com"
-        },
-        serviceFee: "KES 2,000",
-        commission: "KES 200",
-        earnings: "KES 1,800",
-        timeline: [
-            { task: "Job Accepted", completed: false },
-            { task: "Started Work", completed: false },
-            { task: "Completed", completed: false },
-            { task: "Client Approved", completed: false },
-            { task: "Payment Released", completed: false }
-        ]
-    };
+    const { id: bookingId } = useParams();
+    const [job, setJob] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        let mounted = true;
+        setLoading(true);
+        bookingService.getBooking(bookingId)
+            .then((b) => {
+                if (!mounted) return;
+                const mapped = {
+                    id: b.id || bookingId,
+                    service: b.service || b.service_name || '',
+                    description: b.details || b.description || '',
+                    date: b.date || b.scheduled_date || '',
+                    time: b.time || b.scheduled_start_time || '',
+                    location: b.location || '',
+                    duration: b.duration || b.estimated_duration || '',
+                    status: b.status || 'New Request',
+                    client: {
+                        name: b.clientName || (b.client && (b.client.full_name || b.client.name)) || `Client #${b.clientId || (b.client && b.client.id)}`,
+                        initials: (b.clientName || (b.client && (b.client.full_name || b.client.name)) || '').split(' ').map(s=>s[0]).slice(0,2).join('') || '--',
+                        type: b.client?.type || 'Customer',
+                        bookings: b.client?.booking_count || b.client?.bookings || 0,
+                        phone: b.client?.phone || b.client_phone || '',
+                        email: b.client?.email || b.client_email || ''
+                    },
+                    serviceFee: b.amount || (b.amountRaw ? `KES ${b.amountRaw}` : ''),
+                    commission: b.commission || '',
+                    earnings: b.earnings || '',
+                    timeline: b.timeline || [],
+                    raw: b
+                };
+                setJob(mapped);
+            })
+            .catch((e) => {
+                console.error(e);
+                if (!mounted) return;
+                setError(e.message || 'Failed to load booking');
+            })
+            .finally(() => mounted && setLoading(false));
+
+        return () => { mounted = false; };
+    }, [bookingId]);
 
     const [modalType, setModalType] = useState(null);
 
     const closeModal = () => setModalType(null);
 
     const confirmModal = () => {
-        // Add accept/decline action logic here
         setModalType(null);
     };
 
-    return (
-        <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
+    if (loading) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">Loading...</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+    if (error) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-red-500">Error: {error}</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+    if (!job) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">No booking found.</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6">
             {/* Header */}
             <section className="mb-8">
                 <div className="flex justify-between items-start mb-6">
@@ -73,7 +134,7 @@ function NewJobRequestDetails() {
                                 <p className="text-sm text-gray-600 ">Service Type</p>
                                 <p className="text-lg  text-gray-800 mt-1">{job.service}</p>
                             </div>
-                            
+
                             <div>
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                     <Calendar className="h-4 w-4" />
@@ -182,23 +243,23 @@ function NewJobRequestDetails() {
                 <div className="lg:col-span-1">
                     <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                         <h2 className="text-xl font-bold text-gray-800">Actions</h2>
-                        
+
                         <button onClick={() => setModalType("accept")} className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white font-semibold py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors">
                             Accept Job
                         </button>
-                        
+
                         <button onClick={() => setModalType("decline")} className="w-full flex items-center justify-center gap-2 border-2 border-red-100 text-red-600 py-2 px-2 rounded-lg hover:bg-red-50 transition-colors">
                             Decline Request
                         </button>
-                        
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             Message Client
                         </button>
-                        
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             Request Reschedule
                         </button>
-                        
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-red-100 text-red-600 py-2 px-2 rounded-lg hover:bg-red-50 transition-colors">
                             <Flag className="w-5 h-5" />
                             Report Issue
@@ -277,7 +338,9 @@ function NewJobRequestDetails() {
                     </div>
                 </div>
             )}
-        </div>
+                    </main>
+                </div>
+            </div>
     );
 }
 

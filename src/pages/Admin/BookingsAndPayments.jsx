@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ArrowUpRight,
   CalendarDays,
@@ -10,58 +10,9 @@ import {
   Wallet,
 } from "lucide-react";
 
-const bookingRows = [
-  {
-    id: 1,
-    client: "Jane Kamau",
-    provider: "John Mwangi",
-    service: "Plumbing Repair",
-    date: "2026-03-06",
-    amount: "KES 5,000",
-    commission: "KES 750",
-    status: "Completed",
-  },
-  {
-    id: 2,
-    client: "Peter Omondi",
-    provider: "David Kariuki",
-    service: "House Cleaning",
-    date: "2026-03-07",
-    amount: "KES 3,500",
-    commission: "KES 525",
-    status: "In Progress",
-  },
-  {
-    id: 3,
-    client: "Alice Wanjiru",
-    provider: "Mercy Njeri",
-    service: "Electrical Repair",
-    date: "2026-03-08",
-    amount: "KES 4,200",
-    commission: "KES 630",
-    status: "Scheduled",
-  },
-  {
-    id: 4,
-    client: "Brian Kiptoo",
-    provider: "Samuel Oloo",
-    service: "Appliance Repair",
-    date: "2026-03-09",
-    amount: "KES 2,800",
-    commission: "KES 420",
-    status: "Completed",
-  },
-  {
-    id: 5,
-    client: "Lorna Atieno",
-    provider: "Faith Achieng",
-    service: "Painting",
-    date: "2026-03-11",
-    amount: "KES 8,500",
-    commission: "KES 1,275",
-    status: "Completed",
-  },
-];
+import bookingService from "../../api/bookingService";
+import Sidebar from "../../layout/Sidebar";
+import Navbar from "../../components/Navbar";
 
 const payoutRows = [
   {
@@ -122,18 +73,62 @@ function BookingsAndPayments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [timeFilter, setTimeFilter] = useState("All Time");
+  const [bookings, setBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+  const [bookingsError, setBookingsError] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoadingBookings(true);
+    bookingService
+      .listActiveBookings()
+      .then((data) => {
+        if (!mounted) return;
+        // Map API booking shape to the minimal row fields expected by the table
+        const rows = (data || []).map((b) => ({
+          id: b.id,
+          client:
+            b.clientName ||
+            (b.client && (b.client.full_name || b.client.name)) ||
+            (b.clientId ? `Client #${b.clientId}` : "") ||
+            "",
+          provider:
+            b.providerName ||
+            b.worker ||
+            (b.service_provider && (b.service_provider.name || b.service_provider.full_name)) ||
+            (b.serviceProviderId ? `Provider #${b.serviceProviderId}` : "") ||
+            "",
+          service: b.service || b.service_name || "",
+          date: b.date || b.scheduled_date || b.booking_date || null,
+          amount: b.amount || "",
+          commission: b.commission || "",
+          status: b.status || "",
+        }));
+        setBookings(rows);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!mounted) return;
+        setBookingsError(err);
+      })
+      .finally(() => mounted && setLoadingBookings(false));
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filteredBookings = useMemo(() => {
-    return bookingRows.filter((row) => {
+    return bookings.filter((row) => {
       const matchesSearch =
-        row.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        row.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        row.service.toLowerCase().includes(searchTerm.toLowerCase());
+        (row.client || "").toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (row.provider || "").toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (row.service || "").toString().toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === "All Status" || row.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
-  }, [searchTerm, statusFilter]);
+  }, [bookings, searchTerm, statusFilter]);
 
   const filteredPayouts = useMemo(() => {
     return payoutRows.filter((row) => {
@@ -148,8 +143,12 @@ function BookingsAndPayments() {
   }, [searchTerm, statusFilter]);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] ml-64 p-28 p-6">
-      <section className="mb-8">
+    <div className="flex min-h-screen bg-[#f8fafc]">
+      <Sidebar role="admin" />
+      <div className="flex-1 ml-72">
+        <Navbar />
+        <main className="pt-24 px-6 pb-6">
+          <section className="mb-8">
         <h1 className="text-4xl font-bold tracking-tight text-gray-900">Bookings &amp; Payments</h1>
         <p className="mt-2 text-lg text-gray-600">
           Manage bookings and process provider payouts
@@ -272,7 +271,10 @@ function BookingsAndPayments() {
       <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           {activeTab === "All Bookings" ? (
-            <table className="w-full min-w-245 table-auto">
+            loadingBookings ? (
+              <div className="p-8 text-center text-sm text-gray-600">Loading bookings...</div>
+            ) : (
+              <table className="w-full min-w-245 table-auto">
               <thead className="border-b border-gray-200 bg-gray-50">
                 <tr>
                   <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -307,7 +309,7 @@ function BookingsAndPayments() {
                     <td className="px-5 py-4.5 text-base font-medium text-gray-800">{row.client}</td>
                     <td className="px-4 py-4.5 text-base font-medium text-gray-800">{row.provider}</td>
                     <td className="px-4 py-4.5 text-base text-gray-800">{row.service}</td>
-                    <td className="px-4 py-4.5 text-base text-gray-600">{formatDate(row.date)}</td>
+                    <td className="px-4 py-4.5 text-base text-gray-600">{row.date ? formatDate(row.date) : "-"}</td>
                     <td className="px-4 py-4.5 text-base font-medium text-gray-800">{row.amount}</td>
                     <td className="px-4 py-4.5 text-base font-medium text-[#16a34a]">{row.commission}</td>
                     <td className="px-4 py-4.5">
@@ -328,7 +330,7 @@ function BookingsAndPayments() {
                 ))}
               </tbody>
             </table>
-          ) : (
+          )) : (
             <table className="w-full min-w-245 table-auto">
               <thead className="border-b border-gray-200 bg-gray-50">
                 <tr>
@@ -399,6 +401,8 @@ function BookingsAndPayments() {
           </div>
         )}
       </section>
+        </main>
+      </div>
     </div>
   );
 }

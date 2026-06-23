@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Users, Briefcase, Calendar, DollarSign, TrendingUp, Eye, AlertTriangle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import bookingService from "../../api/bookingService";
+import Sidebar from "../../layout/Sidebar";
+import Navbar from "../../components/Navbar";
 
 function AdminDashboard() {
   const [usersCount, setUsersCount] = useState(null);
@@ -104,12 +106,27 @@ function AdminDashboard() {
   }, []);
 
   return (
-    <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
-      <section className="mb-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-2">Monitor and manage Sasafix Service Hub</p>
-        </div>
+    <div className="flex min-h-screen bg-[#f8fafc]">
+      {/* Sidebar */}
+      <Sidebar role="admin" />
+
+      {/* Main Content */}
+      <div className="flex-1 ml-72">
+        {/* Navbar */}
+        <Navbar />
+
+        {/* Dashboard Content */}
+        <main className="pt-24 px-6 pb-6">
+          <section className="mb-8">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-800">
+                Admin Dashboard
+              </h1>
+
+              <p className="text-gray-600 mt-2">
+                Monitor and manage Sasafix Service Hub
+              </p>
+            </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white border border-gray-200 p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow relative">
@@ -166,59 +183,62 @@ function AdminDashboard() {
         </div>
       </section>
 
-      <section className="bg-white p-6 rounded-xl shadow-sm mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="font-bold text-xl text-gray-800">Bookings Over Time</h2>
-            <p className="text-gray-600">Monthly booking trends</p>
-          </div>
-          <div>
-            <Link to="/reports">
-              <button className="flex items-center bg-[#056db3] hover:bg-[#045ca0] text-white font-medium py-2 px-4 rounded-lg transition-colors">
-                <TrendingUp className="w-4 h-4 mr-2" />
-                View Report
-              </button>
-            </Link>
-          </div>
-        </div>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={bookingData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="month"
-                stroke="#6b7280"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                stroke="#6b7280"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}
-                labelStyle={{ color: '#374151', fontWeight: '600' }}
-              />
-              <Line
-                type="monotone"
-                dataKey="bookings"
-                stroke="#056db3"
-                strokeWidth={3}
-                dot={{ fill: '#056db3', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#056db3', strokeWidth: 2, fill: '#ffffff' }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
+          <section className="bg-white p-28 p-6 rounded-xl shadow-sm mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="font-bold text-xl text-gray-800">
+                  Bookings Over Time
+                </h2>
+
+                <p className="text-gray-600">
+                  Monthly booking trends
+                </p>
+              </div>
+
+              <Link to="/reports">
+                <button className="flex items-center bg-[#056db3] hover:bg-[#045ca0] text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  View Report
+                </button>
+              </Link>
+            </div>
+
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={bookingData}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#f0f0f0"
+                  />
+
+                  <XAxis
+                    dataKey="month"
+                    stroke="#6b7280"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+
+                  <YAxis
+                    stroke="#6b7280"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+
+                  <Tooltip />
+
+                  <Line
+                    type="monotone"
+                    dataKey="bookings"
+                    stroke="#056db3"
+                    strokeWidth={3}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+      </main>
 
       <section className="bg-white rounded-xl shadow-sm">
               <div className="p-6 pb-0">
@@ -295,7 +315,8 @@ function AdminDashboard() {
         </div>
       </section>
     </div>
-  )
+  </div>
+  );
 }
 
 export default AdminDashboard;

@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Clock3, MapPin, FileText, ShieldCheck } from "lucide-react";
 import bookingService from "../../../api/bookingService";
+import Sidebar from "../../../layout/Sidebar";
+import Navbar from "../../../components/Navbar";
 
 function CreateBooking() {
     const navigate = useNavigate();
@@ -108,7 +110,11 @@ function CreateBooking() {
     }, [providerId]);
 
     return (
-        <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
+        <div className="flex min-h-screen bg-[#f8fafc]">
+            <Sidebar role="client" />
+            <div className="flex-1 ml-72">
+                <Navbar />
+                <main className="pt-24 px-6 pb-6">
             <section className="mb-8">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -360,7 +366,7 @@ function CreateBooking() {
                                 </button>
                             </div>
 
-                          
+
                             {/* Separator */}
                             <div className="border-t border-gray-300 my-6"></div>
 

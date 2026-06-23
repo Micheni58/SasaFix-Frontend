@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { MapPin, Briefcase, CheckCircle, Wallet, Star, Clock, MessageCircle, Eye, DollarSign, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import bookingService from "../../api/bookingService";
+import Sidebar from "../../layout/Sidebar";
+import Navbar from "../../components/Navbar";
 
 function ProviderDashboard() {
   const [providerBookings, setProviderBookings] = useState([]);
@@ -127,8 +129,12 @@ function ProviderDashboard() {
   }, []);
 
   return (
-    <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
-      <section className="mb-8">
+    <div className="flex min-h-screen bg-[#f8fafc]">
+      <Sidebar />
+      <div className="flex-1 ml-72">
+        <Navbar />
+        <main className="pt-24 px-6 pb-6">
+          <section className="mb-8">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Welcome back, {displayName}!</h1>
@@ -183,7 +189,7 @@ function ProviderDashboard() {
             </div>
           </div>
 
-          
+
 
           <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
@@ -200,7 +206,7 @@ function ProviderDashboard() {
         </div>
       </section>
 
-      
+
       <section className="bg-white rounded-xl shadow-sm">
         <div className="p-6 pb-0">
             <div className="flex justify-between items-center mb-6">
@@ -330,6 +336,8 @@ function ProviderDashboard() {
           </div>
         </div>
       </section>
+        </main>
+      </div>
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Briefcase, CheckCircle, Wallet, Star, Clock, MessageCircle, Eye } from "lucide-react";
 import bookingService from "../../api/bookingService";
+import Sidebar from "../../layout/Sidebar";
+import Navbar from "../../components/Navbar";
 
 function ClientDashboard() {
   const [bookings, setBookings] = useState([]);
@@ -53,17 +55,21 @@ function ClientDashboard() {
     : "User";
 
   return (
-    <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
-      <section className="mb-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Welcome back, {displayName}!</h1>
+    <div className="flex min-h-screen bg-[#f8fafc]">
+      <Sidebar />
+      <div className="flex-1 ml-72">
+        <Navbar />
+        <main className="pt-24 px-6 pb-6">
+          <section className="mb-8">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-800">Welcome back, {displayName}!</h1>
           <div className="flex items-center mt-2">
             <MapPin className="w-5 h-5 text-[#056db3] mr-2" />
             <h2 className="text-lg text-gray-600">Nairobi, Kenya</h2>
           </div>
         </div>
-        
-        
+
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
@@ -267,8 +273,10 @@ function ClientDashboard() {
           </div>
         </div>
       </section>
+        </main>
+      </div>
     </div>
- 
+
   )
 }
 

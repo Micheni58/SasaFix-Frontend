@@ -3,6 +3,8 @@ import { Star, ThumbsUp, MessageCircle } from "lucide-react";
 import bookingService from "../../api/bookingService";
 import reviewService from "../../api/reviewService";
 import ratingService from "../../api/ratingService";
+import Sidebar from "../../layout/Sidebar";
+import Navbar from "../../components/Navbar";
 
 const reviewFilters = ["Most Recent", "Highest Rated", "Lowest Rated", "Unanswered"];
 
@@ -192,7 +194,11 @@ function Reviews() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] ml-64 p-6">
+        <div className="flex min-h-screen bg-[#f8fafc]">
+            <Sidebar role="provider" />
+            <div className="flex-1 ml-72">
+                <Navbar />
+                <main className="pt-24 px-6 pb-6">
 
             {/* Header */}
             <div className="mb-8">
@@ -392,6 +398,8 @@ function Reviews() {
                     ))}
                 </div>
             </section>
+                </main>
+            </div>
         </div>
     );
 }

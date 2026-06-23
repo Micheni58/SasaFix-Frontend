@@ -5,6 +5,8 @@ import {
   fetchNotifications,
   markNotificationAsRead,
 } from "../../api/notificationService";
+import Sidebar from "../../layout/Sidebar";
+import Navbar from "../../components/Navbar";
 
 const tabs = ["All", "Unread", "Jobs", "Payments", "Messages"];
 
@@ -95,11 +97,15 @@ export default function ProviderNotification() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] ml-64 p-6">
-      <section className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
-        <p className="mt-2 text-gray-600 max-w-2xl">Job requests, payments, and client messages</p>
-      </section>
+    <div className="flex min-h-screen bg-[#f8fafc]">
+      <Sidebar role="provider" />
+      <div className="flex-1 ml-72">
+        <Navbar />
+        <main className="pt-24 px-6 pb-6">
+          <section className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
+            <p className="mt-2 text-gray-600 max-w-2xl">Job requests, payments, and client messages</p>
+          </section>
 
       <section className="mb-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex min-w-max">
@@ -167,6 +173,8 @@ export default function ProviderNotification() {
           ))}
         </div>
       </section>
+        </main>
+      </div>
     </div>
   );
 }

@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
+import Sidebar from "../../../layout/Sidebar";
+import Navbar from "../../../components/Navbar";
 
 function CompletedJobDetails() {
     const { id: bookingId } = useParams();
@@ -73,12 +75,52 @@ function CompletedJobDetails() {
         setModalType(null);
     };
 
-    if (loading) return <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">Loading...</div>;
-    if (error) return <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">Error: {error}</div>;
-    if (!job) return <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">No booking found.</div>;
+    if (loading) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">Loading...</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+    if (error) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-red-500">Error: {error}</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+    if (!job) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">No booking found.</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
 
         return (
-        <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
+        <div className="flex min-h-screen bg-[#f8fafc]">
+            <Sidebar role="provider" />
+            <div className="flex-1 ml-72">
+                <Navbar />
+                <main className="pt-24 px-6 pb-6">
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Content */}
@@ -91,7 +133,7 @@ function CompletedJobDetails() {
                                 <p className="text-sm text-gray-600">Service Type</p>
                                 <p className="text-lg  text-gray-800 mt-1">{job.service}</p>
                             </div>
-                        
+
                             <div>
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                     <Calendar className="h-4 w-4" />
@@ -217,17 +259,17 @@ function CompletedJobDetails() {
                 <div className="lg:col-span-1">
                     <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                         <h2 className="text-xl font-bold text-gray-800">Actions</h2>
-                        
+
                         <button className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white font-semibold py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors">
                             <Download className="w-5 h-5" />
                             Download Invoice
                         </button>
-                        
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             <MessageSquare className="w-5 h-5" />
                             Message Client
                         </button>
-                        
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             <Star className="w-5 h-5" />
                             View More Jobs
@@ -257,6 +299,8 @@ function CompletedJobDetails() {
                         </div>
                     </div>
                 </div>
+            </div>
+                </main>
             </div>
         </div>
     );

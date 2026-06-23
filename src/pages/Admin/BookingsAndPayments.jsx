@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 
 import bookingService from "../../api/bookingService";
+import Sidebar from "../../layout/Sidebar";
+import Navbar from "../../components/Navbar";
 
 const payoutRows = [
   {
@@ -141,8 +143,12 @@ function BookingsAndPayments() {
   }, [searchTerm, statusFilter]);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] ml-64 p-28 p-6">
-      <section className="mb-8">
+    <div className="flex min-h-screen bg-[#f8fafc]">
+      <Sidebar role="admin" />
+      <div className="flex-1 ml-72">
+        <Navbar />
+        <main className="pt-24 px-6 pb-6">
+          <section className="mb-8">
         <h1 className="text-4xl font-bold tracking-tight text-gray-900">Bookings &amp; Payments</h1>
         <p className="mt-2 text-lg text-gray-600">
           Manage bookings and process provider payouts
@@ -395,6 +401,8 @@ function BookingsAndPayments() {
           </div>
         )}
       </section>
+        </main>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Mail, Phone, CheckCircle2, Calendar, Clock3, MapPin, AlertCircle, MessageSquare, RotateCcw, Flag, Pause } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
+import Sidebar from "../../../layout/Sidebar";
+import Navbar from "../../../components/Navbar";
 
 function InProgressJobDetails() {
     const { id: bookingId } = useParams();
@@ -60,12 +62,54 @@ function InProgressJobDetails() {
         setModalType(null);
     };
 
-    if (loading) return <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">Loading...</div>;
-    if (error) return <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">Error: {error}</div>;
-    if (!job) return <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">No booking found.</div>;
+    if (loading) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">Loading...</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-red-500">Error: {error}</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+    if (!job) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">No booking found.</p>
+                    </main>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
+        <div className="flex min-h-screen bg-[#f8fafc]">
+            <Sidebar role="provider" />
+            <div className="flex-1 ml-72">
+                <Navbar />
+                <main className="pt-24 px-6 pb-6">
             {/* Header */}
             <section className="mb-8">
                 <div className="flex justify-between items-start mb-6">
@@ -203,18 +247,18 @@ function InProgressJobDetails() {
                 <div className="lg:col-span-1">
                     <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                         <h2 className="text-xl font-bold text-gray-800">Actions</h2>
-                        
+
                         {/* <button onClick={() => setModalType("complete")} className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-2 px-2 rounded-lg hover:bg-green-700 transition-colors">
                             <CheckCircle2 className="w-5 h-5" />
                             Mark as Completed
                         </button> */}
-                        
-                        
+
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             Message Client
                         </button>
-                    
-                        
+
+
                         <button className="w-full flex items-center justify-center gap-2 border-2 border-red-200 text-red-600 font-semibold py-2 px-2 rounded-lg hover:bg-red-50 transition-colors">
                             <Flag className="w-5 h-5" />
                             Report Issue
@@ -266,6 +310,8 @@ function InProgressJobDetails() {
                     </div>
                 </div>
             )}
+                </main>
+            </div>
         </div>
     );
 }

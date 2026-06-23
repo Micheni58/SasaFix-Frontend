@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import Sidebar from "../../layout/Sidebar";
+import Navbar from "../../components/Navbar";
 
 function FindServices() {
   const [search, setSearch] =
@@ -85,8 +86,12 @@ function FindServices() {
       {/* Sidebar */}
       <Sidebar role="client" />
 
-      {/* Main Content */}
-      <main className="flex-1 ml-72 pt-28 p-6">
+      <div className="flex-1 ml-72">
+        {/* Navbar */}
+        <Navbar />
+
+        {/* Main Content */}
+        <main className="pt-24 px-6 pb-6">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800">
@@ -350,6 +355,7 @@ function FindServices() {
         </section>
       </main>
     </div>
+  </div>
   );
 }
 

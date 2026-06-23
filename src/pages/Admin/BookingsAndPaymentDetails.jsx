@@ -16,6 +16,8 @@ import {
   User,
   Wallet,
 } from "lucide-react";
+import Sidebar from "../../layout/Sidebar";
+import Navbar from "../../components/Navbar";
 
 const booking = {
   id: "001",
@@ -97,7 +99,11 @@ function Avatar({ initials }) {
 
 function AdminBookingDetail({ onBack }) {
   return (
-    <div className="min-h-screen bg-[#f8fafc] ml-64 p-6">
+    <div className="flex min-h-screen bg-[#f8fafc]">
+      <Sidebar role="admin" />
+      <div className="flex-1 ml-72">
+        <Navbar />
+        <main className="pt-24 px-6 pb-6">
 
       {/* ── Header ── */}
       <section className="mb-8">
@@ -406,6 +412,8 @@ function AdminBookingDetail({ onBack }) {
           </div>
         </div>
       </section>
+        </main>
+      </div>
     </div>
   );
 }

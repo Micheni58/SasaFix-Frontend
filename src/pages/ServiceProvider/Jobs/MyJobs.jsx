@@ -6,6 +6,8 @@ import {
     MapPin,
 } from "lucide-react";
 import bookingService from "../../../api/bookingService";
+import Sidebar from "../../../layout/Sidebar";
+import Navbar from "../../../components/Navbar";
 
 const tabs = ["New Requests", "Accepted", "In Progress", "Completed", "Cancelled"];
 
@@ -105,28 +107,44 @@ function MyJobs() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#f8fafc] ml-64 p-5 flex items-center justify-center">
-                <p className="text-gray-500">Loading jobs...</p>
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">Loading jobs...</p>
+                    </main>
+                </div>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="min-h-screen bg-[#f8fafc] ml-64 p-5 flex items-center justify-center">
-                <p className="text-red-500">{error}</p>
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="provider" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-red-500">{error}</p>
+                    </main>
+                </div>
             </div>
         );
     }
 
-    return (
-        <div className="min-h-screen bg-[#f8fafc] ml-64 p-5">
-            <section className="mb-6">
-                <h1 className="text-3xl font-semibold text-gray-800">My Jobs</h1>
-                <p className="mt-1 text-sm text-gray-600">
-                    Manage your service requests and bookings
-                </p>
-            </section>
+  return (
+    <div className="flex min-h-screen bg-[#f8fafc]">
+      <Sidebar role="provider" />
+      <div className="flex-1 ml-72">
+        <Navbar />
+        <main className="pt-24 px-6 pb-6">
+      <section className="mb-6">
+        <h1 className="text-3xl font-semibold text-gray-800">My Jobs</h1>
+        <p className="mt-1 text-sm text-gray-600">
+          Manage your service requests and bookings
+        </p>
+      </section>
 
             {/* Tabs */}
             <section className="mb-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -313,8 +331,10 @@ function MyJobs() {
                     </div>
                 </div>
             )}
-        </div>
-    );
+        </main>
+      </div>
+    </div>
+  );
 }
 
 export default MyJobs;

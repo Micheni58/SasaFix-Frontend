@@ -2,6 +2,8 @@ import { Mail, Phone, CheckCircle2, Clock3, AlertCircle, MessageSquare, RotateCc
 import { Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import bookingService from "../../../api/bookingService";
+import Sidebar from "../../../layout/Sidebar";
+import Navbar from "../../../components/Navbar";
 
 function MyBookingDetails() {
     const { bookingId } = useParams();
@@ -23,11 +25,31 @@ function MyBookingDetails() {
     }, [bookingId]);
 
     if (loading) {
-        return <div className="min-h-screen ml-64 p-6">Loading booking...</div>;
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="client" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">Loading booking...</p>
+                    </main>
+                </div>
+            </div>
+        );
     }
 
     if (!booking) {
-        return <div className="min-h-screen ml-64 p-6">Booking not found.</div>;
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="client" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+                        <p className="text-gray-500">Booking not found.</p>
+                    </main>
+                </div>
+            </div>
+        );
     }
 
     // map normalized booking fields to the UI shape used previously
@@ -55,8 +77,12 @@ function MyBookingDetails() {
     };
 
     return (
-        <div className="bg-[#f8fafc] min-h-screen ml-64 p-6">
-            <section className="mb-8">
+        <div className="flex min-h-screen bg-[#f8fafc]">
+            <Sidebar role="client" />
+            <div className="flex-1 ml-72">
+                <Navbar />
+                <main className="pt-24 px-6 pb-6">
+                    <section className="mb-8">
                 <div className="flex justify-between items-start mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-800">Booking Details</h1>
@@ -77,7 +103,7 @@ function MyBookingDetails() {
                 <div className="lg:col-span-2 space-y-6">
                     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-6">Booking Details</h2>
-                        <div className="space-y-6">                            
+                        <div className="space-y-6">
                                 <div>
                                     <p className="text-sm text-gray-600 font-medium">Service</p>
                                     <p className="text-lg  text-gray-800 mt-1">{ui.service}</p>
@@ -233,6 +259,8 @@ function MyBookingDetails() {
                         </div>
                     </div>
                 </div>
+            </div>
+                </main>
             </div>
         </div>
     );

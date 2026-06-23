@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { Clock3, Copy, Edit3, Plus, Trash2, X } from "lucide-react";
+import Sidebar from "../../layout/Sidebar";
+import Navbar from "../../components/Navbar";
 
 const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -118,8 +120,12 @@ export default function Availability() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] ml-64 p-6">
-      <section className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex min-h-screen bg-[#f8fafc]">
+      <Sidebar role="provider" />
+      <div className="flex-1 ml-72">
+        <Navbar />
+        <main className="pt-24 px-6 pb-6">
+          <section className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Availability Management</h1>
           <p className="mt-2 text-sm text-gray-600">Set your working hours and manage your schedule</p>
@@ -134,7 +140,7 @@ export default function Availability() {
         </button>
       </section>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[236px_minmax(0,1fr)]">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[236px_minmax(0,1fr)]">
         <aside className="sticky top-6 h-fit rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
           {WEEK_DAYS.map((day) => {
             const daySlots = days[day] || [];
@@ -323,6 +329,8 @@ export default function Availability() {
             </div>
           </div>
         </section>
+          </div>
+        </main>
       </div>
     </div>
   );

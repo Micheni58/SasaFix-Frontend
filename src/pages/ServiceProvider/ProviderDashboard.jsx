@@ -3,9 +3,6 @@ import { MapPin, Briefcase, CheckCircle, Wallet, Star, Clock, MessageCircle, Eye
 import { Link } from "react-router-dom";
 import bookingService from "../../api/bookingService";
 
-import Sidebar from "../../layout/Sidebar";
-import Navbar from "../../components/Navbar";
-
 function ProviderDashboard() {
   const [providerBookings, setProviderBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -146,10 +143,9 @@ function ProviderDashboard() {
           </div>
         </div>
 
-        {/* Page Content */}
-        <main className="p-6 pt-28">
-          <section className="mb-8">
-            <div className="flex justify-between items-center mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-medium text-gray-600">Today's Jobs</h2>
                 <p className="text-2xl font-bold text-gray-800 mt-1">{todaysJobsCount}</p>
@@ -159,15 +155,23 @@ function ProviderDashboard() {
                 <Briefcase className="w-8 h-8 text-[#056db3]" />
               </div>
             </div>
-          </section>
-        
+          </div>
+
           <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-medium text-gray-600">Monthly Earnings</h2>
                 <p className="text-2xl font-bold text-gray-800 mt-1">KES {monthlyEarnings.toLocaleString()}</p>
-                <p className="text-gray-600 text-sm">{monthlyEarnings ? '+ updated' : '—'}</p>
+                <p className="text-gray-600  text-sm">{monthlyEarnings ? '+ updated' : '—'}</p>
               </div>
+              <div className="p-2 bg-green-100 rounded-full">
+                <DollarSign className="w-8 h-8 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-medium text-gray-600">Completion Rate</h2>
                 <p className="text-2xl font-bold text-gray-800 mt-1">{completionRate}%</p>
@@ -178,31 +182,153 @@ function ProviderDashboard() {
               </div>
             </div>
           </div>
-        
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-medium text-gray-600">Today's Jobs</h2>
-                </div>
+
+          
+
+          <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-medium text-gray-600">Average Rating</h2>
+                <p className="text-2xl font-bold text-gray-800 mt-1">{providerRating ?? '—'}</p>
+                <p className="text-sm text-gray-600">{providerRating ? 'based on provider data' : 'No rating yet'}</p>
               </div>
-            </div>
-        
-            <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-medium text-gray-600">Average Rating</h2>
-                  <p className="text-2xl font-bold text-gray-800 mt-1">{providerRating ?? '—'}</p>
-                  <p className="text-sm text-gray-600">{providerRating ? 'based on provider data' : 'No rating yet'}</p>
-                </div>
-                <div className="p-2 bg-yellow-100 rounded-full">
-                  <Star className="w-8 h-8 text-yellow-500" />
-                </div>
+              <div className="p-2 bg-yellow-100 rounded-full">
+                <Star className="w-8 h-8 text-yellow-500" />
               </div>
             </div>
           </div>
         </div>
-        </main>
+      </section>
+
+      
+      <section className="bg-white rounded-xl shadow-sm">
+        <div className="p-6 pb-0">
+            <div className="flex justify-between items-center mb-6">
+            <h2 className="font-bold text-xl text-gray-800">Todays Jobs</h2>
+            <Link to="/provider/my-jobs" className="text-[#056db3] hover:underline font-medium">View All</Link>
+          </div>
+        </div>
+        <div className="border-t border-gray-200 ">
+          <div className="overflow-x-auto">
+            <table className="w-full table-auto">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left py-3 px-6 font-medium text-gray-600">Client</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-600">Service</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-600">Time</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-600">Location</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-600">Status</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-600">Payments</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-gray-500">Loading bookings...</td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-red-500">{error}</td>
+                  </tr>
+                ) : providerBookings.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-gray-500">No bookings found</td>
+                  </tr>
+                ) : (
+                  providerBookings.map((b, index) => (
+                    <tr key={b.id || index} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center">
+                          <img src={(b.client && (b.client.avatar || b.client.photo || b.client.profile_picture)) || 'https://via.placeholder.com/32'} alt={b.clientName || b.client?.full_name || 'Client'} className="w-8 h-8 rounded-full mr-2" />
+                          <span className="font-medium">{b.clientName || (b.client && (b.client.full_name || b.client.name)) || (b.clientId ? `Client #${b.clientId}` : 'Client')}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">{b.service || b.service_name}</td>
+                      <td className="py-4 px-6">{b.time || (b.date ? b.date : '')}</td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center">
+                          <MapPin className="w-4 h-4 text-gray-400 mr-2" />
+                          <span>{b.location || ''}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`px-3 py-1 rounded-md text-xs font-medium ${
+                          b.status === "Completed"
+                            ? "bg-green-100 text-green-800"
+                            : b.status === "In Progress"
+                            ? "bg-blue-50 text-blue-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}>
+                          {b.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 font-bold">{b.amount || b.amountRaw ? (b.amount || `KES ${b.amountRaw}`) : ''}</td>
+                      <td className="py-4 px-6">
+                        {(() => {
+                          const status = (b.status || '').toString().toLowerCase();
+                          if (status.includes('in progress')) return (<Link to={`/provider/my-jobs/in-progress/${b.id}`} className="text-[#056db3] hover:underline font-medium">View</Link>);
+                          if (status.includes('completed')) return (<Link to={`/provider/my-jobs/completed/${b.id}`} className="text-[#056db3] hover:underline font-medium">View</Link>);
+                          // treat upcoming/pending/accepted/new as new request
+                          return (<Link to={`/provider/my-jobs/new/${b.id}`} className="text-[#056db3] hover:underline font-medium">View</Link>);
+                        })()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      <section className="bg-white rounded-xl shadow-sm mt-6 p-6">
+        <div className="mb-4">
+          <h2 className="font-bold text-xl text-gray-800">Availability Schedule</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="font-bold text-lg text-gray-800">Today</h1>
+              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">{availability && availability.today ? `${availability.today.length} Booked` : `${todaysJobsCount} Jobs`}</span>
+            </div>
+            <div className="space-y-2">
+              {(availability && availability.today && Array.isArray(availability.today) ? availability.today : []).slice(0,3).map((slot, i) => (
+                <div key={i} className={`flex items-center justify-between p-2 border rounded-md ${slot.booked ? 'border-blue-100 bg-blue-50' : 'border-green-100 bg-green-50'}`}>
+                  <span className="text-sm font-medium">{slot.time || slot.start || slot.label || `Slot ${i+1}`}</span>
+                  <span className={`text-xs ${slot.booked ? 'text-gray-600' : 'text-green-600'}`}>{slot.booked ? 'Booked' : 'Available'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="font-bold text-lg text-gray-800">Tomorrow</h1>
+              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">{availability && availability.tomorrow ? `${availability.tomorrow.length} Booked` : '—'}</span>
+            </div>
+            <div className="space-y-2">
+              {(availability && availability.tomorrow && Array.isArray(availability.tomorrow) ? availability.tomorrow : []).slice(0,3).map((slot, i) => (
+                <div key={i} className={`flex items-center justify-between p-2 border rounded-md ${slot.booked ? 'border-blue-100 bg-blue-50' : 'border-green-100 bg-green-50'}`}>
+                  <span className="text-sm font-medium">{slot.time || slot.start || slot.label || `Slot ${i+1}`}</span>
+                  <span className={`text-xs ${slot.booked ? 'text-gray-600' : 'text-green-600'}`}>{slot.booked ? 'Booked' : 'Available'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="font-bold text-lg text-gray-800">{availability && availability.nextDateLabel ? availability.nextDateLabel : 'Upcoming'}</h1>
+              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">{availability && availability.next ? `${(Array.isArray(availability.next) ? availability.next.length : 1)} Booked` : '—'}</span>
+            </div>
+            <div className="space-y-2">
+              {(availability && availability.next && Array.isArray(availability.next) ? availability.next : []).slice(0,3).map((slot,i) => (
+                <div key={i} className={`flex items-center justify-between p-2 border rounded-md ${slot.booked ? 'border-blue-100 bg-blue-50' : 'border-green-100 bg-green-50'}`}>
+                  <span className="text-sm font-medium">{slot.time || slot.start || slot.label || `Slot ${i+1}`}</span>
+                  <span className={`text-xs ${slot.booked ? 'text-gray-600' : 'text-green-600'}`}>{slot.booked ? 'Booked' : 'Available'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   );

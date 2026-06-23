@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   CalendarDays,
   Briefcase,
+  Bell,
   User,
   Settings,
   LogOut,
@@ -60,7 +61,7 @@ function Sidebar({ role = "client" }) {
     },
     {
       name: "Profile",
-      path: "/profile",
+      path: "/client/profile",
       icon: <User size={20} />,
     },
   ];
@@ -77,18 +78,28 @@ function Sidebar({ role = "client" }) {
       icon: <Briefcase size={20} />,
     },
     {
+      name: "Availability",
+      path: "/provider/availability",
+      icon: <CalendarDays size={20} />,
+    },
+    {
+      name: "Notifications",
+      path: "/provider/notifications",
+      icon: <Bell size={20} />,
+    },
+    {
       name: "Messages",
-      path: "/client/messages",
+      path: "/provider/messages",
       icon: <MessageCircle size={20} />,
     },
     {
       name: "Wallet",
-      path: "/client/wallet",
+      path: "/provider/wallet",
       icon: <Wallet size={20} />,
     },
     {
       name: "Profile",
-      path: "/profile",
+      path: "/provider/profile",
       icon: <User size={20} />,
     },
   ];

@@ -16,12 +16,15 @@ import Profile from "../pages/Profile";
 import FindServices from "../pages/ServiceDiscovery/FindServices";
 import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
 import ProviderNotification from "../pages/ServiceProvider/Notification";
+import Availability from "../pages/ServiceProvider/Availability";
 import MyBookings from "../pages/Client/bookings/MyBookings";
 import MyJobs from "../pages/ServiceProvider/Jobs/MyJobs";
 import NewJobRequestDetails from "../pages/ServiceProvider/Jobs/NewJobRequestDetails";
+import AcceptedJobDetails from "../pages/ServiceProvider/Jobs/AcceptedJobDetails";
 import InProgressJobDetails from "../pages/ServiceProvider/Jobs/InProgressJobDetails";
 import CompletedJobDetails from "../pages/ServiceProvider/Jobs/CompletedJobDetails";
 import MyBookingDetails from "../pages/Client/bookings/MyBookingDetails";
+import ClientProfile from "../pages/Client/Profile";
 
 export default function AppRouter() {
   return (
@@ -43,8 +46,13 @@ export default function AppRouter() {
         <Route path="/client/messages" element={<ClientMessages />} />
         <Route path="/client/wallet" element={<ClientWallet />} />
         <Route path="/client/notifications" element={<ClientNotification />} />
+        <Route path="/client/profile" element={<ClientProfile />} />
 
         <Route path="/provider" element={<ProviderDashboard />} />
+        <Route path="/provider/messages" element={<ClientMessages />} />
+        <Route path="/provider/wallet" element={<ClientWallet />} />
+        <Route path="/provider/profile" element={<Profile />} />
+        <Route path="/provider/availability" element={<Availability />} />
         <Route path="/provider/notifications" element={<ProviderNotification />} />
 
         <Route path="/profile" element={<Profile />} />
@@ -52,6 +60,7 @@ export default function AppRouter() {
         <Route path="/client/my-bookings" element={<MyBookings />} />
         <Route path="/provider/my-jobs" element={<MyJobs />} />
         <Route path="/provider/my-jobs/new/:id" element={<NewJobRequestDetails />} />
+        <Route path="/provider/my-jobs/accepted/:id" element={<AcceptedJobDetails />} />
         <Route path="/provider/my-jobs/in-progress/:id" element={<InProgressJobDetails />} />
         <Route path="/provider/my-jobs/completed/:id" element={<CompletedJobDetails />} />
         <Route path="/client/my-bookings/:bookingId" element={<MyBookingDetails />} />

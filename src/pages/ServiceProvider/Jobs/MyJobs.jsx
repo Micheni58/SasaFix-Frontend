@@ -28,6 +28,24 @@ function formatJobDate(dateStr) {
     }).format(new Date(dateStr));
 }
 
+function getJobDetailsPath(job) {
+    const status = (job.status || "").toString().toLowerCase();
+
+    if (status.includes("accepted")) {
+        return `/provider/my-jobs/accepted/${job.id}`;
+    }
+
+    if (status.includes("progress")) {
+        return `/provider/my-jobs/in-progress/${job.id}`;
+    }
+
+    if (status.includes("completed")) {
+        return `/provider/my-jobs/completed/${job.id}`;
+    }
+
+    return `/provider/my-jobs/new/${job.id}`;
+}
+
 function MyJobs() {
     const [activeTab, setActiveTab] = useState("New Requests");
     const [jobs, setJobs] = useState([]);
@@ -267,7 +285,7 @@ function MyJobs() {
                                                 </button>
                                             )}
                                             <Link
-                                                to={`/provider/my-jobs/${job.id}`}
+                                                to={getJobDetailsPath(job)}
                                                 className="rounded-lg px-3 py-1.5 text-xs font-semibold text-[#056db3] hover:bg-blue-50"
                                             >
                                                 View

@@ -1,10 +1,15 @@
 import Sidebar from "../layout/Sidebar";
 import Navbar from "../components/Navbar";
+import { useLocation } from "react-router-dom";
+import { getSidebarRole } from "../utils/sidebarRole";
 
 function Profile() {
+  const location = useLocation();
+  const sidebarRole = getSidebarRole(location.pathname);
+
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar />
+      <Sidebar role={sidebarRole} />
       <div className="flex-1 ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">

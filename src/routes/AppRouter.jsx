@@ -1,8 +1,11 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Navbar from "../components/Navbar";
+
 import Home from "../pages/Home";
 import Login from "../pages/Login";
 import SignUp from "../pages/SignUp";
 import About from "../pages/About";
+
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import AdminNotification from "../pages/Admin/Notification";
 import ClientDashboard from "../pages/Client/ClientDashboard";
@@ -15,6 +18,8 @@ import NewJobRequestDetails from "../pages/ServiceProvider/Jobs/NewJobRequestDet
 import InProgressJobDetails from "../pages/ServiceProvider/Jobs/InProgressJobDetails";
 import CompletedJobDetails from "../pages/ServiceProvider/Jobs/CompletedJobDetails";
 import MyBookingDetails from "../pages/Client/bookings/MyBookingDetails";
+import FindServices from "../pages/ServiceDiscovery/FindServices";
+
 export default function AppRouter() {
   return (
     <Router>
@@ -44,4 +49,4 @@ export default function AppRouter() {
       </Routes>
     </Router>
   );
-}  
+}

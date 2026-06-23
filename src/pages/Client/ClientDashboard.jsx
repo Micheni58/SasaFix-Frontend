@@ -82,8 +82,62 @@ function ClientDashboard() {
                 <h2 className="text-sm font-medium text-gray-600">Completed Jobs</h2>
                 <p className="text-2xl font-bold text-gray-800 mt-1">{completedCount}</p>
               </div>
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-8 h-8 text-green-500" />
+
+              {/* Completed Jobs */}
+              <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-medium text-gray-600">
+                      Completed Jobs
+                    </h2>
+
+                    <p className="text-2xl font-bold text-gray-800 mt-1">
+                      24
+                    </p>
+                  </div>
+
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <CheckCircle className="w-8 h-8 text-green-500" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Wallet */}
+              <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-medium text-gray-600">
+                      Wallet Balance
+                    </h2>
+
+                    <p className="text-2xl font-bold text-gray-800 mt-1">
+                      KES 4,250
+                    </p>
+                  </div>
+
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Wallet className="w-8 h-8 text-[#056db3]" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Loyalty */}
+              <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-medium text-gray-600">
+                      Loyalty Progress
+                    </h2>
+
+                    <p className="text-2xl font-bold text-gray-800 mt-1">
+                      75%
+                    </p>
+                  </div>
+
+                  <div className="p-2 bg-yellow-100 rounded-lg">
+                    <Star className="w-8 h-8 text-yellow-500" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -93,8 +147,18 @@ function ClientDashboard() {
                 <h2 className="text-sm font-medium text-gray-600">Wallet Balance</h2>
                 <p className="text-2xl font-bold text-gray-800 mt-1">{walletBalance}</p>
               </div>
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Wallet className="w-8 h-8 text-[#056db3]" />
+
+              {/* Buttons */}
+              <div className="flex flex-wrap gap-2">
+                <button className="bg-white text-[#056db3] px-4 py-2 rounded-lg border border-[#056db3] hover:bg-[#056db3] hover:text-white transition-colors">
+                  <MessageCircle className="w-4 h-4 inline mr-1" />
+                  Message Worker
+                </button>
+
+                <button className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors">
+                  <Eye className="w-4 h-4 inline mr-1" />
+                  View Details
+                </button>
               </div>
             </div>
           </div>
@@ -104,8 +168,12 @@ function ClientDashboard() {
                 <h2 className="text-sm font-medium text-gray-600">Loyalty Progress</h2>
                 <p className="text-2xl font-bold text-gray-800 mt-1">{loyalty}%</p>
               </div>
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Star className="w-8 h-8 text-yellow-500" />
+
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-[#056db3] h-2 rounded-full"
+                  style={{ width: "50%" }}
+                ></div>
               </div>
             </div>
           </div>
@@ -204,4 +272,4 @@ function ClientDashboard() {
   )
 }
 
-export default ClientDashboard; 
+export default ClientDashboard;

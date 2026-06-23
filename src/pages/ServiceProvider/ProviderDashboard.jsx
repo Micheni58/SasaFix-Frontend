@@ -246,7 +246,7 @@ function ProviderDashboard() {
                     <tr key={b.id || index} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-4 px-6">
                         <div className="flex items-center">
-                          <img src={(b.client && (b.client.avatar || b.client.photo || b.client.profile_picture)) || 'https://via.placeholder.com/32'} alt={b.clientName || b.client?.full_name || 'Client'} className="w-8 h-8 rounded-full mr-3" />
+                          <img src={(b.client && (b.client.avatar || b.client.photo || b.client.profile_picture)) || 'https://via.placeholder.com/32'} alt={b.clientName || b.client?.full_name || 'Client'} className="w-8 h-8 rounded-full mr-2" />
                           <span className="font-medium">{b.clientName || (b.client && (b.client.full_name || b.client.name)) || (b.clientId ? `Client #${b.clientId}` : 'Client')}</span>
                         </div>
                       </td>
@@ -295,7 +295,7 @@ function ProviderDashboard() {
           <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h1 className="font-bold text-lg text-gray-800">Today</h1>
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">{availability && availability.today ? `${availability.today.length} Booked` : `${todaysJobsCount} Booked`}</span>
+              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">{availability && availability.today ? `${availability.today.length} Booked` : `${todaysJobsCount} Jobs`}</span>
             </div>
             <div className="space-y-2">
               {(availability && availability.today && Array.isArray(availability.today) ? availability.today : []).slice(0,3).map((slot, i) => (
@@ -323,7 +323,7 @@ function ProviderDashboard() {
           <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h1 className="font-bold text-lg text-gray-800">{availability && availability.nextDateLabel ? availability.nextDateLabel : 'Upcoming'}</h1>
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">{availability && availability.next ? `${(Array.isArray(availability.next) ? availability.next.length : 0)} Booked` : '—'}</span>
+              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">{availability && availability.next ? `${(Array.isArray(availability.next) ? availability.next.length : 1)} Booked` : '—'}</span>
             </div>
             <div className="space-y-2">
               {(availability && availability.next && Array.isArray(availability.next) ? availability.next : []).slice(0,3).map((slot,i) => (

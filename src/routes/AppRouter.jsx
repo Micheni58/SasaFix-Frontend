@@ -25,6 +25,8 @@ import InProgressJobDetails from "../pages/ServiceProvider/Jobs/InProgressJobDet
 import CompletedJobDetails from "../pages/ServiceProvider/Jobs/CompletedJobDetails";
 import MyBookingDetails from "../pages/Client/bookings/MyBookingDetails";
 import ClientProfile from "../pages/Client/Profile";
+import RoleSelection from "../pages/RoleSelection"; // new file we made
+import SignUpForm from "../components/SignUpForm"; // existing file
 
 export default function AppRouter() {
   return (
@@ -33,7 +35,8 @@ export default function AppRouter() {
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
+        <Route path="/signup" element={<RoleSelection />} />
+        <Route path="/signup/details" element={<SignUp />} />
         <Route path="/about" element={<About />} />
 
         {/* Protected/Dashboard Routes */}
@@ -53,17 +56,35 @@ export default function AppRouter() {
         <Route path="/provider/wallet" element={<ClientWallet />} />
         <Route path="/provider/profile" element={<Profile />} />
         <Route path="/provider/availability" element={<Availability />} />
-        <Route path="/provider/notifications" element={<ProviderNotification />} />
+        <Route
+          path="/provider/notifications"
+          element={<ProviderNotification />}
+        />
 
         <Route path="/profile" element={<Profile />} />
 
         <Route path="/client/my-bookings" element={<MyBookings />} />
         <Route path="/provider/my-jobs" element={<MyJobs />} />
-        <Route path="/provider/my-jobs/new/:id" element={<NewJobRequestDetails />} />
-        <Route path="/provider/my-jobs/accepted/:id" element={<AcceptedJobDetails />} />
-        <Route path="/provider/my-jobs/in-progress/:id" element={<InProgressJobDetails />} />
-        <Route path="/provider/my-jobs/completed/:id" element={<CompletedJobDetails />} />
-        <Route path="/client/my-bookings/:bookingId" element={<MyBookingDetails />} />
+        <Route
+          path="/provider/my-jobs/new/:id"
+          element={<NewJobRequestDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/accepted/:id"
+          element={<AcceptedJobDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/in-progress/:id"
+          element={<InProgressJobDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/completed/:id"
+          element={<CompletedJobDetails />}
+        />
+        <Route
+          path="/client/my-bookings/:bookingId"
+          element={<MyBookingDetails />}
+        />
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />
       </Routes>

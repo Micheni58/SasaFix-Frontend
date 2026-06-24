@@ -258,8 +258,6 @@ export default function ServiceHub() {
           </div>
         </div>
       </div>
-
-      <div className="sh-privacy">Do not sell or share my personal info</div>
     </>
   );
 }

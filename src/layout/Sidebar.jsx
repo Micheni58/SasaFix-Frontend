@@ -55,6 +55,11 @@ function Sidebar({ role = "client" }) {
       icon: <Wallet size={20} />,
     },
     {
+      name: "Notifications",
+      path: "/client/notifications",
+      icon: <Bell size={20} />,
+    },
+    {
       name: "Referrals",
       path: "/client/referrals",
       icon: <Gift size={20} />,

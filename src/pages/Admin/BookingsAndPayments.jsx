@@ -156,7 +156,7 @@ function BookingsAndPayments() {
       </section>
 
       <section className="mb-8 grid grid-cols-1 gap-5 md:grid-cols-3">
-        <div className="rounded-2xl border border-gray-200 bg-white p-28 p-6 shadow-sm">
+        <div className="rounded-2xl border border-gray-200 bg-white p-28 shadow-sm">
           <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#dfe6ff]">
             <ArrowUpRight className="h-6 w-6 text-[#5b38f2]" />
           </div>
@@ -164,7 +164,7 @@ function BookingsAndPayments() {
           <p className="mt-2  font-medium text-gray-500">Total Revenue</p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-28 p-6 shadow-sm">
+        <div className="rounded-2xl border border-gray-200 bg-white p-28 shadow-sm">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#dcfce7]">
             <Wallet className="h-6 w-6 text-[#16a34a]" />
           </div>
@@ -172,7 +172,7 @@ function BookingsAndPayments() {
           <p className="mt-2  font-medium text-gray-500">Commission This Month</p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-28 p-6 shadow-sm">
+        <div className="rounded-2xl border border-gray-200 bg-white p-28  shadow-sm">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fef3c7]">
             <Clock3 className="h-6 w-6 text-[#f97316]" />
           </div>

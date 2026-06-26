@@ -183,7 +183,7 @@ function AdminDashboard() {
         </div>
       </section>
 
-          <section className="bg-white p-28 p-6 rounded-xl shadow-sm mb-8">
+          <section className="bg-white p-28 rounded-xl shadow-sm mb-8">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="font-bold text-xl text-gray-800">

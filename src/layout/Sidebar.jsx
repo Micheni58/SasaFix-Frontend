@@ -13,6 +13,11 @@ import {
   Wallet,
   Gift,
   ShieldCheck,
+  BarChart3,
+  Users,
+  Store,
+  UserCog,
+  
 } from "lucide-react";
 
 import { useState } from "react";
@@ -116,10 +121,41 @@ function Sidebar({ role = "client" }) {
       icon: <LayoutDashboard size={20} />,
     },
     {
-      name: "Settings",
-      path: "/admin/settings",
-      icon: <Settings size={20} />,
+    id: "admin-users",
+    name: "Users",
+    icon: <Users className="h-5 w-5" />,
+    path: "/admin/users",
     },
+    {
+      id: "admin-providers",
+      name: "Service Providers",
+      icon: <Store className="h-5 w-5" />,
+      path: "/admin/service-providers",
+    },
+    {
+      name: "Bookings & Payments",  
+      path: "/admin/bookings-payments",
+      icon: <CalendarDays size={20} />,
+
+    },
+    {
+      id: "admin-analytics",
+      name: "Analytics & Reports",
+      icon: <BarChart3 className="h-5 w-5" />,
+      path: "/admin/reports",
+      
+    },
+    {
+        name: "Notifications",
+        path: "/admin/notifications",
+        icon: <Bell size={20} />,
+      },
+    
+    {
+        name: "Settings",
+        path: "/admin/settings",
+        icon: <Settings size={20} />,
+      },
   ];
 
   const links =

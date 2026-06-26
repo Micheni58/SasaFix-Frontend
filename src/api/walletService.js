@@ -110,9 +110,20 @@ export async function getWalletBalance(userId) {
     const response = await client.get(`/wallets/user/${userId}/balance`);
     return normalizeBalance(response.data);
   } catch (error) {
+    // If wallet doesn't exist yet, return 0 balance instead of throwing
+    if (error.response && error.response.status === 404) {
+      return {
+        userId: userId,
+        balance: 0,
+        currency: "KES",
+        formattedBalance: "KES 0.00",
+        raw: {},
+      };
+    }
     throw handleError(error);
   }
 }
+
 
 /**
  * Create a wallet for a user
@@ -196,8 +207,8 @@ export async function getTransactionHistory(userId, params = {}) {
       raw: response.data,
     };
   } catch (error) {
+    // If endpoint returns 404, return empty array instead of throwing
     if (error.response && error.response.status === 404) {
-      console.warn("Transaction history endpoint not available yet");
       return {
         transactions: [],
         total: 0,
@@ -207,7 +218,6 @@ export async function getTransactionHistory(userId, params = {}) {
     throw handleError(error);
   }
 }
-
 // ─────────────────────────────────────────────
 // PAYMENT METHODS (UPDATED WITH REAL ENDPOINTS)
 // ─────────────────────────────────────────────

@@ -1,4 +1,4 @@
-// src/pages/Wallet.jsx - Final Updated Version
+// src/pages/ClientWallet.jsx - Client Wallet Page
 
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -17,6 +17,8 @@ import {
     Trash2,
     Check,
     Edit2,
+    ShoppingBag,
+    History,
 } from "lucide-react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
@@ -95,7 +97,7 @@ function StatCard({ icon, iconBg, label, value, sub, isLoading }) {
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 
-function Wallet() {
+function ClientWallet() {
     const location = useLocation();
     const sidebarRole = getSidebarRole(location.pathname);
 
@@ -419,9 +421,9 @@ function Wallet() {
 
                     {/* ── Page Header ── */}
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-800">Wallet</h1>
+                        <h1 className="text-3xl font-bold text-gray-800">My Wallet</h1>
                         <p className="mt-1 text-gray-500">
-                            Manage your payments and transactions.
+                            Manage your payments, transactions, and payment methods.
                         </p>
                     </div>
 
@@ -439,7 +441,7 @@ function Wallet() {
                                     KES {balance.toLocaleString()}
                                 </p>
                                 <p className="mt-2 text-sm text-blue-200">
-                                    Last updated {new Date().toLocaleDateString()}
+                                    Ready to book your next service
                                 </p>
 
                                 <div className="mt-6 flex gap-3">
@@ -474,6 +476,9 @@ function Wallet() {
                                 <h2 className="text-lg font-bold text-gray-800">
                                     Payment Methods
                                 </h2>
+                                <p className="text-sm text-gray-500">
+                                    Manage how you pay for services
+                                </p>
                             </div>
 
                             <div className="space-y-3">
@@ -550,7 +555,6 @@ function Wallet() {
                                     })
                                 )}
                                 
-                                {/* ── Add Payment Method Button (Full Width at Bottom) ── */}
                                 <button
                                     onClick={openAddMethodModal}
                                     className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[#056db3] px-3 py-3 text-md font-bold text-[#056db3] transition-colors hover:bg-blue-100 hover:text-[#056db3]"
@@ -565,8 +569,11 @@ function Wallet() {
                         <div className="rounded-sm border border-gray-200 bg-white p-6 shadow-sm">
                             <div className="mb-5">
                                 <h2 className="text-lg font-bold text-gray-800">
-                                    Transaction Summary
+                                    Spending Summary
                                 </h2>
+                                <p className="text-sm text-gray-500">
+                                    Your payment activity overview
+                                </p>
                             </div>
 
                             <div className="grid grid-cols-1 gap-4">
@@ -587,7 +594,7 @@ function Wallet() {
                                     isLoading={loading}
                                 />
                                 <StatCard
-                                    icon={<WalletIcon className="h-6 w-6 text-[#056db3]" />}
+                                    icon={<ShoppingBag className="h-6 w-6 text-[#056db3]" />}
                                     iconBg="bg-blue-50"
                                     label="Transactions"
                                     value={transactions.length}
@@ -601,9 +608,14 @@ function Wallet() {
                     {/* ── Transactions Table ── */}
                     <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
                         <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-6 py-5">
-                            <h2 className="text-lg font-bold text-gray-800">
-                                Transaction History
-                            </h2>
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-lg font-bold text-gray-800">
+                                    Transaction History
+                                </h2>
+                                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600">
+                                    {transactions.length}
+                                </span>
+                            </div>
                             <div className="flex items-center gap-3">
                                 <label className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600">
                                     <Filter className="h-4 w-4" />
@@ -945,4 +957,4 @@ function Wallet() {
     );
 }
 
-export default Wallet;
+export default ClientWallet;

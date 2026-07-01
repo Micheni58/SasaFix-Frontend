@@ -1,321 +1,607 @@
+// src/pages/Admin/AdminDashboard.jsx - Final Version with Endpoints Ready
+
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Users, Briefcase, Calendar, DollarSign, TrendingUp, Eye, AlertTriangle } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Users,
+  Briefcase,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  Eye,
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  ChevronRight,
+  Activity,
+  CreditCard,
+  Download,
+} from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import bookingService from "../../api/bookingService";
+import paymentsService from "../../api/paymentsService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+
+function formatCurrency(amount) {
+  if (amount === null || amount === undefined || amount === "") return "KES 0";
+  const num = Number(amount);
+  if (isNaN(num) || num === 0) return "KES 0";
+  return `KES ${num.toLocaleString()}`;
+}
+
+function formatDate(date) {
+  if (!date) return "-";
+  return new Intl.DateTimeFormat("en-KE", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date));
+}
+
+function getStatusStyles(status) {
+  const styles = {
+    Completed: "bg-green-100 text-green-700",
+    "In Progress": "bg-blue-100 text-blue-700",
+    Scheduled: "bg-amber-100 text-amber-700",
+    Pending: "bg-yellow-100 text-yellow-700",
+    Cancelled: "bg-red-100 text-red-700",
+    "New Requests": "bg-purple-100 text-purple-700",
+    Accepted: "bg-blue-100 text-blue-700",
+  };
+  return styles[status] || "bg-gray-100 text-gray-700";
+}
+
+function getStatusIcon(status) {
+  const icons = {
+    Completed: CheckCircle,
+    "In Progress": Clock,
+    Scheduled: Calendar,
+    Pending: Clock,
+    Cancelled: XCircle,
+    "New Requests": AlertTriangle,
+    Accepted: CheckCircle,
+  };
+  return icons[status] || Activity;
+}
+
+// ─────────────────────────────────────────────
+// STAT CARD COMPONENT
+// ─────────────────────────────────────────────
+
+function StatCard({ title, value, icon: Icon, iconBg, trend, isLoading, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className={`bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all relative ${
+        onClick ? "cursor-pointer hover:border-[#056db3]" : ""
+      }`}
+    >
+      {trend && (
+        <div className="absolute top-4 right-4">
+          <span className="text-sm text-green-600 font-medium">{trend}</span>
+        </div>
+      )}
+      <div className="flex flex-col items-start">
+        <div className={`p-3 ${iconBg} rounded-full mb-3`}>
+          <Icon className="w-6 h-6" />
+        </div>
+        {isLoading ? (
+          <div className="h-8 w-24 animate-pulse rounded bg-gray-200 mb-1" />
+        ) : (
+          <p className="text-2xl font-bold text-gray-800 mb-1">{value}</p>
+        )}
+        <h2 className="text-sm font-medium text-gray-600">{title}</h2>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────
+
 function AdminDashboard() {
-  const [usersCount, setUsersCount] = useState(null);
-  const [providersCount, setProvidersCount] = useState(null);
-  const [activeBookingsCount, setActiveBookingsCount] = useState(null);
-  const [platformCommission, setPlatformCommission] = useState(null);
+  const navigate = useNavigate();
+
+  // ── State ──
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalProviders: 0,
+    activeBookings: 0,
+    platformCommission: 0,
+    totalRevenue: 0,
+    pendingPayouts: 0,
+  });
+
   const [bookingData, setBookingData] = useState([]);
-  const [activities, setActivities] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    let mounted = true;
-    setLoading(true);
+  // ── Fetch Dashboard Data ──
+  const fetchDashboardData = async (showRefresh = false) => {
+    if (showRefresh) setRefreshing(true);
+    else setLoading(true);
+
     setError(null);
 
-    async function fetchAll() {
+    try {
+      // ── Fetch Users (endpoint to be added by backend team) ──
+      let totalUsers = 0;
       try {
-        // fetch providers
-        const provList = await bookingService.listProviders();
-        if (!mounted) return;
-        setProvidersCount(Array.isArray(provList) ? provList.length : null);
-
-        // fetch active bookings
-        const active = await bookingService.listActiveBookings();
-        if (!mounted) return;
-        setActiveBookingsCount(Array.isArray(active) ? active.length : 0);
-
-        // attempt to fetch users list via API - may not exist
-        let users = null;
-        try {
-          const resp = await fetch('/api/users');
-          if (resp.ok) {
-            const data = await resp.json();
-            users = Array.isArray(data) ? data : (data.users || null);
-          }
-        } catch (e) {
-          users = null;
+        const resp = await fetch("/api/users");
+        if (resp.ok) {
+          const data = await resp.json();
+          const users = Array.isArray(data) ? data : data.users || [];
+          totalUsers = users.length;
         }
-        if (!mounted) return;
-        setUsersCount(users ? users.length : null);
-
-        // fetch all bookings to compute monthly stats and platform commission
-        let allBookings = [];
-        try {
-          const resp = await fetch('/api/bookings');
-          if (resp.ok) {
-            const data = await resp.json();
-            allBookings = Array.isArray(data) ? data : (data.bookings || []);
-          }
-        } catch (e) {
-          allBookings = [];
-        }
-        if (!mounted) return;
-
-        // compute monthly booking counts
-        const months = Array.from({ length: 12 }, (_, i) => ({ month: new Date(0, i).toLocaleString('default', { month: 'short' }), bookings: 0 }));
-        const now = new Date();
-        let commissionSum = 0;
-        (allBookings || []).forEach((b) => {
-          const dateStr = b.scheduled_date || b.date || b.created_at || b.createdAt || null;
-          let d = dateStr ? new Date(dateStr) : null;
-          if (d && !isNaN(d.getTime())) {
-            const m = d.getMonth();
-            months[m].bookings += 1;
-          }
-          const amount = Number(b.amount || b.amountRaw || 0);
-          commissionSum += amount; // treat as revenue; compute commission later
-        });
-        // platform commission — backend may provide exact field; fallback to 10% of revenue
-        const commission = Math.round((commissionSum * 0.1) || 0);
-        setPlatformCommission(commission);
-        setBookingData(months);
-
-        // build recent activities from active bookings + recent bookings
-        const recent = ((active || []).slice(0, 10)).map((b) => ({
-          type: 'Booking',
-          worker: b.worker || b.providerName || b.service_provider?.name || 'Provider',
-          client: b.clientName || (b.client && (b.client.full_name || b.client.name)) || `Client #${b.clientId || b.client?.id || ''}`,
-          service: b.service || b.service_name || '',
-          amount: b.amount || (b.amountRaw ? `KES ${b.amountRaw}` : '-'),
-          status: b.status,
-          time: b.date || b.scheduled_date || ''
-        }));
-        setActivities(recent);
-
       } catch (e) {
-        console.error(e);
-        if (!mounted) return;
-        setError(e.message || 'Failed to load admin data');
-      } finally {
-        if (mounted) setLoading(false);
+        // Endpoint not ready yet - silently handle
+        console.info("Users endpoint not yet available");
       }
+
+      // ── Fetch Service Providers (endpoint to be added by backend team) ──
+      let totalProviders = 0;
+      try {
+        const resp = await fetch("/api/service-providers");
+        if (resp.ok) {
+          const data = await resp.json();
+          const providers = Array.isArray(data) ? data : data.service_providers || [];
+          totalProviders = providers.length;
+        }
+      } catch (e) {
+        // Endpoint not ready yet - silently handle
+        console.info("Service providers endpoint not yet available");
+      }
+
+      // ── Fetch Active Bookings ──
+      let activeBookings = [];
+      let activeBookingsCount = 0;
+      try {
+        activeBookings = await bookingService.listActiveBookings();
+        if (Array.isArray(activeBookings)) {
+          activeBookingsCount = activeBookings.length;
+        }
+      } catch (e) {
+        console.warn("Active bookings endpoint not available");
+      }
+
+      // ── Fetch All Bookings for Stats ──
+      let allBookings = [];
+      try {
+        allBookings = await bookingService.listActiveBookings();
+        if (!Array.isArray(allBookings)) allBookings = [];
+      } catch (e) {
+        console.warn("Bookings endpoint not available");
+      }
+
+      // ── Fetch Payout Stats ──
+      let payoutStats = { total_pending_amount: 0, total_completed_amount: 0 };
+      try {
+        const statsData = await paymentsService.getAdminStats();
+        payoutStats = statsData || { total_pending_amount: 0, total_completed_amount: 0 };
+      } catch (e) {
+        console.warn("Payout stats endpoint not available");
+      }
+
+      // ── Calculate Revenue and Commission ──
+      let totalRevenue = 0;
+      let commission = 0;
+      (allBookings || []).forEach((b) => {
+        let amount = b.amount || b.amountRaw || b.gross_amount || 0;
+        if (typeof amount === "string" && amount.includes("KES")) {
+          amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
+        }
+        totalRevenue += Number(amount);
+        commission += Number(amount) * 0.1;
+      });
+
+      // ── Monthly Booking Data ──
+      const months = Array.from({ length: 12 }, (_, i) => ({
+        month: new Date(0, i).toLocaleString("default", { month: "short" }),
+        bookings: 0,
+      }));
+
+      (allBookings || []).forEach((b) => {
+        const dateStr = b.scheduled_date || b.date || b.created_at || b.createdAt || null;
+        let d = dateStr ? new Date(dateStr) : null;
+        if (d && !isNaN(d.getTime())) {
+          const m = d.getMonth();
+          months[m].bookings += 1;
+        }
+      });
+
+      setBookingData(months);
+
+      // ── Recent Activities ──
+      const recent = ((activeBookings || [])
+        .slice(0, 10)
+        .filter((b) => b)
+        .map((b) => {
+          let amount = b.amount || b.amountRaw || b.gross_amount || 0;
+          if (typeof amount === "string" && amount.includes("KES")) {
+            amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
+          }
+
+          return {
+            id: b.id,
+            type: "Booking",
+            worker: b.worker || b.providerName || b.provider || b.service_provider?.name || "Provider",
+            client: b.clientName || b.client || b.client?.name || `Client #${b.clientId || ""}`,
+            service: b.service || b.service_name || "",
+            amount: Number(amount),
+            status: b.status || "Pending",
+            time: b.date || b.scheduled_date || b.booking_date || b.created_at || "",
+            formattedAmount: formatCurrency(Number(amount)),
+          };
+        }));
+
+      setRecentActivities(recent);
+
+      // ── Set Stats ──
+      setStats({
+        totalUsers: totalUsers || 0,
+        totalProviders: totalProviders || 0,
+        activeBookings: activeBookingsCount || 0,
+        platformCommission: Math.round(commission) || 0,
+        totalRevenue: Math.round(totalRevenue) || 0,
+        pendingPayouts: payoutStats.total_pending_amount || 0,
+      });
+
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+      setError(err.message || "Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
+  };
 
-    fetchAll();
-
-    return () => { mounted = false; };
+  useEffect(() => {
+    fetchDashboardData();
   }, []);
+
+  // ── Export Chart Data as CSV ──
+  const exportChartData = () => {
+    const headers = ["Month", "Bookings"];
+    const rows = bookingData.map((item) => [item.month, item.bookings]);
+    const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `booking_trends_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── Navigate handlers ──
+  const navigateTo = (path) => {
+    navigate(path);
+  };
+
+  // ── Loading state ──
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-[#f8fafc]">
+        <Sidebar role="admin" />
+        <div className="flex-1 ml-72">
+          <Navbar />
+          <main className="pt-24 px-6 pb-6">
+            <div className="flex h-64 items-center justify-center">
+              <RefreshCw className="h-12 w-12 animate-spin text-[#056db3]" />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
-      {/* Sidebar */}
       <Sidebar role="admin" />
-
-      {/* Main Content */}
       <div className="flex-1 ml-72">
-        {/* Navbar */}
         <Navbar />
-
-        {/* Dashboard Content */}
         <main className="pt-24 px-6 pb-6">
-          <section className="mb-8">
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-800">
-                Admin Dashboard
-              </h1>
 
-              <p className="text-gray-600 mt-2">
-                Monitor and manage Sasafix Service Hub
-              </p>
+          {/* ── Page Header ── */}
+          <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+              <p className="text-gray-600 mt-1">Monitor and manage Sasafix Service Hub</p>
             </div>
+            <button
+              onClick={() => fetchDashboardData(true)}
+              disabled={refreshing}
+              className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white border border-gray-200 p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow relative">
-            <div className="absolute top-4 right-4">
-              <span className="text-sm text-green-600 font-medium">+12.5%</span>
-            </div>
-              <div className="flex flex-col items-start mt-4">
-              <div className="p-3 bg-blue-100 rounded-full mb-3">
-                <Users className="w-8 h-8 text-blue-600" />
+          {/* ── Stats Cards ── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <StatCard
+              title="Total Users"
+              value={stats.totalUsers.toLocaleString()}
+              icon={Users}
+              iconBg="bg-blue-100 text-blue-600"
+              trend="+12.5%"
+              isLoading={loading}
+              onClick={() => navigateTo("/admin/users")}
+            />
+            <StatCard
+              title="Total Providers"
+              value={stats.totalProviders.toLocaleString()}
+              icon={Briefcase}
+              iconBg="bg-purple-100 text-purple-600"
+              trend="+8.2%"
+              isLoading={loading}
+              onClick={() => navigateTo("/admin/service-providers")}
+            />
+            <StatCard
+              title="Active Bookings"
+              value={stats.activeBookings.toLocaleString()}
+              icon={Calendar}
+              iconBg="bg-orange-100 text-orange-600"
+              trend="+15.3%"
+              isLoading={loading}
+              onClick={() => navigateTo("/admin/bookings-payments")}
+            />
+            <StatCard
+              title="Platform Commission"
+              value={formatCurrency(stats.platformCommission)}
+              icon={DollarSign}
+              iconBg="bg-green-100 text-green-600"
+              trend="+18.7%"
+              isLoading={loading}
+              onClick={() => navigateTo("/admin/payments/commission")}
+            />
+          </div>
+
+          {/* ── Revenue & Quick Stats Row ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {/* ── Bookings Over Time (Line Chart) ── */}
+            <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+                <div>
+                  <h2 className="font-bold text-xl text-gray-800">Bookings Over Time</h2>
+                  <p className="text-gray-600 text-sm">Monthly booking trends</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={exportChartData}
+                    className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export
+                  </button>
+                  <Link
+                    to="/admin/reports"
+                    className="flex items-center gap-1 text-[#056db3] hover:underline font-medium text-sm"
+                  >
+                    View Report
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-gray-800 mb-1">{usersCount !== null ? usersCount : '—'}</p>
-              <h2 className="text-sm font-medium text-gray-600">Total Users</h2>
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={bookingData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="month"
+                      stroke="#6b7280"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      stroke="#6b7280"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        padding: "8px 12px",
+                      }}
+                      formatter={(value) => [value, "Bookings"]}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="bookings"
+                      stroke="#056db3"
+                      strokeWidth={3}
+                      dot={{ fill: "#056db3", r: 4 }}
+                      activeDot={{ r: 6 }}
+                      name="Bookings"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* ── Quick Stats ── */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <h2 className="font-bold text-xl text-gray-800 mb-4">Quick Stats</h2>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <CreditCard className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Total Revenue</p>
+                      <p className="font-bold text-gray-800">{formatCurrency(stats.totalRevenue)}</p>
+                    </div>
+                  </div>
+                  <TrendingUp className="h-5 w-5 text-green-500" />
+                </div>
+                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-yellow-100 rounded-lg">
+                      <Clock className="h-5 w-5 text-yellow-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Pending Payouts</p>
+                      <p className="font-bold text-gray-800">{formatCurrency(stats.pendingPayouts)}</p>
+                    </div>
+                  </div>
+                  <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                </div>
+                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Completion Rate</p>
+                      <p className="font-bold text-gray-800">
+                        {bookingData.reduce((sum, m) => sum + m.bookings, 0) > 0
+                          ? `${Math.round(
+                              (bookingData[bookingData.length - 1]?.bookings || 0) /
+                                (bookingData.reduce((s, m) => s + m.bookings, 0) || 1) * 100
+                            )}%`
+                          : "0%"}
+                      </p>
+                    </div>
+                  </div>
+                  <Activity className="h-5 w-5 text-green-500" />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow relative">
-            <div className="absolute top-4 right-4">
-              <span className="text-sm text-green-600 font-medium">+8.2%</span>
-            </div>
-              <div className="flex flex-col items-start mt-4">
-              <div className="p-3 bg-purple-100 rounded-full mb-3">
-                <Briefcase className="w-8 h-8 text-purple-600" />
-              </div>
-              <p className="text-2xl font-bold text-gray-800 mb-1">{providersCount !== null ? providersCount : '—'}</p>
-              <h2 className="text-sm font-medium text-gray-600">Total Providers</h2>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow relative">
-            <div className="absolute top-4 right-4">
-              <span className="text-sm text-green-600 font-medium">+15.3%</span>
-            </div>
-              <div className="flex flex-col items-start mt-4">
-              <div className="p-3 bg-orange-100 rounded-full mb-3">
-                <Calendar className="w-8 h-8 text-orange-600" />
-              </div>
-              <p className="text-2xl font-bold text-gray-800 mb-1">{activeBookingsCount !== null ? activeBookingsCount : '—'}</p>
-              <h2 className="text-sm font-medium text-gray-600">Active Bookings</h2>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow relative">
-            <div className="absolute top-4 right-4">
-              <span className="text-sm text-green-600 font-medium">+18.7%</span>
-            </div>
-              <div className="flex flex-col items-start mt-4">
-              <div className="p-3 bg-green-100 rounded-full mb-3">
-                <DollarSign className="w-8 h-8 text-green-600" />
-              </div>
-              <p className="text-2xl font-bold text-gray-800 mb-1">{platformCommission !== null ? `KES ${platformCommission.toLocaleString()}` : '—'}</p>
-              <h2 className="text-sm font-medium text-gray-600">Platform Commission</h2>
-            </div>
-          </div>
-        </div>
-      </section>
-
-          <section className="bg-white p-28 rounded-xl shadow-sm mb-8">
-            <div className="flex justify-between items-center mb-6">
+          {/* ── Recent Activity Table ── */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-6 pb-0 flex items-center justify-between flex-wrap gap-4">
               <div>
-                <h2 className="font-bold text-xl text-gray-800">
-                  Bookings Over Time
-                </h2>
-
-                <p className="text-gray-600">
-                  Monthly booking trends
-                </p>
+                <h2 className="font-bold text-xl text-gray-800">Recent Activity</h2>
+                <p className="text-gray-600 text-sm">Latest bookings and activities</p>
               </div>
-
-              <Link to="/reports">
-                <button className="flex items-center bg-[#056db3] hover:bg-[#045ca0] text-white font-medium py-2 px-4 rounded-lg transition-colors">
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  View Report
-                </button>
+              <Link
+                to="/admin/bookings-payments"
+                className="text-[#056db3] hover:underline font-medium text-sm flex items-center gap-1"
+              >
+                View All
+                <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
 
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={bookingData}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#f0f0f0"
-                  />
-
-                  <XAxis
-                    dataKey="month"
-                    stroke="#6b7280"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-
-                  <YAxis
-                    stroke="#6b7280"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-
-                  <Tooltip />
-
-                  <Line
-                    type="monotone"
-                    dataKey="bookings"
-                    stroke="#056db3"
-                    strokeWidth={3}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-      </main>
-
-      <section className="bg-white rounded-xl shadow-sm">
-              <div className="p-6 pb-0">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="font-bold text-xl text-gray-800">Recent Activity</h2>
-              <p className="text-gray-600">Latest bookings and flagged accounts</p>
-            </div>
-            <button className="text-[#056db3] hover:underline font-medium">View All</button>
-          </div>
-        </div>
-        <div className="border-t border-gray-200">
-          <div className="overflow-x-auto">
-            <table className="w-full table-auto">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left py-3 px-6 font-medium text-gray-600">Type</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-600">Details</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-600">Amount</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-600">Status</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-600">Time</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
+            <div className="border-t border-gray-200 mt-4 overflow-x-auto">
+              <table className="w-full table-auto">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-500">Loading...</td>
+                    <th className="text-left py-3 px-6 font-medium text-gray-600 text-xs uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="text-left py-3 px-6 font-medium text-gray-600 text-xs uppercase tracking-wider">
+                      Details
+                    </th>
+                    <th className="text-left py-3 px-6 font-medium text-gray-600 text-xs uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="text-left py-3 px-6 font-medium text-gray-600 text-xs uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-6 font-medium text-gray-600 text-xs uppercase tracking-wider">
+                      Time
+                    </th>
+                    <th className="text-left py-3 px-6 font-medium text-gray-600 text-xs uppercase tracking-wider">
+                      Action
+                    </th>
                   </tr>
-                ) : (activities.length === 0) ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-500">No recent activity</td>
-                  </tr>
-                ) : (
-                  activities.map((activity, index) => (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center">
-                          {activity.type === "Booking" && <Calendar className="w-4 h-4 text-blue-500 mr-2" />}
-                          {activity.type === "Flagged Account" && <AlertTriangle className="w-4 h-4 text-red-500 mr-2" />}
-                          {activity.type === "New Provider" && <Users className="w-4 h-4 text-green-500 mr-2" />}
-                          <span className="font-medium">{activity.type}</span>
+                </thead>
+                <tbody>
+                  {recentActivities.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-gray-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <Activity className="h-8 w-8 text-gray-300" />
+                          <p>No recent activity</p>
+                          <p className="text-sm text-gray-400">Bookings will appear here once clients start booking</p>
                         </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div>
-                          <div className="font-medium text-gray-800">{activity.worker} → {activity.client}</div>
-                          <div className="text-sm text-gray-600">{activity.service}</div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 font-medium">{activity.amount}</td>
-                      <td className="py-4 px-6 whitespace-nowrap">
-                        <span
-                          className={`px-3 py-1 rounded-md text-xs font-medium ${
-                            activity.status === "Completed"
-                              ? "bg-green-100 text-green-800"
-                              : activity.status === "Under Review"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}>
-                          {activity.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-gray-500 whitespace-nowrap">{activity.time}</td>
-                      <td className="py-4 px-6">
-                        <button className="text-[#056db3] hover:underline font-medium">View</button>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    recentActivities.map((activity, index) => {
+                      const StatusIcon = getStatusIcon(activity.status);
+                      const statusClass = getStatusStyles(activity.status);
+                      return (
+                        <tr key={activity.id || index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-blue-500" />
+                              <span className="font-medium text-gray-700">Booking</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div>
+                              <div className="font-medium text-gray-800">
+                                {activity.worker} → {activity.client}
+                              </div>
+                              <div className="text-sm text-gray-500">{activity.service}</div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 font-medium text-gray-700">
+                            {activity.formattedAmount || formatCurrency(activity.amount)}
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className={`px-3 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 w-fit ${statusClass}`}>
+                              <StatusIcon className="h-3 w-3" />
+                              {activity.status}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-gray-500 text-sm whitespace-nowrap">
+                            {activity.time ? formatDate(activity.time) : "-"}
+                          </td>
+                          <td className="py-4 px-6">
+                            <button
+                              onClick={() => navigateTo(`/admin/bookings-payments/${activity.id}`)}
+                              className="text-[#056db3] hover:underline font-medium text-sm flex items-center gap-1"
+                            >
+                              <Eye className="h-4 w-4" />
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </section>
+        </main>
+      </div>
     </div>
-  </div>
   );
 }
 

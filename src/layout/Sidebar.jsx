@@ -13,6 +13,10 @@ import {
   Wallet,
   Gift,
   ShieldCheck,
+  BarChart3,
+  Users,
+  Store,
+  UserCog,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -53,6 +57,11 @@ function Sidebar({ role = "client" }) {
       name: "Wallet",
       path: "/client/wallet",
       icon: <Wallet size={20} />,
+    },
+    {
+      name: "Notifications",
+      path: "/client/notifications",
+      icon: <Bell size={20} />,
     },
     {
       name: "Referrals",
@@ -111,6 +120,35 @@ function Sidebar({ role = "client" }) {
       icon: <LayoutDashboard size={20} />,
     },
     {
+      id: "admin-users",
+      name: "Users",
+      icon: <Users className="h-5 w-5" />,
+      path: "/admin/users",
+    },
+    {
+      id: "admin-providers",
+      name: "Service Providers",
+      icon: <Store className="h-5 w-5" />,
+      path: "/admin/service-providers",
+    },
+    {
+      name: "Bookings & Payments",
+      path: "/admin/bookings-payments",
+      icon: <CalendarDays size={20} />,
+    },
+    {
+      id: "admin-analytics",
+      name: "Analytics & Reports",
+      icon: <BarChart3 className="h-5 w-5" />,
+      path: "/admin/reports",
+    },
+    {
+      name: "Notifications",
+      path: "/admin/notifications",
+      icon: <Bell size={20} />,
+    },
+
+    {
       name: "Settings",
       path: "/admin/settings",
       icon: <Settings size={20} />,
@@ -121,8 +159,8 @@ function Sidebar({ role = "client" }) {
     role === "provider"
       ? providerLinks
       : role === "admin"
-      ? adminLinks
-      : clientLinks;
+        ? adminLinks
+        : clientLinks;
 
   return (
     <>
@@ -160,19 +198,13 @@ function Sidebar({ role = "client" }) {
           transition-all
           duration-300
           overflow-y-auto
-          ${
-            isOpen
-              ? "w-72"
-              : "w-0 lg:w-72 overflow-hidden"
-          }
+          ${isOpen ? "w-72" : "w-0 lg:w-72 overflow-hidden"}
         `}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="px-8 py-8 border-b">
-            <h1 className="text-3xl font-bold text-[#056db3]">
-              SasaFix
-            </h1>
+            <h1 className="text-3xl font-bold text-[#056db3]">SasaFix</h1>
           </div>
 
           {/* Navigation */}
@@ -211,15 +243,11 @@ function Sidebar({ role = "client" }) {
               <div className="bg-[#056db3] rounded-2xl p-5 text-white">
                 <div className="flex items-center gap-2 mb-3">
                   <ShieldCheck size={20} />
-                  <h3 className="font-semibold">
-                    Premium
-                  </h3>
+                  <h3 className="font-semibold">Premium</h3>
                 </div>
 
                 <p className="text-sm text-blue-100 mb-4">
-                  Unlock premium workers,
-                  faster bookings & priority
-                  support.
+                  Unlock premium workers, faster bookings & priority support.
                 </p>
 
                 <button className="bg-white text-[#056db3] font-semibold w-full py-3 rounded-xl hover:bg-gray-100 transition">

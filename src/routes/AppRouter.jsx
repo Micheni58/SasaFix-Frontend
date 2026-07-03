@@ -25,6 +25,14 @@ import InProgressJobDetails from "../pages/ServiceProvider/Jobs/InProgressJobDet
 import CompletedJobDetails from "../pages/ServiceProvider/Jobs/CompletedJobDetails";
 import MyBookingDetails from "../pages/Client/bookings/MyBookingDetails";
 import ClientProfile from "../pages/Client/Profile";
+import RoleSelection from "../pages/RoleSelection"; // new file we made
+import SignUpForm from "../components/SignUpForm"; // existing file
+import ReportAndAnalytics from "../pages/Admin/ReportsAndAnalytics";
+import BookingsAndPayments from "../pages/Admin/BookingsAndPayments";
+import BookingsAndPaymentsDetails from "../pages/Admin/BookingsAndPaymentDetails";
+import PayoutDetails from "../pages/Admin/PayoutDetails";
+import Users from "../pages/Admin/Users";
+import ServiceProviders from "../pages/Admin/ServiceProviders";
 
 export default function AppRouter() {
   return (
@@ -33,13 +41,27 @@ export default function AppRouter() {
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
+        <Route path="/signup" element={<RoleSelection />} />
+        <Route path="/signup/details" element={<SignUp />} />
         <Route path="/about" element={<About />} />
 
         {/* Protected/Dashboard Routes */}
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/admin/notifications" element={<AdminNotification />} />
+        <Route path="/admin/reports" element={<ReportAndAnalytics />} />
+        <Route
+          path="/admin/bookings-payments"
+          element={<BookingsAndPayments />}
+        />
+        <Route
+          path="/admin/bookings-payments/:bookingId"
+          element={<BookingsAndPaymentsDetails />}
+        />
+        <Route path="/admin/payouts/:payoutId" element={<PayoutDetails />} />
+        <Route path="/admin/users" element={<Users />} />
+        <Route path="/admin/service-providers" element={<ServiceProviders />} />
+        {/* Client Routes */}
 
         <Route path="/client" element={<ClientDashboard />} />
         <Route path="/client/find-services" element={<FindServices />} />
@@ -53,17 +75,35 @@ export default function AppRouter() {
         <Route path="/provider/wallet" element={<ClientWallet />} />
         <Route path="/provider/profile" element={<Profile />} />
         <Route path="/provider/availability" element={<Availability />} />
-        <Route path="/provider/notifications" element={<ProviderNotification />} />
+        <Route
+          path="/provider/notifications"
+          element={<ProviderNotification />}
+        />
 
         <Route path="/profile" element={<Profile />} />
 
         <Route path="/client/my-bookings" element={<MyBookings />} />
         <Route path="/provider/my-jobs" element={<MyJobs />} />
-        <Route path="/provider/my-jobs/new/:id" element={<NewJobRequestDetails />} />
-        <Route path="/provider/my-jobs/accepted/:id" element={<AcceptedJobDetails />} />
-        <Route path="/provider/my-jobs/in-progress/:id" element={<InProgressJobDetails />} />
-        <Route path="/provider/my-jobs/completed/:id" element={<CompletedJobDetails />} />
-        <Route path="/client/my-bookings/:bookingId" element={<MyBookingDetails />} />
+        <Route
+          path="/provider/my-jobs/new/:id"
+          element={<NewJobRequestDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/accepted/:id"
+          element={<AcceptedJobDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/in-progress/:id"
+          element={<InProgressJobDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/completed/:id"
+          element={<CompletedJobDetails />}
+        />
+        <Route
+          path="/client/my-bookings/:bookingId"
+          element={<MyBookingDetails />}
+        />
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />
       </Routes>

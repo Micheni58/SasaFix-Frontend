@@ -27,6 +27,12 @@ import MyBookingDetails from "../pages/Client/bookings/MyBookingDetails";
 import ClientProfile from "../pages/Client/Profile";
 import RoleSelection from "../pages/RoleSelection"; // new file we made
 import SignUpForm from "../components/SignUpForm"; // existing file
+import ReportAndAnalytics from "../pages/Admin/ReportsAndAnalytics";
+import BookingsAndPayments from "../pages/Admin/BookingsAndPayments";
+import BookingsAndPaymentsDetails from "../pages/Admin/BookingsAndPaymentDetails";
+import PayoutDetails from "../pages/Admin/PayoutDetails";
+import Users from "../pages/Admin/Users";
+import ServiceProviders from "../pages/Admin/ServiceProviders";
 
 export default function AppRouter() {
   return (
@@ -43,6 +49,19 @@ export default function AppRouter() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/admin/notifications" element={<AdminNotification />} />
+        <Route path="/admin/reports" element={<ReportAndAnalytics />} />
+        <Route
+          path="/admin/bookings-payments"
+          element={<BookingsAndPayments />}
+        />
+        <Route
+          path="/admin/bookings-payments/:bookingId"
+          element={<BookingsAndPaymentsDetails />}
+        />
+        <Route path="/admin/payouts/:payoutId" element={<PayoutDetails />} />
+        <Route path="/admin/users" element={<Users />} />
+        <Route path="/admin/service-providers" element={<ServiceProviders />} />
+        {/* Client Routes */}
 
         <Route path="/client" element={<ClientDashboard />} />
         <Route path="/client/find-services" element={<FindServices />} />

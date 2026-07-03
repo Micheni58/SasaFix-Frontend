@@ -1,0 +1,1071 @@
+// src/pages/ProviderWallet.jsx - Updated with better empty state
+
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import {
+    ArrowDownLeft,
+    ArrowUpRight,
+    CreditCard,
+    Download,
+    Filter,
+    Phone,
+    Plus,
+    Wallet as WalletIcon,
+    Loader2,
+    AlertCircle,
+    X,
+    Trash2,
+    Check,
+    Edit2,
+    TrendingUp,
+    Calendar,
+    DollarSign,
+    ShoppingBag,
+    Users,
+    Clock,
+    Gift,
+    Sparkles,
+} from "lucide-react";
+import Sidebar from "../../layout/Sidebar";
+import Navbar from "../../components/Navbar";
+import { getSidebarRole } from "../../utils/sidebarRole";
+import walletService from "../../api/walletService";
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+
+const filterOptions = ["Day", "Week", "Month", "Year"];
+
+const statusStyles = {
+    completed: "bg-green-100 text-green-700",
+    pending: "bg-amber-100 text-amber-700",
+    failed: "bg-red-100 text-red-700",
+    processing: "bg-blue-100 text-blue-700",
+};
+
+const typeStyles = {
+    payment: "bg-green-50 text-green-600",
+    payout: "bg-red-50 text-red-500",
+    refund: "bg-blue-50 text-[#056db3]",
+    topup: "bg-purple-50 text-purple-600",
+};
+
+const paymentMethodIcons = {
+    mpesa: Phone,
+    visa: CreditCard,
+    mastercard: CreditCard,
+    bank: CreditCard,
+};
+
+const paymentMethodColors = {
+    mpesa: "bg-green-100 text-green-600",
+    visa: "bg-blue-100 text-blue-600",
+    mastercard: "bg-purple-100 text-purple-600",
+    bank: "bg-gray-100 text-gray-600",
+};
+
+function formatAmount(amount) {
+    const abs = Math.abs(amount).toLocaleString();
+    return amount < 0 ? `- KES ${abs}` : `+ KES ${abs}`;
+}
+
+function formatDate(dateString) {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-KE", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+}
+
+function StatCard({ icon, iconBg, label, value, sub, isLoading }) {
+    return (
+        <div className={`rounded-lg p-5 shadow-sm flex items-start gap-4 ${iconBg}`}>
+            <div className="flex h-11 w-11 items-center justify-center">
+                {icon}
+            </div>
+            <div>
+                <p className="text-sm text-gray-500">{label}</p>
+                {isLoading ? (
+                    <div className="mt-1 h-6 w-24 animate-pulse rounded bg-gray-200" />
+                ) : (
+                    <p className="mt-1 text-xl font-bold text-gray-800">{value}</p>
+                )}
+                {sub && <p className="mt-0.5 text-xs text-gray-400">{sub}</p>}
+            </div>
+        </div>
+    );
+}
+
+// Empty State Component for Providers
+function EmptyState({ icon: Icon, title, description, actionText, onAction }) {
+    return (
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div className="rounded-full bg-blue-50 p-6 mb-6">
+                <Icon className="h-16 w-16 text-[#056db3]" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">{title}</h3>
+            <p className="text-gray-500 max-w-md mb-6">{description}</p>
+            {onAction && (
+                <button
+                    onClick={onAction}
+                    className="rounded-lg bg-[#056db3] px-6 py-3 text-white font-semibold hover:bg-[#045a94] transition-colors flex items-center gap-2"
+                >
+                    <Plus className="h-4 w-4" />
+                    {actionText}
+                </button>
+            )}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────
+
+function ProviderWallet() {
+    const location = useLocation();
+    const sidebarRole = getSidebarRole(location.pathname);
+
+    // ── State ──
+    const [activeFilter, setActiveFilter] = useState("Month");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Data states
+    const [balance, setBalance] = useState(0);
+    const [transactions, setTransactions] = useState([]);
+    const [paymentMethods, setPaymentMethods] = useState([]);
+    const [user, setUser] = useState(null);
+
+    // Withdrawal states
+    const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+    const [withdrawData, setWithdrawData] = useState({
+        amount: "",
+        phone_number: "",
+    });
+    const [withdrawLoading, setWithdrawLoading] = useState(false);
+    const [withdrawError, setWithdrawError] = useState(null);
+
+    // Payment Method Modal States
+    const [showMethodModal, setShowMethodModal] = useState(false);
+    const [editingMethod, setEditingMethod] = useState(null);
+    const [methodFormData, setMethodFormData] = useState({
+        type: "mpesa",
+        label: "",
+        detail: "",
+        primary: false,
+    });
+    const [methodModalLoading, setMethodModalLoading] = useState(false);
+    const [methodError, setMethodError] = useState(null);
+
+    // ── Get user from localStorage ──
+    useEffect(() => {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (e) {
+                console.error("Failed to parse user data", e);
+            }
+        }
+    }, []);
+
+    // ── Fetch wallet data ──
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchWalletData = async () => {
+            setLoading(true);
+            setError(null);
+
+            try {
+                // Fetch balance - will return 0 if no wallet exists
+                const balanceData = await walletService.getWalletBalance(user.id);
+                setBalance(balanceData.balance || 0);
+
+                // Fetch transactions - will return empty array if none exist
+                const txData = await walletService.getTransactionHistory(user.id, {
+                    filter: activeFilter.toLowerCase(),
+                });
+                setTransactions(txData.transactions || []);
+
+                // Fetch payment methods - will return empty array if none exist
+                const methods = await walletService.getPaymentMethods(user.id);
+                setPaymentMethods(methods || []);
+
+            } catch (err) {
+                // Don't show error for 404s - just set empty data
+                if (err.status === 404) {
+                    setTransactions([]);
+                    setPaymentMethods([]);
+                } else {
+                    setError(err.message || "Failed to load wallet data");
+                }
+                console.error("Wallet error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchWalletData();
+    }, [user, activeFilter]);
+
+    // ── Handle filter change ──
+    const handleFilterChange = (event) => {
+        setActiveFilter(event.target.value);
+    };
+
+    // ── Handle Withdraw Request ──
+    const handleWithdrawRequest = async () => {
+        const amount = parseFloat(withdrawData.amount);
+        const phone = withdrawData.phone_number.trim();
+
+        if (!amount || amount <= 0) {
+            setWithdrawError("Please enter a valid amount");
+            return;
+        }
+
+        if (amount < 1000) {
+            setWithdrawError("Minimum withdrawal is KES 1,000");
+            return;
+        }
+
+        if (amount > balance) {
+            setWithdrawError(`Insufficient balance. Available: KES ${balance.toLocaleString()}`);
+            return;
+        }
+
+        if (!phone) {
+            setWithdrawError("Please enter your M-Pesa phone number");
+            return;
+        }
+
+        setWithdrawLoading(true);
+        setWithdrawError(null);
+
+        try {
+            await walletService.withdrawFromWallet(user.id, amount);
+
+            alert(
+                `✅ Withdrawal initiated successfully!\n\n` +
+                `Amount: KES ${amount.toLocaleString()}\n` +
+                `Phone: ${phone}\n\n` +
+                `The money will be sent to your M-Pesa account shortly.`
+            );
+
+            setShowWithdrawModal(false);
+            setWithdrawData({ amount: "", phone_number: "" });
+            setWithdrawError(null);
+
+            const balanceData = await walletService.getWalletBalance(user.id);
+            setBalance(balanceData.balance || 0);
+
+            const txData = await walletService.getTransactionHistory(user.id, {
+                filter: activeFilter.toLowerCase(),
+            });
+            setTransactions(txData.transactions || []);
+
+        } catch (err) {
+            setWithdrawError(err.message || "Withdrawal failed. Please try again.");
+            console.error("Withdrawal error:", err);
+        } finally {
+            setWithdrawLoading(false);
+        }
+    };
+
+    // ── Handle Export CSV ──
+    const handleExport = () => {
+        if (transactions.length === 0) {
+            alert("No transactions to export");
+            return;
+        }
+
+        const csv = [
+            ["Type", "Description", "Date", "Status", "Amount"],
+            ...transactions.map((t) => [
+                t.type || "",
+                t.description || "",
+                t.date || "",
+                t.status || "",
+                t.amount || 0,
+            ]),
+        ]
+            .map((row) => row.join(","))
+            .join("\n");
+
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    // ── Payment Method Handlers ──
+    const openAddMethodModal = () => {
+        setEditingMethod(null);
+        setMethodFormData({
+            type: "mpesa",
+            label: "",
+            detail: "",
+            primary: false,
+        });
+        setMethodError(null);
+        setShowMethodModal(true);
+    };
+
+    const openEditMethodModal = (method) => {
+        setEditingMethod(method);
+        setMethodFormData({
+            type: method.type,
+            label: method.label,
+            detail: method.detail,
+            primary: method.primary,
+        });
+        setMethodError(null);
+        setShowMethodModal(true);
+    };
+
+    const handleSaveMethod = async () => {
+        const { type, label, detail, primary } = methodFormData;
+
+        if (!label) {
+            setMethodError("Please enter a label");
+            return;
+        }
+        if (!detail) {
+            setMethodError("Please enter the account details");
+            return;
+        }
+
+        setMethodModalLoading(true);
+        setMethodError(null);
+
+        try {
+            if (editingMethod) {
+                alert("Update functionality coming soon!");
+            } else {
+                await walletService.addPaymentMethod(user.id, {
+                    type,
+                    label,
+                    detail,
+                    primary,
+                });
+            }
+
+            const methods = await walletService.getPaymentMethods(user.id);
+            setPaymentMethods(methods || []);
+
+            setShowMethodModal(false);
+            setMethodFormData({ type: "mpesa", label: "", detail: "", primary: false });
+            setEditingMethod(null);
+
+        } catch (err) {
+            setMethodError(err.message || "Failed to save payment method");
+        } finally {
+            setMethodModalLoading(false);
+        }
+    };
+
+    const handleSetPrimary = async (methodId) => {
+        try {
+            await walletService.setPrimaryPaymentMethod(user.id, methodId);
+            const methods = await walletService.getPaymentMethods(user.id);
+            setPaymentMethods(methods || []);
+        } catch (err) {
+            alert("Failed to set primary method: " + err.message);
+        }
+    };
+
+    const handleDeleteMethod = async (methodId, methodLabel) => {
+        if (!confirm(`Are you sure you want to delete "${methodLabel}"?`)) return;
+
+        try {
+            await walletService.deletePaymentMethod(user.id, methodId);
+            const methods = await walletService.getPaymentMethods(user.id);
+            setPaymentMethods(methods || []);
+        } catch (err) {
+            alert("Failed to delete payment method: " + err.message);
+        }
+    };
+
+    // ── Calculate earnings ──
+    const totalEarned = transactions
+        .filter((t) => t.amount > 0 || t.type === "payment")
+        .reduce((sum, t) => sum + (t.amount || t.grossAmount || 0), 0);
+
+    const totalWithdrawn = transactions
+        .filter((t) => t.amount < 0 || t.type === "payout")
+        .reduce((sum, t) => sum + Math.abs(t.amount || t.grossAmount || 0), 0);
+
+    // ── Check if provider has any transactions ──
+    const hasTransactions = transactions.length > 0;
+    const hasPaymentMethods = paymentMethods.length > 0;
+
+    // ── Loading state ──
+    if (loading) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role={sidebarRole} />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-10">
+                        <div className="flex h-64 items-center justify-center">
+                            <Loader2 className="h-12 w-12 animate-spin text-[#056db3]" />
+                        </div>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+    // ── Error state ──
+    if (error) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role={sidebarRole} />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-10">
+                        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+                            <AlertCircle className="mx-auto h-12 w-12 text-red-500" />
+                            <h3 className="mt-2 text-lg font-semibold text-red-700">Error Loading Wallet</h3>
+                            <p className="mt-1 text-red-600">{error}</p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                            >
+                                Try Again
+                            </button>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex min-h-screen bg-[#f8fafc]">
+            <Sidebar role={sidebarRole} />
+            <div className="flex-1 ml-72">
+                <Navbar />
+                <main className="pt-24 px-6 pb-10 space-y-8">
+
+                    {/* ── Page Header ── */}
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-800">My Earnings</h1>
+                        <p className="mt-1 text-gray-500">
+                            Track your earnings, withdrawals, and payment methods.
+                        </p>
+                    </div>
+
+                    {/* ── Balance Card ── */}
+                    <div className="relative overflow-hidden rounded-lg bg-linear-to-r from-[#056db3] to-[#0891b2] p-8 text-white shadow-md">
+                        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10" />
+                        <div className="absolute -right-4 bottom-0 h-24 w-24 rounded-full bg-white/5" />
+
+                        <div className="relative flex items-center justify-between gap-6">
+                            <div>
+                                <p className="text-sm font-medium text-blue-100">
+                                    Available Earnings
+                                </p>
+                                <p className="mt-2 text-5xl font-bold tracking-tight">
+                                    KES {balance.toLocaleString()}
+                                </p>
+                                <p className="mt-2 text-sm text-blue-200">
+                                    {balance === 0 ? "Start earning by completing jobs" : "Ready for withdrawal"}
+                                </p>
+
+                                <div className="mt-6 flex gap-3">
+                                    <button
+                                        onClick={() => {
+                                            if (balance < 1000) {
+                                                alert(`Minimum withdrawal is KES 1,000. You currently have KES ${balance.toLocaleString()}.`);
+                                                return;
+                                            }
+                                            setShowWithdrawModal(true);
+                                            setWithdrawError(null);
+                                            setWithdrawData({ amount: "", phone_number: "" });
+                                        }}
+                                        disabled={balance < 1000}
+                                        className={`rounded-xl px-5 py-2.5 text-sm font-semibold shadow transition-colors ${
+                                            balance >= 1000
+                                                ? "bg-white text-[#056db3] hover:bg-blue-50"
+                                                : "bg-white/30 text-white/50 cursor-not-allowed"
+                                        }`}
+                                    >
+                                        Withdraw Earnings
+                                    </button>
+                                </div>
+                                {balance < 1000 && balance > 0 && (
+                                    <p className="mt-2 text-xs text-blue-200">
+                                        Minimum withdrawal: KES 1,000
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/20 sm:flex">
+                                <TrendingUp className="h-8 w-8 text-white" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Stats Grid ── */}
+                    <div className="grid grid-cols-3 gap-6">
+                        <StatCard
+                            icon={<DollarSign className="h-6 w-6 text-green-600" />}
+                            iconBg="bg-green-50"
+                            label="Total Earned"
+                            value={`KES ${totalEarned.toLocaleString()}`}
+                            sub={hasTransactions ? "All time" : "No earnings yet"}
+                            isLoading={loading}
+                        />
+                        <StatCard
+                            icon={<ArrowUpRight className="h-6 w-6 text-red-500" />}
+                            iconBg="bg-red-50"
+                            label="Total Withdrawn"
+                            value={`KES ${totalWithdrawn.toLocaleString()}`}
+                            sub={hasTransactions ? "All time" : "No withdrawals yet"}
+                            isLoading={loading}
+                        />
+                        <StatCard
+                            icon={<Calendar className="h-6 w-6 text-[#056db3]" />}
+                            iconBg="bg-blue-50"
+                            label="Completed Jobs"
+                            value={transactions.filter(t => t.type === "payment").length}
+                            sub={hasTransactions ? "All time" : "No jobs yet"}
+                            isLoading={loading}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                        {/* ── Payment Methods ── */}
+                        <div className="rounded-sm border border-gray-200 bg-white p-6 shadow-sm">
+                            <div className="mb-5">
+                                <h2 className="text-lg font-bold text-gray-800">
+                                    Payment Methods
+                                </h2>
+                                <p className="text-sm text-gray-500">
+                                    Manage how you receive payments
+                                </p>
+                            </div>
+
+                            <div className="space-y-3">
+                                {!hasPaymentMethods ? (
+                                    <EmptyState
+                                        icon={CreditCard}
+                                        title="No Payment Methods"
+                                        description="Add a payment method to receive your earnings. You can add M-Pesa, Visa, Mastercard, or Bank Account."
+                                        actionText="Add Payment Method"
+                                        onAction={openAddMethodModal}
+                                    />
+                                ) : (
+                                    paymentMethods.map((method) => {
+                                        const IconComponent = paymentMethodIcons[method.type] || CreditCard;
+                                        const colorClass = paymentMethodColors[method.type] || "bg-gray-100 text-gray-600";
+                                        
+                                        return (
+                                            <div
+                                                key={method.id}
+                                                className={`flex min-h-20 items-center justify-between rounded-sm border px-4 py-4 transition-colors ${
+                                                    method.primary
+                                                        ? "border-[#056db3] bg-blue-50"
+                                                        : "border-gray-200 bg-white hover:border-gray-300"
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div
+                                                        className={`flex h-10 w-10 items-center justify-center rounded-xl ${colorClass}`}
+                                                    >
+                                                        <IconComponent className="h-5 w-5" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-base font-semibold text-gray-800">
+                                                            {method.label}
+                                                        </p>
+                                                        <p className="text-sm text-gray-500">
+                                                            {method.detail}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {method.primary && (
+                                                        <span className="rounded-full bg-[#056db3] px-2.5 py-0.5 text-xs font-semibold text-white">
+                                                            Primary
+                                                        </span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => openEditMethodModal(method)}
+                                                        className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </button>
+                                                    {!method.primary && (
+                                                        <button
+                                                            onClick={() => handleSetPrimary(method.id)}
+                                                            className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-[#056db3] transition-colors"
+                                                            title="Set as primary"
+                                                        >
+                                                            <Check className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDeleteMethod(method.id, method.label)}
+                                                        className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                                
+                                {hasPaymentMethods && (
+                                    <button
+                                        onClick={openAddMethodModal}
+                                        className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[#056db3] px-3 py-3 text-md font-bold text-[#056db3] transition-colors hover:bg-blue-100 hover:text-[#056db3]"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        Add Payment Method
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* ── Quick Stats / Getting Started ── */}
+                        <div className="rounded-sm border border-gray-200 bg-white p-6 shadow-sm">
+                            <div className="mb-5">
+                                <h2 className="text-lg font-bold text-gray-800">
+                                    {hasTransactions ? "Recent Activity" : "Getting Started"}
+                                </h2>
+                                <p className="text-sm text-gray-500">
+                                    {hasTransactions ? "Your latest transactions" : "Tips to start earning"}
+                                </p>
+                            </div>
+
+                            {!hasTransactions ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50">
+                                        <div className="mt-1 rounded-full bg-[#056db3] p-1.5">
+                                            <ShoppingBag className="h-4 w-4 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-800">Complete Your First Job</p>
+                                            <p className="text-xs text-gray-500">Accept a service request and complete it successfully</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50">
+                                        <div className="mt-1 rounded-full bg-green-600 p-1.5">
+                                            <Gift className="h-4 w-4 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-800">Get Paid</p>
+                                            <p className="text-xs text-gray-500">Earnings are automatically added to your wallet after job completion</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3 p-3 rounded-lg bg-purple-50">
+                                        <div className="mt-1 rounded-full bg-purple-600 p-1.5">
+                                            <Sparkles className="h-4 w-4 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-800">Build Your Reputation</p>
+                                            <p className="text-xs text-gray-500">Get 5-star reviews to attract more clients</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {transactions.slice(0, 5).map((tx) => (
+                                        <div key={tx.id} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0">
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-800">{tx.description}</p>
+                                                <p className="text-xs text-gray-400">{tx.date}</p>
+                                            </div>
+                                            <span className={`text-sm font-bold ${tx.amount > 0 ? "text-green-600" : "text-red-500"}`}>
+                                                {formatAmount(tx.amount)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    {transactions.length > 5 && (
+                                        <p className="text-xs text-center text-gray-400 mt-2">
+                                            + {transactions.length - 5} more transactions
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ── Transactions Table ── */}
+                    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+                        <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-6 py-5">
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-lg font-bold text-gray-800">
+                                    Transaction History
+                                </h2>
+                                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600">
+                                    {transactions.length}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600">
+                                    <Filter className="h-4 w-4" />
+                                    <select
+                                        value={activeFilter}
+                                        onChange={handleFilterChange}
+                                        className="bg-transparent text-sm font-medium text-gray-600 outline-none"
+                                    >
+                                        {filterOptions.map((option) => (
+                                            <option key={option} value={option}>
+                                                {option}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <button
+                                    onClick={handleExport}
+                                    disabled={!hasTransactions}
+                                    className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
+                                        hasTransactions
+                                            ? "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                            : "border-gray-100 text-gray-300 cursor-not-allowed"
+                                    }`}
+                                >
+                                    <Download className="h-4 w-4" />
+                                    Export CSV
+                                </button>
+                            </div>
+                        </div>
+
+                        {!hasTransactions ? (
+                            <EmptyState
+                                icon={Clock}
+                                title="No Transactions Yet"
+                                description="You haven't completed any jobs yet. Start accepting service requests to begin earning and see your transaction history here."
+                            />
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full table-auto">
+                                    <thead className="border-b border-gray-100 bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Type
+                                            </th>
+                                            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Description
+                                            </th>
+                                            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Date
+                                            </th>
+                                            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Status
+                                            </th>
+                                            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Amount
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {transactions.map((tx) => (
+                                            <tr
+                                                key={tx.id}
+                                                className="transition-colors hover:bg-gray-50"
+                                            >
+                                                <td className="px-6 py-4">
+                                                    <span
+                                                        className={`inline-flex rounded-lg px-3 py-1 text-xs font-semibold capitalize ${typeStyles[tx.type] || "bg-gray-50 text-gray-500"}`}
+                                                    >
+                                                        {tx.type || "unknown"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-4 text-sm text-gray-700">
+                                                    {tx.description || "Transaction"}
+                                                </td>
+                                                <td className="px-4 py-4 text-sm text-gray-500">
+                                                    {tx.date || formatDate(tx.createdAt || tx.paidAt)}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <span
+                                                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${statusStyles[tx.status] || "bg-gray-50 text-gray-500"}`}
+                                                    >
+                                                        {tx.status || "unknown"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-4 text-right">
+                                                    <span
+                                                        className={`text-sm font-bold ${
+                                                            tx.amount < 0 || tx.type === "payout"
+                                                                ? "text-red-500"
+                                                                : "text-green-600"
+                                                        }`}
+                                                    >
+                                                        {formatAmount(tx.amount || tx.grossAmount || 0)}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </main>
+            </div>
+
+            {/* ── Withdraw Modal ── */}
+            {showWithdrawModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-2xl font-bold text-gray-800">Withdraw Earnings</h2>
+                            <button
+                                onClick={() => {
+                                    setShowWithdrawModal(false);
+                                    setWithdrawError(null);
+                                    setWithdrawData({ amount: "", phone_number: "" });
+                                }}
+                                className="rounded-lg p-1 hover:bg-gray-100"
+                            >
+                                <X className="h-6 w-6 text-gray-500" />
+                            </button>
+                        </div>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                            Withdraw your earnings to your M-Pesa account.
+                            <br />
+                            <span className="text-xs text-gray-400">Minimum withdrawal: KES 1,000</span>
+                        </p>
+
+                        {withdrawError && (
+                            <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-200">
+                                <AlertCircle className="inline h-4 w-4 mr-1" />
+                                {withdrawError}
+                            </div>
+                        )}
+
+                        <div className="mt-4 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Available Balance
+                                </label>
+                                <p className="mt-1 text-2xl font-bold text-[#056db3]">
+                                    KES {balance.toLocaleString()}
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Amount (KES)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={withdrawData.amount}
+                                    onChange={(e) =>
+                                        setWithdrawData({
+                                            ...withdrawData,
+                                            amount: e.target.value,
+                                        })
+                                    }
+                                    placeholder="Enter amount (min 1,000)"
+                                    min="1000"
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-[#056db3]/20"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    M-Pesa Phone Number
+                                </label>
+                                <input
+                                    type="tel"
+                                    value={withdrawData.phone_number}
+                                    onChange={(e) =>
+                                        setWithdrawData({
+                                            ...withdrawData,
+                                            phone_number: e.target.value,
+                                        })
+                                    }
+                                    placeholder="e.g., 2547XXXXXXXX"
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-[#056db3]/20"
+                                />
+                                <p className="mt-1 text-xs text-gray-400">
+                                    Format: 2547XXXXXXXX (without +)
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowWithdrawModal(false);
+                                    setWithdrawError(null);
+                                    setWithdrawData({ amount: "", phone_number: "" });
+                                }}
+                                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleWithdrawRequest}
+                                disabled={withdrawLoading}
+                                className="flex-1 rounded-lg bg-[#056db3] px-4 py-2 text-white hover:bg-[#045a94] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            >
+                                {withdrawLoading ? (
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                ) : (
+                                    "Withdraw"
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Add/Edit Payment Method Modal ── */}
+            {showMethodModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-2xl font-bold text-gray-800">
+                                {editingMethod ? "Edit Payment Method" : "Add Payment Method"}
+                            </h2>
+                            <button
+                                onClick={() => {
+                                    setShowMethodModal(false);
+                                    setMethodError(null);
+                                    setEditingMethod(null);
+                                }}
+                                className="rounded-lg p-1 hover:bg-gray-100"
+                            >
+                                <X className="h-6 w-6 text-gray-500" />
+                            </button>
+                        </div>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                            {editingMethod 
+                                ? "Update your payment method details." 
+                                : "Add a new payment method to receive payments."}
+                        </p>
+
+                        {methodError && (
+                            <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-200">
+                                <AlertCircle className="inline h-4 w-4 mr-1" />
+                                {methodError}
+                            </div>
+                        )}
+
+                        <div className="mt-4 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Payment Type
+                                </label>
+                                <select
+                                    value={methodFormData.type}
+                                    onChange={(e) =>
+                                        setMethodFormData({
+                                            ...methodFormData,
+                                            type: e.target.value,
+                                        })
+                                    }
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-[#056db3]/20"
+                                >
+                                    <option value="mpesa">M-Pesa</option>
+                                    <option value="visa">Visa Card</option>
+                                    <option value="mastercard">Mastercard</option>
+                                    <option value="bank">Bank Account</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Label
+                                </label>
+                                <input
+                                    type="text"
+                                    value={methodFormData.label}
+                                    onChange={(e) =>
+                                        setMethodFormData({
+                                            ...methodFormData,
+                                            label: e.target.value,
+                                        })
+                                    }
+                                    placeholder="e.g., My M-Pesa"
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-[#056db3]/20"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Account Details
+                                </label>
+                                <input
+                                    type="text"
+                                    value={methodFormData.detail}
+                                    onChange={(e) =>
+                                        setMethodFormData({
+                                            ...methodFormData,
+                                            detail: e.target.value,
+                                        })
+                                    }
+                                    placeholder="e.g., +2547XXXXXXXX or ****4242"
+                                    className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-[#056db3]/20"
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="primary-method"
+                                    checked={methodFormData.primary}
+                                    onChange={(e) =>
+                                        setMethodFormData({
+                                            ...methodFormData,
+                                            primary: e.target.checked,
+                                        })
+                                    }
+                                    className="h-4 w-4 rounded border-gray-300 text-[#056db3] focus:ring-[#056db3]"
+                                />
+                                <label htmlFor="primary-method" className="text-sm text-gray-700">
+                                    Set as primary payment method
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowMethodModal(false);
+                                    setMethodError(null);
+                                    setEditingMethod(null);
+                                }}
+                                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveMethod}
+                                disabled={methodModalLoading}
+                                className="flex-1 rounded-lg bg-[#056db3] px-4 py-2 text-white hover:bg-[#045a94] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            >
+                                {methodModalLoading ? (
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                ) : (
+                                    editingMethod ? "Update" : "Add Method"
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+export default ProviderWallet;

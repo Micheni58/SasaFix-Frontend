@@ -1,3 +1,5 @@
+// src/api/bookingService.js - Silent 404 Handling
+
 import axios from "axios";
 
 const API_URL = "/api";
@@ -83,7 +85,6 @@ async function fetchUserById(id) {
 
 async function normalizeBookingAsync(apiBooking) {
     const normalized = normalizeBooking(apiBooking);
-    // if client name not provided, try fetching user by clientId
     if ((normalized.client === 'Client' || !normalized.client || normalized.client.toString().toLowerCase().startsWith('client #')) && normalized.clientId) {
         const user = await fetchUserById(normalized.clientId);
         if (user) {
@@ -96,11 +97,28 @@ async function normalizeBookingAsync(apiBooking) {
     return normalized;
 }
 
+// src/api/bookingService.js - Fixed listClientBookings
+
 export async function listClientBookings(clientId) {
-    const resp = await client.get(`/bookings/client/${clientId}`);
-    const list = resp.data || [];
-    const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
-    return results;
+    try {
+        const resp = await client.get(`/bookings/client/${clientId}`);
+        const list = resp.data || [];
+        const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
+        return results;
+    } catch (error) {
+        // If endpoint returns 404 or error, return empty array
+        if (error.response && error.response.status === 404) {
+            console.info("No bookings found for this client");
+            return [];
+        }
+        // Fallback: try to get all bookings and filter by client ID
+        try {
+            const allBookings = await listActiveBookings();
+            return (allBookings || []).filter((b) => Number(b.clientId) === Number(clientId));
+        } catch (e2) {
+            return [];
+        }
+    }
 }
 
 export async function listProviderBookings(providerId) {
@@ -109,53 +127,89 @@ export async function listProviderBookings(providerId) {
         const list = resp.data || [];
         const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
         return results;
-    } catch (e) {
-        // If provider-specific endpoint not available or returns 404, fallback to active bookings filtered by provider id
-        try {
-            const active = await listActiveBookings(); // already normalized
-            return (active || []).filter((b) => Number(b.serviceProviderId) === Number(providerId));
-        } catch (e2) {
-            return [];
+    } catch (error) {
+        // Silently fallback to active bookings filtered by provider id
+        if (error.response && error.response.status === 404) {
+            try {
+                const active = await listActiveBookings();
+                return (active || []).filter((b) => Number(b.serviceProviderId) === Number(providerId));
+            } catch (e2) {
+                return [];
+            }
         }
+        throw error;
     }
 }
 
 export async function getBooking(bookingId) {
-    const resp = await client.get(`/bookings/${bookingId}`);
-    return normalizeBookingAsync(resp.data);
+    try {
+        const resp = await client.get(`/bookings/${bookingId}`);
+        return normalizeBookingAsync(resp.data);
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            return null;
+        }
+        throw error;
+    }
 }
 
 export async function listActiveBookings() {
-    const resp = await client.get(`/bookings/active`);
-    const list = resp.data || [];
-    const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
-    return results;
+    try {
+        const resp = await client.get(`/bookings/active`);
+        const list = resp.data || [];
+        const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
+        return results;
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            return [];
+        }
+        throw error;
+    }
 }
 
 export async function updateBookingStatus(bookingId, newStatus) {
-    const resp = await client.patch(`/bookings/${bookingId}/status`, {
-        status: newStatus,
-    });
-    return normalizeBooking(resp.data);
+    try {
+        const resp = await client.patch(`/bookings/${bookingId}/status`, {
+            status: newStatus,
+        });
+        return normalizeBooking(resp.data);
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            return null;
+        }
+        throw error;
+    }
 }
 
 export async function cancelBooking(bookingId) {
-    const resp = await client.patch(`/bookings/${bookingId}/cancel`);
-    return normalizeBooking(resp.data);
+    try {
+        const resp = await client.patch(`/bookings/${bookingId}/cancel`);
+        return normalizeBooking(resp.data);
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            return null;
+        }
+        throw error;
+    }
 }
 
 export async function rescheduleBooking(bookingId, data) {
-    const resp = await client.patch(`/bookings/${bookingId}/reschedule`, data);
-    return normalizeBooking(resp.data);
+    try {
+        const resp = await client.patch(`/bookings/${bookingId}/reschedule`, data);
+        return normalizeBooking(resp.data);
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            return null;
+        }
+        throw error;
+    }
 }
 
 export async function listProviders() {
-    // backend does not reliably expose provider listing in this project; avoid noisy probe requests
     return [];
 }
 
 export async function getProviderAvailability(providerId) {
-    // Availability endpoints are not implemented on backend; return null to avoid 404s
     return null;
 }
 

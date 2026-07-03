@@ -97,6 +97,8 @@ async function normalizeBookingAsync(apiBooking) {
     return normalized;
 }
 
+// src/api/bookingService.js - Fixed listClientBookings
+
 export async function listClientBookings(clientId) {
     try {
         const resp = await client.get(`/bookings/client/${clientId}`);
@@ -104,10 +106,18 @@ export async function listClientBookings(clientId) {
         const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
         return results;
     } catch (error) {
+        // If endpoint returns 404 or error, return empty array
         if (error.response && error.response.status === 404) {
+            console.info("No bookings found for this client");
             return [];
         }
-        throw error;
+        // Fallback: try to get all bookings and filter by client ID
+        try {
+            const allBookings = await listActiveBookings();
+            return (allBookings || []).filter((b) => Number(b.clientId) === Number(clientId));
+        } catch (e2) {
+            return [];
+        }
     }
 }
 

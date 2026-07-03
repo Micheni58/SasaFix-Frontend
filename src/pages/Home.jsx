@@ -46,7 +46,7 @@ const StackIcon = () => (
   </svg>
 );
 
-export default function ServiceHub() {
+export default function Login() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -64,22 +64,15 @@ export default function ServiceHub() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
-
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
         body { font-family: 'Sora', sans-serif; }
 
-        .sh-root {
-          font-family: 'Sora', sans-serif;
-          min-height: 100vh;
-          display: flex;
-        }
+        .sh-root { font-family: 'Sora', sans-serif; min-height: 100vh; display: flex; }
 
-        /* LEFT PANEL */
         .sh-left {
           width: 50%;
           min-height: 100vh;
-          background: linear-gradient(160deg, #2d1bdb 0%, #4f35f5 40%, #6c4af5 70%, #7c5af7 100%);
+          background: linear-gradient(160deg, #034d80 0%, #2e96d4 100%, #0383d3 70%, #2e96d4 100%);
           color: #fff;
           display: flex;
           flex-direction: column;
@@ -90,125 +83,65 @@ export default function ServiceHub() {
         }
 
         .sh-noise {
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          z-index: 0;
-          opacity: 0.35;
+          position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.35;
           background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
         }
 
-        .sh-container {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          flex-direction: column;
-        }
+        .sh-container { position: relative; z-index: 1; display: flex; flex-direction: column; }
 
-        .sh-logo {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          margin-bottom: 52px;
-        }
+        .sh-logo { display: flex; align-items: center; gap: 14px; margin-bottom: 52px; }
 
         .sh-logo-icon {
-          width: 52px;
-          height: 52px;
+          width: 52px; height: 52px;
           background: rgba(255,255,255,0.15);
           border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: flex; align-items: center; justify-content: center;
           backdrop-filter: blur(8px);
           border: 1px solid rgba(255,255,255,0.2);
           flex-shrink: 0;
         }
 
-        .sh-logo-name {
-          font-size: 22px;
-          font-weight: 700;
-          letter-spacing: -0.3px;
-        }
+        .sh-logo-name { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
 
         .sh-headline {
           font-size: clamp(32px, 3.5vw, 48px);
-          font-weight: 800;
-          line-height: 1.1;
-          letter-spacing: -1.5px;
-          margin-bottom: 22px;
+          font-weight: 800; line-height: 1.1; letter-spacing: -1.5px; margin-bottom: 22px;
         }
 
         .sh-body {
-          font-size: 15px;
-          line-height: 1.75;
-          color: rgba(255,255,255,0.78);
-          font-weight: 400;
-          margin-bottom: 44px;
+          font-size: 15px; line-height: 1.75;
+          color: rgba(255,255,255,0.78); font-weight: 400; margin-bottom: 44px;
         }
 
-        .sh-features {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-
-        .sh-feature {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
+        .sh-features { display: flex; flex-direction: column; gap: 14px; }
+        .sh-feature  { display: flex; align-items: center; gap: 16px; }
 
         .sh-check {
-          width: 36px;
-          height: 36px;
-          flex-shrink: 0;
+          width: 36px; height: 36px; flex-shrink: 0;
           background: rgba(255,255,255,0.15);
-          border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.22);
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          border-radius: 10px; border: 1px solid rgba(255,255,255,0.22);
+          display: flex; align-items: center; justify-content: center;
           backdrop-filter: blur(6px);
         }
 
-        .sh-feature-text {
-          font-size: 15px;
-          font-weight: 500;
-          color: rgba(255,255,255,0.92);
-        }
+        .sh-feature-text { font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.92); }
 
-        /* RIGHT PANEL */
         .sh-right {
-          width: 50%;
-          min-height: 100vh;
-          background: #fff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          width: 50%; min-height: 100vh; background: #fff;
+          display: flex; align-items: center; justify-content: center;
           padding: 56px 48px;
         }
 
-        .sh-right-inner {
-          width: 100%;
-          max-width: 440px;
-        }
+        .sh-right-inner { width: 100%; max-width: 440px; }
 
-        /* PRIVACY BAR */
         .sh-privacy {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          background: rgba(10, 8, 40, 0.85);
+          position: fixed; bottom: 0; left: 0; right: 0;
+          background: rgba(3, 30, 50, 0.88);
           backdrop-filter: blur(12px);
           padding: 14px 20px;
-          font-family: 'Sora', sans-serif;
-          font-size: 12px;
-          color: rgba(255,255,255,0.7);
-          font-weight: 500;
-          z-index: 10;
-          letter-spacing: 0.1px;
+          font-family: 'Sora', sans-serif; font-size: 12px;
+          color: rgba(255,255,255,0.7); font-weight: 500;
+          z-index: 10; letter-spacing: 0.1px;
         }
 
         @media (max-width: 768px) {
@@ -251,7 +184,7 @@ export default function ServiceHub() {
           </div>
         </div>
 
-        {/* RIGHT — your existing LoginForm unchanged */}
+        {/* RIGHT */}
         <div className="sh-right">
           <div className="sh-right-inner">
             <LoginForm />

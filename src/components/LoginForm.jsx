@@ -144,7 +144,7 @@ const LoginForm = () => {
         }
 
         .lf-input-wrap:focus-within {
-          border-color: #4f35f5;
+          border-color: #04599a;i
           box-shadow: 0 0 0 3px rgba(79,53,245,0.1);
         }
 
@@ -190,14 +190,14 @@ const LoginForm = () => {
         .lf-remember input[type="checkbox"] {
           width: 16px;
           height: 16px;
-          accent-color: #4f35f5;
+          accent-color: #04599a;
           cursor: pointer;
         }
 
         .lf-forgot {
           font-size: 13px;
           font-weight: 600;
-          color: #4f35f5;
+          color: #04599a;
           background: none;
           border: none;
           cursor: pointer;
@@ -210,7 +210,7 @@ const LoginForm = () => {
         .lf-btn {
           width: 100%;
           height: 52px;
-          background: #4f35f5;
+          background: #056db3;
           color: #fff;
           font-family: 'Sora', sans-serif;
           font-size: 15px;
@@ -223,7 +223,7 @@ const LoginForm = () => {
           margin-bottom: 28px;
         }
 
-        .lf-btn:hover:not(:disabled)  { background: #3d27d4; }
+        .lf-btn:hover:not(:disabled)  { background: #04599a; }
         .lf-btn:active:not(:disabled) { transform: scale(0.98); }
         .lf-btn:disabled              { background: #a5b4fc; cursor: not-allowed; }
 
@@ -234,7 +234,7 @@ const LoginForm = () => {
         }
 
         .lf-signup a {
-          color: #4f35f5;
+          color: #056db3;
           font-weight: 700;
           text-decoration: none;
         }

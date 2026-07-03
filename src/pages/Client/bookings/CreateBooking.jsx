@@ -247,7 +247,6 @@ function CreateBooking() {
                             </div>
 
                             <div>
-                                {/* paper icon on the same line as the label */}
                                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2" htmlFor="jobDescription">
                                     <FileText className="w-4 h-4 text-[#056db3]" />
                                     Job Description

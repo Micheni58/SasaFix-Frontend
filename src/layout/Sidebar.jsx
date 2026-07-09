@@ -17,6 +17,7 @@ import {
   Users,
   Store,
   UserCog,
+  Star,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -90,6 +91,11 @@ function Sidebar({ role = "client" }) {
       name: "Availability",
       path: "/provider/availability",
       icon: <CalendarDays size={20} />,
+    },
+    {
+      name: "My Reviews",
+      path: "/provider/my-reviews",
+      icon: <Star size={20} />,
     },
     {
       name: "Notifications",

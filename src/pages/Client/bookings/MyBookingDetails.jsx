@@ -1,5 +1,5 @@
 import { Mail, Phone, CheckCircle2, Clock3, AlertCircle, MessageSquare, RotateCcw, Flag, Calendar, MapPin } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
@@ -9,6 +9,10 @@ function MyBookingDetails() {
     const { bookingId } = useParams();
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [reportOpen, setReportOpen] = useState(false);
+    const [reportText, setReportText] = useState("");
+    const [actionLoading, setActionLoading] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         let mounted = true;
@@ -52,7 +56,42 @@ function MyBookingDetails() {
         );
     }
 
-    // map normalized booking fields to the UI shape used previously
+    // map normalized booking fields to the UI shape used previously and compute fees/timeline
+    const providerId = booking?.serviceProviderId || booking?.raw?.service_provider_id || booking?.raw?.service_provider?.id || null;
+
+    function computeTimeline(status) {
+        const stages = [
+            { task: "Requested", key: "requested" },
+            { task: "Scheduled", key: "scheduled" },
+            { task: "In Progress", key: "in_progress" },
+            { task: "Completed", key: "completed" },
+        ];
+
+        if (status === "Cancelled") {
+            return [{ task: "Cancelled", completed: true }];
+        }
+
+        // determine completed index
+        const order = {
+            Requested: 0,
+            Upcoming: 1,
+            "In Progress": 2,
+            Completed: 3,
+        };
+
+        const idx = order[status] ?? 0;
+        return stages.map((s, i) => ({ task: s.task, completed: i <= idx }));
+    }
+
+    const amountRaw = booking?.amountRaw || booking?.raw?.amount || 0;
+    const providerIsPremium = !!(
+        booking?.raw?.service_provider?.premium || booking?.raw?.service_provider?.is_premium || booking?.raw?.provider?.premium
+    );
+    const commissionRate = providerIsPremium ? 0.05 : 0.1;
+    const commissionAmt = amountRaw ? Math.round(amountRaw * commissionRate) : 0;
+    // clients pay the full service amount; show commission separately
+    const totalAmt = amountRaw ? Math.round(amountRaw) : 0;
+
     const ui = {
         id: booking.id,
         service: booking.service || booking.service_name,
@@ -63,6 +102,7 @@ function MyBookingDetails() {
         duration: booking.duration || null,
         status: booking.status,
         worker: {
+            id: providerId,
             name: booking.providerName || booking.provider_full_name || booking.worker || (booking.service_provider && (booking.service_provider.name || booking.service_provider.full_name)) || (booking.serviceProviderId ? `Provider #${booking.serviceProviderId}` : `Provider #${booking.service_provider_id}`),
             initials: booking.initials || ((booking.providerName || booking.provider_full_name || booking.worker || "").split(" ").map(s=>s[0]).slice(0,2).join("")) || "--",
             trade: booking.service_provider?.service_type || null,
@@ -70,10 +110,70 @@ function MyBookingDetails() {
             phone: booking.service_provider?.contact_phone || booking.service_provider?.phone || null,
             email: booking.service_provider?.contact_email || booking.service_provider?.email || null,
         },
-        serviceFee: booking.amount || booking.amountRaw ? `KES ${booking.amountRaw?.toLocaleString?.() || booking.amount}` : "",
-        commission: booking.commission || "",
-        totalPaid: booking.amount || booking.amountRaw ? `KES ${booking.amountRaw?.toLocaleString?.() || booking.amount}` : "",
-        timeline: booking.timeline || [],
+        serviceFee: amountRaw ? `KES ${amountRaw.toLocaleString()}` : "KES 0",
+        commission: `KES ${commissionAmt.toLocaleString()}`,
+        totalPaid: `KES ${totalAmt.toLocaleString()}`,
+        timeline: booking.timeline && booking.timeline.length ? booking.timeline : computeTimeline(booking.status),
+        providerIsPremium,
+    };
+
+    // Actions
+    const handleMessage = () => {
+        const q = ui.worker.id ? `?provider=${ui.worker.id}` : "";
+        navigate(`/client/messages${q}`);
+    };
+
+    const handleReschedule = async () => {
+        if (ui.status !== "Upcoming") {
+            window.alert("Rescheduling is only allowed for Upcoming bookings.");
+            return;
+        }
+        const newDate = window.prompt("Enter new date (YYYY-MM-DD)", ui.date || "");
+        if (!newDate) return;
+        const newTime = window.prompt("Enter new start time (HH:MM)", ui.time ? ui.time.split(' - ')[0] : "09:00");
+        if (!newTime) return;
+        try {
+            setActionLoading(true);
+            const updated = await bookingService.rescheduleBooking(ui.id, { scheduled_date: newDate, scheduled_start_time: newTime });
+            if (updated) setBooking(updated);
+            window.alert("Reschedule request submitted. Provider will need to accept.");
+        } catch (err) {
+            console.error(err);
+            window.alert("Failed to submit reschedule request.");
+        } finally { setActionLoading(false); }
+    };
+
+    const handleCancel = async () => {
+        if (ui.status === "Completed") {
+            window.alert("Completed bookings cannot be cancelled.");
+            return;
+        }
+        if (ui.status === "In Progress") {
+            window.alert("Bookings that are in progress cannot be cancelled at the moment.");
+            return;
+        }
+        if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+        try {
+            setActionLoading(true);
+            const updated = await bookingService.cancelBooking(ui.id);
+            if (updated) setBooking(updated);
+            window.alert("Booking cancelled.");
+        } catch (err) {
+            console.error(err);
+            window.alert("Failed to cancel booking.");
+        } finally { setActionLoading(false); }
+    };
+
+    const submitReport = async () => {
+        if (!reportText) {
+            window.alert("Please add a reason for the report.");
+            return;
+        }
+        // For now, log and close. Backend endpoint not defined here.
+        console.info("Report submitted", { bookingId: ui.id, text: reportText });
+        setReportText("");
+        setReportOpen(false);
+        window.alert("Report submitted. Our team will review it.");
     };
 
     return (
@@ -86,12 +186,12 @@ function MyBookingDetails() {
                 <div className="flex justify-between items-start mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-800">Booking Details</h1>
-                        <p className="text-gray-600 mt-2">Booking ID #{ui.id}</p>
                     </div>
                     <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
                         ui.status === "Upcoming" ? "bg-sky-100 text-sky-800" :
-                        ui.status === "In Progress" ? "bg-blue-100 text-blue-800" :
+                        ui.status === "In Progress" ? "bg-amber-100 text-amber-800" :
                         ui.status === "Completed" ? "bg-green-100 text-green-800" :
+                        ui.status === "Cancelled" ? "bg-red-100 text-red-800" :
                         "bg-gray-100 text-gray-700"
                     }`}>
                         {ui.status}
@@ -165,7 +265,7 @@ function MyBookingDetails() {
                                 <span className="text-sm font-medium">Email Provider</span>
                             </a>
                         </div>
-                        <Link to="#">
+                        <Link to={ui.worker.id ? `/service-provider/${ui.worker.id}` : "/service-provider"}>
                             <button className="w-full px-4 py-2 border-2 border-[#056db3] text-[#056db3] font-semibold rounded-lg hover:bg-blue-50 transition-colors">
                                 View Provider Profile
                             </button>
@@ -219,18 +319,25 @@ function MyBookingDetails() {
                 <div className="lg:col-span-1">
                     <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                         <h2 className="text-xl font-bold text-gray-800">Actions</h2>
-                        <button className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white  py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors">
+                        <button onClick={handleMessage} disabled={actionLoading} className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white  py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors">
                             <MessageSquare className="w-5 h-5" />
                             Message Worker
                         </button>
-                        <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3]  py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
-                            <RotateCcw className="w-5 h-5" />
-                            Reschedule Booking
-                        </button>
-                        <button className="w-full flex items-center justify-center gap-2 border-2 border-red-300 text-red-500  py-2 px-2 rounded-lg hover:bg-red-100 transition-colors">
+                        {ui.status === "Upcoming" ? (
+                            <button onClick={handleReschedule} disabled={actionLoading} className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3]  py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
+                                <RotateCcw className="w-5 h-5" />
+                                Reschedule Booking
+                            </button>
+                        ) : (
+                            <button onClick={() => window.alert('Rescheduling is only allowed for Upcoming bookings.')} className="w-full flex items-center justify-center gap-2 border-2 border-gray-200 text-gray-500  py-2 px-2 rounded-lg">
+                                <RotateCcw className="w-5 h-5" />
+                                Reschedule Booking
+                            </button>
+                        )}
+                        <button onClick={handleCancel} disabled={actionLoading} className="w-full flex items-center justify-center gap-2 border-2 border-red-300 text-red-500  py-2 px-2 rounded-lg hover:bg-red-100 transition-colors">
                             Cancel Booking
                         </button>
-                        <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
+                        <button onClick={() => setReportOpen(true)} className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors">
                             <Flag className="w-5 h-5" />
                             Report Issue
                         </button>
@@ -260,6 +367,20 @@ function MyBookingDetails() {
                     </div>
                 </div>
             </div>
+                {/* Report Modal */}
+                {reportOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+                                <div className="w-full max-w-lg rounded-xl bg-white shadow-lg p-6 border-2 border-blue-100 ring-2 ring-blue-50">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Report Issue for Booking</h3>
+                                    <textarea value={reportText} onChange={(e)=>setReportText(e.target.value)} rows={6} className="w-full rounded-xl border border-blue-200 p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Describe the issue..." />
+                                    <div className="flex gap-3 justify-end">
+                                        <button onClick={()=>setReportOpen(false)} className="px-4 py-2 rounded-lg border border-gray-300">Cancel</button>
+                                        <button onClick={submitReport} className="px-4 py-2 rounded-lg bg-[#056db3] text-white">Submit Report</button>
+                                    </div>
+                                </div>
+                    </div>
+                )}
+
                 </main>
             </div>
         </div>

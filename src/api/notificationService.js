@@ -1,3 +1,5 @@
+// src/api/notificationService.js - Updated with proper user ID handling
+
 import axios from "axios";
 
 const API_URL = "/api";
@@ -18,6 +20,7 @@ client.interceptors.request.use((config) => {
 });
 
 function getStoredUserId() {
+    // Try multiple sources for user ID
     const userId = localStorage.getItem("userId");
     if (userId) return userId;
 
@@ -66,7 +69,7 @@ function normalizeNotification(notification) {
         type: notification.type || "general",
         title: notification.title || "",
         body: notification.body || "",
-        text: notification.body || "",
+        text: notification.body || notification.title || "",
         read: Boolean(notification.is_read),
         isRead: Boolean(notification.is_read),
         relatedBookingId: notification.related_booking_id || null,
@@ -80,9 +83,15 @@ function normalizeNotifications(notifications) {
     return (notifications || []).map(normalizeNotification);
 }
 
-export async function fetchNotifications(userId) {
+// ─────────────────────────────────────────────
+// FETCH ENDPOINTS
+// ─────────────────────────────────────────────
+
+export async function fetchNotifications(userId, limit = 50, offset = 0) {
     const resolvedUserId = requireUserId(userId);
-    const response = await client.get(`/notifications/user/${resolvedUserId}`);
+    const response = await client.get(
+        `/notifications/user/${resolvedUserId}?limit=${limit}&offset=${offset}`
+    );
     return normalizeNotifications(response.data);
 }
 
@@ -111,6 +120,10 @@ export async function getNotification(notificationId) {
     return normalizeNotification(response.data);
 }
 
+// ─────────────────────────────────────────────
+// MUTATIONS
+// ─────────────────────────────────────────────
+
 export async function createNotification(notificationData) {
     const response = await client.post("/notifications/", notificationData);
     return normalizeNotification(response.data);
@@ -130,6 +143,10 @@ export async function markAllNotificationsAsRead(userId) {
 export async function deleteNotification(notificationId) {
     await client.delete(`/notifications/${notificationId}`);
 }
+
+// ─────────────────────────────────────────────
+// EXPORT
+// ─────────────────────────────────────────────
 
 export default {
     fetchNotifications,

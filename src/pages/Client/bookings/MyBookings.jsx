@@ -1,4 +1,4 @@
-// src/pages/Client/bookings/MyBookings.jsx - Updated with Proper Client ID and Empty States
+// src/pages/Client/bookings/MyBookings.jsx - Fixed Provider Names & Initials
 
 import { useState, useEffect } from "react";
 import {
@@ -20,8 +20,8 @@ import Navbar from "../../../components/Navbar";
 const tabs = ["All Bookings", "Upcoming", "In Progress", "Completed", "Cancelled"];
 
 const statusStyles = {
-  Upcoming: "bg-purple-100 text-purple-700",
-  "In Progress": "bg-blue-100 text-blue-800",
+  Upcoming: "bg-sky-100 text-sky-800",
+  "In Progress": "bg-amber-100 text-amber-800",
   Completed: "bg-green-100 text-green-800",
   Cancelled: "bg-red-100 text-red-800",
 };
@@ -74,6 +74,48 @@ function formatBookingDate(date) {
 }
 
 // ─────────────────────────────────────────────
+// HELPER: Get Provider Name
+// ─────────────────────────────────────────────
+
+function getProviderName(booking) {
+  // Try multiple sources for provider name
+  if (booking.providerName && booking.providerName !== "Provider" && !booking.providerName.includes("Provider #")) {
+    return booking.providerName;
+  }
+  if (booking.worker && booking.worker !== "Provider" && !booking.worker.includes("Provider #")) {
+    return booking.worker;
+  }
+  if (booking.raw?.provider_full_name) {
+    return booking.raw.provider_full_name;
+  }
+  if (booking.raw?.provider_name) {
+    return booking.raw.provider_name;
+  }
+  if (booking.raw?.service_provider?.name) {
+    return booking.raw.service_provider.name;
+  }
+  if (booking.raw?.service_provider?.full_name) {
+    return booking.raw.service_provider.full_name;
+  }
+  if (booking.raw?.service_provider?.user?.full_name) {
+    return booking.raw.service_provider.user.full_name;
+  }
+  if (booking.serviceProviderId || booking.raw?.service_provider_id) {
+    return `Provider #${booking.serviceProviderId || booking.raw?.service_provider_id}`;
+  }
+  return "Provider";
+}
+
+// ─────────────────────────────────────────────
+// HELPER: Get Provider Initials
+// ─────────────────────────────────────────────
+
+function getProviderInitials(booking) {
+  const fullName = getProviderName(booking);
+  return getInitials(fullName);
+}
+
+// ─────────────────────────────────────────────
 // EMPTY STATE COMPONENT
 // ─────────────────────────────────────────────
 
@@ -98,6 +140,8 @@ function MyBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   // ── Fetch Bookings ──
   const fetchBookings = async (showRefresh = false) => {
@@ -254,74 +298,128 @@ function MyBookings() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredBookings.map((booking) => (
-                      <tr key={booking.id} className="border-b border-gray-100 align-middle hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-5">
-                          <div className="max-w-42.5">
-                            <p className="text-base font-semibold text-gray-800">{booking.service}</p>
-                            <p className="mt-1 text-sm leading-6 text-gray-500">{booking.details}</p>
-                          </div>
-                        </td>
-                        <td className="px-4 py-5">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
-                              {booking.clientInitials || getInitials(booking.providerName || booking.worker || "Provider")}
+                    {filteredBookings.map((booking) => {
+                      const providerName = getProviderName(booking);
+                      const providerInitials = getProviderInitials(booking);
+                      
+                      return (
+                        <tr key={booking.id} className="border-b border-gray-100 align-middle hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-5">
+                            <div className="max-w-42.5">
+                              <p className="text-base font-semibold text-gray-800">{booking.service}</p>
+                              <p className="mt-1 text-sm leading-6 text-gray-500">{booking.details}</p>
                             </div>
-                            <div className="max-w-30 text-sm font-semibold leading-6 text-gray-800">
-                              {booking.providerName || booking.worker || "Provider"}
+                          </td>
+                          <td className="px-4 py-5">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
+                                {providerInitials}
+                              </div>
+                              <div className="max-w-30 text-sm font-semibold leading-6 text-gray-800">
+                                {providerName}
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-5">
-                          <div className="space-y-2 text-gray-600">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-3.5 w-3.5 text-gray-500" />
-                              <span className="text-sm">{formatBookingDate(booking.date)}</span>
+                          </td>
+                          <td className="px-4 py-5">
+                            <div className="space-y-2 text-gray-600">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-3.5 w-3.5 text-gray-500" />
+                                <span className="text-sm">{formatBookingDate(booking.date)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock3 className="h-3.5 w-3.5 text-gray-500" />
+                                <span className="text-sm">{booking.time}</span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Clock3 className="h-3.5 w-3.5 text-gray-500" />
-                              <span className="text-sm">{booking.time}</span>
+                          </td>
+                          <td className="px-4 py-5">
+                            <div className="flex items-center gap-2 text-gray-600">
+                              <MapPin className="h-3.5 w-3.5 text-gray-500" />
+                              <span className="max-w-33.75 text-sm leading-6 truncate">{booking.location}</span>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-5">
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <MapPin className="h-3.5 w-3.5 text-gray-500" />
-                            <span className="max-w-33.75 text-sm leading-6 truncate">{booking.location}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-5 whitespace-nowrap">
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ${
-                              statusStyles[booking.status] || "bg-gray-100 text-gray-700"
-                            }`}
-                          >
-                            {booking.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-5">
-                          <span className="text-sm font-bold text-gray-800">{booking.amount}</span>
-                        </td>
-                        <td className="px-4 py-5">
-                          <div className="flex items-center gap-4 whitespace-nowrap">
-                            <Link
-                              to={`/client/my-bookings/${booking.id}`}
-                              className="rounded-xl border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50"
+                          </td>
+                          <td className="px-4 py-5 whitespace-nowrap">
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ${
+                                statusStyles[booking.status] || "bg-gray-100 text-gray-700"
+                              }`}
                             >
-                              View
-                            </Link>
-                            {(booking.status === "Upcoming" || booking.status === "In Progress") && (
-                              <button className="text-sm font-semibold text-[#056db3] hover:bg-blue-50 rounded-md px-2 py-1">
-                                Reschedule
+                              {booking.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-5">
+                            <div>
+                              <div className="text-sm font-bold text-gray-800">{booking.amount || 'KES 0'}</div>
+                              <div className="text-xs text-gray-500 mt-1">{(() => {
+                                  const amt = booking.amountRaw || booking.raw?.amount || 0;
+                                  const isPremium = !!(booking.raw?.service_provider?.premium || booking.raw?.service_provider?.is_premium);
+                                  const fee = amt ? Math.round(amt * (isPremium ? 0.05 : 0.1)) : 0;
+                                  return `Platform fee: KES ${fee.toLocaleString()}`;
+                                })()}</div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-5 relative">
+                            <div className="flex items-center gap-4 whitespace-nowrap">
+                              <Link
+                                to={`/client/my-bookings/${booking.id}`}
+                                className="rounded-xl border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50"
+                              >
+                                View
+                              </Link>
+                              <button
+                                onClick={() => setOpenMenuId(openMenuId === booking.id ? null : booking.id)}
+                                className="p-2 rounded-md hover:bg-gray-100"
+                                aria-label="More actions"
+                              >
+                                <EllipsisVertical className="h-4 w-4 text-gray-600" />
                               </button>
+                            </div>
+                            {openMenuId === booking.id && (
+                              <div className="absolute right-0 top-full z-40 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                                <Link
+                                  to={`/client/messages?provider=${booking.serviceProviderId || booking.raw?.service_provider_id || ''}`}
+                                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                  onClick={() => setOpenMenuId(null)}
+                                >
+                                  <span className="h-4 w-4 text-gray-600">💬</span>
+                                  Message
+                                </Link>
+                                <button
+                                  onClick={async () => {
+                                    if (booking.status === 'Completed') {
+                                      window.alert('Completed bookings cannot be cancelled.');
+                                      setOpenMenuId(null);
+                                      return;
+                                    }
+                                    if (booking.status === 'In Progress') {
+                                      window.alert('In-progress bookings cannot be cancelled right now.');
+                                      setOpenMenuId(null);
+                                      return;
+                                    }
+                                    if (!window.confirm('Cancel this booking?')) return;
+                                    try {
+                                      setActionLoading(true);
+                                      await bookingService.cancelBooking(booking.id);
+                                      await fetchBookings();
+                                      window.alert('Booking cancelled');
+                                    } catch (e) {
+                                      console.error(e);
+                                      window.alert('Failed to cancel');
+                                    } finally {
+                                      setActionLoading(false);
+                                      setOpenMenuId(null);
+                                    }
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-50"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             )}
-                            <button className="text-gray-500 hover:text-gray-700">
-                              <EllipsisVertical className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
@@ -333,15 +431,25 @@ function MyBookings() {
   );
 }
 
-// ── Helper function ──
+// ─────────────────────────────────────────────
+// HELPER: Get Initials from Name
+// ─────────────────────────────────────────────
+
 function getInitials(name) {
   if (!name) return "--";
-  return name
-    .split(" ")
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  // If name is already initials (e.g., "JD"), return as-is
+  if (name.length <= 2 && name === name.toUpperCase()) {
+    return name;
+  }
+  const normalized = name.toString().trim().replace(/\s+/g, " ");
+  const parts = normalized.split(" ").filter(Boolean);
+  if (parts.length === 0) return "--";
+  if (parts.length === 1) {
+    // If it's a single word, take first 2 characters
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  // Take first letter of first and last name
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
 export default MyBookings;

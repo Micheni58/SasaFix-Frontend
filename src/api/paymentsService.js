@@ -168,6 +168,19 @@ export async function cancelPayoutRequest(payoutId) {
   }
 }
 
+const handleCompletePayout = async () => {
+    setActionLoading(true);
+    try {
+        // Call B2C endpoint
+        await paymentsService.releasePayout(payout.id);
+        setPayout({ ...payout, status: "Completed" });
+        alert("✅ Payout completed successfully!");
+    } catch (err) {
+        alert("Failed to complete payout: " + err.message);
+    } finally {
+        setActionLoading(false);
+    }
+};
 // ─────────────────────────────────────────────
 // EXPORT
 // ─────────────────────────────────────────────
@@ -182,6 +195,7 @@ const paymentsService = {
   approvePayout,
   holdPayout,
   cancelPayoutRequest,
+  handleCompletePayout,
 };
 
 export default paymentsService;

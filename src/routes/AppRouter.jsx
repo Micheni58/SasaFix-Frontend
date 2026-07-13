@@ -33,6 +33,7 @@ import BookingsAndPaymentsDetails from "../pages/Admin/BookingsAndPaymentDetails
 import PayoutDetails from "../pages/Admin/PayoutDetails";
 import Users from "../pages/Admin/Users";
 import ServiceProviders from "../pages/Admin/ServiceProviders";
+import Reviews from "../pages/ServiceProvider/Reviews";
 
 export default function AppRouter() {
   return (
@@ -75,10 +76,8 @@ export default function AppRouter() {
         <Route path="/provider/wallet" element={<ClientWallet />} />
         <Route path="/provider/profile" element={<Profile />} />
         <Route path="/provider/availability" element={<Availability />} />
-        <Route
-          path="/provider/notifications"
-          element={<ProviderNotification />}
-        />
+        <Route path="/provider/notifications" element={<ProviderNotification />}/>
+        <Route path="/provider/my-reviews" element={<Reviews />} />
 
         <Route path="/profile" element={<Profile />} />
 

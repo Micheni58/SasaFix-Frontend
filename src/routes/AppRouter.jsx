@@ -34,6 +34,7 @@ import PayoutDetails from "../pages/Admin/PayoutDetails";
 import Users from "../pages/Admin/Users";
 import ServiceProviders from "../pages/Admin/ServiceProviders";
 import Reviews from "../pages/ServiceProvider/Reviews";
+import CancelledJobDetails from "../pages/ServiceProvider/Jobs/CancelledJobDetails";
 
 export default function AppRouter() {
   return (
@@ -83,26 +84,13 @@ export default function AppRouter() {
 
         <Route path="/client/my-bookings" element={<MyBookings />} />
         <Route path="/provider/my-jobs" element={<MyJobs />} />
-        <Route
-          path="/provider/my-jobs/new/:id"
-          element={<NewJobRequestDetails />}
-        />
-        <Route
-          path="/provider/my-jobs/accepted/:id"
-          element={<AcceptedJobDetails />}
-        />
-        <Route
-          path="/provider/my-jobs/in-progress/:id"
-          element={<InProgressJobDetails />}
-        />
-        <Route
-          path="/provider/my-jobs/completed/:id"
-          element={<CompletedJobDetails />}
-        />
-        <Route
-          path="/client/my-bookings/:bookingId"
-          element={<MyBookingDetails />}
-        />
+        <Route path="/provider/my-jobs/new/:id" element={<NewJobRequestDetails />}/>
+        <Route path="/provider/my-jobs/accepted/:id"element={<AcceptedJobDetails />}/>
+        <Route path="/provider/my-jobs/in-progress/:id" element={<InProgressJobDetails />}/>
+        <Route path="/provider/my-jobs/completed/:id" element={<CompletedJobDetails />}/>
+        <Route path="/provider/my-jobs/cancelled/:id" element={<CancelledJobDetails />}/>
+
+        <Route path="/client/my-bookings/:bookingId" element={<MyBookingDetails />}/>
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />
       </Routes>

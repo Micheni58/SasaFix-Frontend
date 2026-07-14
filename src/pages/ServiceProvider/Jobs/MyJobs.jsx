@@ -6,11 +6,9 @@ import {
     Calendar,
     Clock3,
     MapPin,
-    Loader2,
     RefreshCw,
     Briefcase,
     Inbox,
-    UserPlus,
     CheckCircle,
     XCircle,
     EllipsisVertical,
@@ -22,10 +20,12 @@ import Navbar from "../../../components/Navbar";
 
 const tabs = ["New Requests", "Accepted", "In Progress", "Completed", "Cancelled"];
 
+// Unified status palette — amber flags "needs your action" (New Requests),
+// sky/indigo track the job lifecycle, green/red are the two end states.
 const statusStyles = {
     "New Requests": "bg-amber-100 text-amber-800",
     Accepted: "bg-sky-100 text-sky-800",
-    "In Progress": "bg-blue-100 text-blue-800",
+    "In Progress": "bg-indigo-100 text-indigo-800",
     Completed: "bg-green-100 text-green-800",
     Cancelled: "bg-red-100 text-red-800",
 };
@@ -49,8 +49,8 @@ const emptyStateConfigs = {
         icon: Briefcase,
         title: "No Jobs In Progress",
         description: "You don't have any jobs currently in progress. Accept a job to start working on it.",
-        color: "bg-blue-50",
-        iconColor: "text-blue-500",
+        color: "bg-indigo-50",
+        iconColor: "text-indigo-500",
     },
     "Completed": {
         icon: CheckCircle,
@@ -91,7 +91,10 @@ function getJobDetailsPath(job) {
     if (status.includes("completed")) {
         return `/provider/my-jobs/completed/${job.id}`;
     }
-
+    if(status.includes("cancelled")){
+        return `/provider/my-jobs/cancelled/${job.id}`;     
+    }
+    
     return `/provider/my-jobs/new/${job.id}`;
 }
 
@@ -100,7 +103,6 @@ function getJobDetailsPath(job) {
 // ─────────────────────────────────────────────
 
 function getClientName(job) {
-    // Try multiple sources for client name
     if (job.client && job.client !== "Client" && !job.client.includes("Client #")) {
         return job.client;
     }
@@ -122,7 +124,6 @@ function getClientName(job) {
     if (job.clientObj?.first_name && job.clientObj?.last_name) {
         return `${job.clientObj.first_name} ${job.clientObj.last_name}`;
     }
-    // Fallback to client ID
     if (job.clientId || job.raw?.client_id) {
         return `Client #${job.clientId || job.raw?.client_id}`;
     }
@@ -155,6 +156,58 @@ function EmptyState({ icon: Icon, title, description, color, iconColor }) {
 }
 
 // ─────────────────────────────────────────────
+// SKELETON — modern loading state, matches the
+// pulse-skeleton pattern used on the dashboards
+// ─────────────────────────────────────────────
+
+function RowSkeleton() {
+    return (
+        <div className="flex items-center gap-4 border-b border-gray-100 px-6 py-4">
+            <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-gray-200" />
+            <div className="flex-1 space-y-2">
+                <div className="h-3 w-1/4 animate-pulse rounded bg-gray-200" />
+                <div className="h-3 w-1/6 animate-pulse rounded bg-gray-200" />
+            </div>
+            <div className="h-3 w-20 animate-pulse rounded bg-gray-200" />
+            <div className="h-6 w-24 animate-pulse rounded-full bg-gray-200" />
+            <div className="h-3 w-16 animate-pulse rounded bg-gray-200" />
+        </div>
+    );
+}
+
+function JobsSkeleton() {
+    return (
+        <div className="flex min-h-screen bg-[#f8fafc]">
+            <Sidebar role="provider" />
+            <div className="flex-1 ml-72">
+                <Navbar />
+                <main className="pt-24 px-6 pb-6">
+                    <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
+                        <div className="space-y-2">
+                            <div className="h-7 w-40 animate-pulse rounded bg-gray-200" />
+                            <div className="h-4 w-64 animate-pulse rounded bg-gray-200" />
+                        </div>
+                        <div className="h-9 w-24 animate-pulse rounded-lg bg-gray-200" />
+                    </section>
+
+                    <section className="mb-6 flex gap-2 overflow-x-auto rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+                        {tabs.map((tab) => (
+                            <div key={tab} className="h-8 w-28 shrink-0 animate-pulse rounded-lg bg-gray-200" />
+                        ))}
+                    </section>
+
+                    <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <RowSkeleton key={i} />
+                        ))}
+                    </section>
+                </main>
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 
@@ -173,7 +226,6 @@ function MyJobs() {
         if (showRefresh) setRefreshing(true);
         else setLoading(true);
 
-        // Get provider_id from localStorage
         const userData = JSON.parse(localStorage.getItem("user") || "{}");
         const providerId = userData.provider_id;
 
@@ -252,20 +304,7 @@ function MyJobs() {
 
     // ── Loading state ──
     if (loading) {
-        return (
-            <div className="flex min-h-screen bg-[#f8fafc]">
-                <Sidebar role="provider" />
-                <div className="flex-1 ml-72">
-                    <Navbar />
-                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
-                        <div className="flex flex-col items-center gap-4">
-                            <Loader2 className="h-12 w-12 animate-spin text-[#056db3]" />
-                            <p className="text-gray-500">Loading your jobs...</p>
-                        </div>
-                    </main>
-                </div>
-            </div>
-        );
+        return <JobsSkeleton />;
     }
 
     return (
@@ -300,7 +339,7 @@ function MyJobs() {
                                     key={tab}
                                     type="button"
                                     onClick={() => setActiveTab(tab)}
-                                    className={`flex items-center gap-2 border-b-[3px] px-6 py-3.5 text-base transition-colors ${
+                                    className={`flex items-center gap-2 whitespace-nowrap border-b-[3px] px-6 py-3.5 text-base transition-colors ${
                                         activeTab === tab
                                             ? "border-[#056db3] bg-blue-50 text-[#056db3]"
                                             : "border-transparent text-gray-600 hover:bg-gray-50"
@@ -320,6 +359,14 @@ function MyJobs() {
                             ))}
                         </div>
                     </section>
+
+                    {/* ── Refreshing overlay strip ── */}
+                    {refreshing && (
+                        <div className="mb-4 flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm text-[#056db3]">
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            Refreshing jobs...
+                        </div>
+                    )}
 
                     {/* ── Table ── */}
                     <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -363,12 +410,12 @@ function MyJobs() {
                                         {filteredJobs.map((job) => {
                                             const clientName = getClientName(job);
                                             const clientInitials = getClientInitials(job);
-                                            
+
                                             return (
                                                 <tr key={job.id} className="border-b border-gray-100 align-middle hover:bg-gray-50 transition-colors">
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
+                                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
                                                                 {clientInitials}
                                                             </div>
                                                             <span className="text-sm font-semibold text-gray-800">
@@ -399,12 +446,16 @@ function MyJobs() {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-4">
-                                                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[job.status]}`}>
+                                                        <span
+                                                            className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
+                                                                statusStyles[job.status] || "bg-gray-100 text-gray-700"
+                                                            }`}
+                                                        >
                                                             {job.status}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-4">
-                                                        <span className="text-sm font-bold text-gray-800">{job.amount}</span>
+                                                        <span className="text-sm font-bold font-mono text-gray-800">{job.amount}</span>
                                                     </td>
                                                     <td className="px-4 py-4 relative">
                                                         <div className="flex items-center gap-2 whitespace-nowrap">
@@ -547,7 +598,6 @@ export default MyJobs;
 
 function getInitials(name) {
     if (!name) return "--";
-    // If name is already initials (e.g., "CM"), return as-is
     if (name.length <= 2 && name === name.toUpperCase()) {
         return name;
     }
@@ -555,9 +605,7 @@ function getInitials(name) {
     const parts = normalized.split(" ").filter(Boolean);
     if (parts.length === 0) return "--";
     if (parts.length === 1) {
-        // If it's a single word, take first 2 characters
         return parts[0].slice(0, 2).toUpperCase();
     }
-    // Take first letter of first and last name
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }

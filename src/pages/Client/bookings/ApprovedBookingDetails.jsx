@@ -1,4 +1,4 @@
-// src/pages/Client/bookings/ApprovedBookingDetails.jsx - WITH SKELETON LOADERS
+// src/pages/Client/bookings/ApprovedBookingDetails.jsx - WITH REVIEW CARD
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -11,6 +11,7 @@ import { ProviderInfoCard } from "../../../components/cards/ProviderInfoCard";
 import { PaymentDetailsCard } from "../../../components/cards/PaymentDetailsCard";
 import { Timeline } from "../../../components/cards/Timeline";
 import { BookingInfoCard } from "../../../components/cards/BookingInfoCard";
+import { ReviewCard } from "../../../components/cards/ReviewCard";
 
 // ─────────────────────────────────────────────
 // SKELETON LOADER COMPONENTS
@@ -18,7 +19,7 @@ import { BookingInfoCard } from "../../../components/cards/BookingInfoCard";
 
 function SkeletonCard() {
     return (
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <div className="h-7 w-40 animate-pulse rounded bg-gray-200 mb-6"></div>
             <div className="space-y-6">
                 <div>
@@ -59,7 +60,7 @@ function SkeletonCard() {
 
 function SkeletonProviderCard() {
     return (
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <div className="h-7 w-48 animate-pulse rounded bg-gray-200 mb-6"></div>
             <div className="flex items-center gap-4 mb-6">
                 <div className="h-16 w-16 animate-pulse rounded-full bg-gray-200"></div>
@@ -79,7 +80,7 @@ function SkeletonProviderCard() {
 
 function SkeletonTimeline() {
     return (
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <div className="h-7 w-40 animate-pulse rounded bg-gray-200 mb-6"></div>
             <div className="space-y-4">
                 {[...Array(4)].map((_, i) => (
@@ -97,7 +98,7 @@ function SkeletonTimeline() {
 
 function SkeletonPaymentDetails() {
     return (
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <div className="h-7 w-40 animate-pulse rounded bg-gray-200 mb-6"></div>
             <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
@@ -117,9 +118,24 @@ function SkeletonPaymentDetails() {
     );
 }
 
+function SkeletonReviewCard() {
+    return (
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-2 mb-1">
+                <div className="h-5 w-5 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-7 w-32 animate-pulse rounded bg-gray-200"></div>
+            </div>
+            <div className="h-4 w-64 animate-pulse rounded bg-gray-100 mb-5"></div>
+            <div className="h-8 w-48 animate-pulse rounded bg-gray-200 mb-4"></div>
+            <div className="h-24 w-full animate-pulse rounded-lg bg-gray-100"></div>
+            <div className="h-12 w-full animate-pulse rounded-xl bg-gray-200 mt-4"></div>
+        </section>
+    );
+}
+
 function SkeletonSidebar() {
     return (
-        <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+        <div className="sticky top-6 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
             <div className="h-7 w-32 animate-pulse rounded bg-gray-200"></div>
             <div className="h-12 w-full animate-pulse rounded-lg bg-gray-200"></div>
             <div className="h-12 w-full animate-pulse rounded-lg bg-gray-200"></div>
@@ -160,7 +176,7 @@ function ApprovedBookingDetails() {
     });
     const [paymentLoading, setPaymentLoading] = useState(false);
     const [paymentError, setPaymentError] = useState(null);
-    
+
     // ── Manual Callback States ──
     const [checkoutRequestId, setCheckoutRequestId] = useState(null);
     const [testMode, setTestMode] = useState(true);
@@ -168,20 +184,18 @@ function ApprovedBookingDetails() {
     useEffect(() => {
         let mounted = true;
         setLoading(true);
-        
+
         const fetchBooking = async () => {
             try {
                 const b = await bookingService.getBooking(Number(bookingId));
                 if (!mounted) return;
                 setBooking(b);
-                
-                // Fetch transaction status
+
                 try {
                     const response = await fetch(`/api/transactions/booking/${bookingId}`);
                     const data = await response.json();
                     if (mounted && data && data.length > 0) {
                         setTransactionStatus(data[0].status);
-                        // If transaction has a checkout_request_id, store it
                         if (data[0].checkout_request_id) {
                             setCheckoutRequestId(data[0].checkout_request_id);
                         }
@@ -195,7 +209,7 @@ function ApprovedBookingDetails() {
                 if (mounted) setLoading(false);
             }
         };
-        
+
         fetchBooking();
         return () => { mounted = false; };
     }, [bookingId]);
@@ -246,12 +260,12 @@ function ApprovedBookingDetails() {
             console.log("📤 Sending payment payload:", payload);
 
             const result = await paymentsService.initiateSTKPush(payload);
-            
+
             const checkoutId = result.checkout_request_id;
             setCheckoutRequestId(checkoutId);
 
             console.log("✅ STK Push result:", result);
-            
+
             alert(
                 `✅ STK Push sent!\n\n` +
                 `Checkout ID: ${checkoutId}\n` +
@@ -261,36 +275,34 @@ function ApprovedBookingDetails() {
 
             setShowPaymentModal(false);
             setPaymentData({ phone_number: "", amount: "" });
-            
+
             // 🔥 AUTO-COMPLETE TRANSACTION (TEST MODE ONLY)
             if (testMode && checkoutId) {
                 console.log("⏳ Auto-completing transaction in 3 seconds...");
-                
+
                 setTimeout(async () => {
                     try {
                         console.log("🔄 Triggering manual callback for:", checkoutId);
-                        
+
                         await paymentsService.triggerManualCallback(
                             checkoutId,
                             0, // 0 = Success
                             amount
                         );
-                        
+
                         console.log("✅ Transaction auto-completed successfully!");
-                        
-                        // Refresh booking data
+
                         const updated = await bookingService.getBooking(Number(bookingId));
                         setBooking(updated);
-                        
-                        // Refresh transaction status
+
                         const response = await fetch(`/api/transactions/booking/${bookingId}`);
                         const data = await response.json();
                         if (data && data.length > 0) {
                             setTransactionStatus(data[0].status);
                         }
-                        
+
                         alert("✅ Payment completed successfully! (Test Mode)");
-                        
+
                     } catch (callbackErr) {
                         console.error("❌ Auto-complete failed:", callbackErr);
                         alert("⚠️ Auto-complete failed. Please click 'Complete Payment (Manual)' button below.");
@@ -316,27 +328,25 @@ function ApprovedBookingDetails() {
         try {
             setPaymentLoading(true);
             const amount = parseFloat(paymentData.amount) || booking?.amountRaw || 100;
-            
+
             await paymentsService.triggerManualCallback(
                 checkoutRequestId,
                 0, // 0 = Success
                 amount
             );
             alert("✅ Transaction completed manually!");
-            
-            // Refresh booking
+
             const updated = await bookingService.getBooking(Number(bookingId));
             setBooking(updated);
-            
-            // Refresh transaction status
+
             const response = await fetch(`/api/transactions/booking/${bookingId}`);
             const data = await response.json();
             if (data && data.length > 0) {
                 setTransactionStatus(data[0].status);
             }
-            
+
             setCheckoutRequestId(null);
-            
+
         } catch (err) {
             alert("Failed to complete transaction: " + err.message);
         } finally {
@@ -387,6 +397,7 @@ function ApprovedBookingDetails() {
                                 <SkeletonProviderCard />
                                 <SkeletonTimeline />
                                 <SkeletonPaymentDetails />
+                                <SkeletonReviewCard />
                             </div>
                             <div className="lg:col-span-1">
                                 <SkeletonSidebar />
@@ -480,7 +491,7 @@ function ApprovedBookingDetails() {
                             <BookingInfoCard booking={ui} />
                             <ProviderInfoCard worker={ui.worker} />
                             <Timeline items={ui.timeline} />
-                            <PaymentDetailsCard 
+                            <PaymentDetailsCard
                                 booking={ui}
                                 isPaid={isPaid}
                                 isPaymentPending={!isPaid}
@@ -490,10 +501,20 @@ function ApprovedBookingDetails() {
                                 isCompleted={false}
                                 isApproved={true}
                             />
+
+                            {/* ── Review section — only once payment is complete ── */}
+                            {isPaid && (
+                                <ReviewCard
+                                    bookingId={ui.id}
+                                    providerId={ui.worker.id}
+                                    providerName={ui.worker.name}
+                                    booking={booking}
+                                />
+                            )}
                         </div>
 
                         <div className="lg:col-span-1">
-                            <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+                            <div className="sticky top-6 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
                                 <h2 className="text-xl font-bold text-gray-800">Payment Action</h2>
 
                                 {!isPaid && (
@@ -509,7 +530,7 @@ function ApprovedBookingDetails() {
                                                     amount: defaultAmount.toString(),
                                                 });
                                             }}
-                                            className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white py-3 px-2 rounded-lg hover:bg-blue-900 transition-colors"
+                                            className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white py-3 px-2 rounded-xl hover:bg-[#045a94] transition-colors"
                                         >
                                             <Wallet className="w-5 h-5" />
                                             Complete Payment
@@ -520,7 +541,7 @@ function ApprovedBookingDetails() {
                                             <button
                                                 onClick={handleManualComplete}
                                                 disabled={paymentLoading}
-                                                className="w-full flex items-center justify-center gap-2 bg-purple-600 text-white py-2 px-2 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                                                className="w-full flex items-center justify-center gap-2 bg-purple-600 text-white py-2 px-2 rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50"
                                             >
                                                 {paymentLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
                                                 Complete Payment (Manual)
@@ -533,7 +554,7 @@ function ApprovedBookingDetails() {
                                             </p>
                                         )}
 
-                                        <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded-lg">
+                                        <div className="text-xs text-gray-400 bg-gray-50 p-3 rounded-xl">
                                             <p className="font-medium">📱 Test Instructions:</p>
                                             <ul className="list-disc pl-4 mt-1 space-y-1">
                                                 <li>Use test number: <strong>254708374149</strong></li>
@@ -545,7 +566,7 @@ function ApprovedBookingDetails() {
                                 )}
 
                                 {isPaid && (
-                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                                    <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
                                         <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto mb-2" />
                                         <p className="text-sm font-semibold text-green-700">✅ Payment Completed</p>
                                         <p className="text-xs text-green-600 mt-1">This booking is complete.</p>
@@ -554,7 +575,7 @@ function ApprovedBookingDetails() {
 
                                 <button
                                     onClick={handleMessage}
-                                    className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors"
+                                    className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white py-2 px-2 rounded-xl hover:bg-[#045a94] transition-colors"
                                 >
                                     <MessageSquare className="w-5 h-5" />
                                     Message Provider
@@ -562,7 +583,7 @@ function ApprovedBookingDetails() {
 
                                 <button
                                     onClick={() => setReportOpen(true)}
-                                    className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] py-2 px-2 rounded-lg hover:bg-blue-100 transition-colors"
+                                    className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] py-2 px-2 rounded-xl hover:bg-blue-50 transition-colors"
                                 >
                                     <Flag className="w-5 h-5" />
                                     Report Issue
@@ -601,7 +622,7 @@ function ApprovedBookingDetails() {
                     {/* ── Payment Modal ── */}
                     {showPaymentModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+                            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-2xl font-bold text-gray-800">Complete Payment</h2>
                                     <button
@@ -703,7 +724,7 @@ function ApprovedBookingDetails() {
                     {/* ── Report Modal ── */}
                     {reportOpen && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-                            <div className="w-full max-w-lg rounded-xl bg-white shadow-lg p-6">
+                            <div className="w-full max-w-lg rounded-2xl bg-white shadow-lg p-6">
                                 <h3 className="text-lg font-semibold text-gray-800 mb-2">Report Issue</h3>
                                 <textarea
                                     value={reportText}

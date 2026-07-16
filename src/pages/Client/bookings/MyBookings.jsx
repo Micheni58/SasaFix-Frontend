@@ -1,4 +1,4 @@
-// src/pages/Client/bookings/MyBookings.jsx - Fixed Provider Names & Initials
+// src/pages/Client/bookings/MyBookings.jsx - With Skeleton Loader & Dynamic Routing
 
 import { useState, useEffect } from "react";
 import {
@@ -17,13 +17,15 @@ import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
 
-const tabs = ["All Bookings", "Upcoming", "In Progress", "Completed", "Cancelled"];
+const tabs = ["All Bookings", "Upcoming", "In Progress", "Completed", "Cancelled", "Rejected"];
 
 const statusStyles = {
   Upcoming: "bg-sky-100 text-sky-800",
   "In Progress": "bg-amber-100 text-amber-800",
   Completed: "bg-green-100 text-green-800",
+  Approved: "bg-green-100 text-green-800",
   Cancelled: "bg-red-100 text-red-800",
+  Rejected: "bg-red-100 text-red-800",
 };
 
 const emptyStateConfigs = {
@@ -62,6 +64,13 @@ const emptyStateConfigs = {
     color: "bg-red-50",
     iconColor: "text-red-500",
   },
+  "Rejected": {
+    icon: XCircle,
+    title: "No Rejected Bookings",
+    description: "You don't have any rejected bookings.",
+    color: "bg-red-50",
+    iconColor: "text-red-500",
+  },
 };
 
 function formatBookingDate(date) {
@@ -78,7 +87,6 @@ function formatBookingDate(date) {
 // ─────────────────────────────────────────────
 
 function getProviderName(booking) {
-  // Try multiple sources for provider name
   if (booking.providerName && booking.providerName !== "Provider" && !booking.providerName.includes("Provider #")) {
     return booking.providerName;
   }
@@ -106,13 +114,81 @@ function getProviderName(booking) {
   return "Provider";
 }
 
-// ─────────────────────────────────────────────
-// HELPER: Get Provider Initials
-// ─────────────────────────────────────────────
-
 function getProviderInitials(booking) {
   const fullName = getProviderName(booking);
   return getInitials(fullName);
+}
+
+// ─────────────────────────────────────────────
+// SKELETON LOADER COMPONENTS
+// ─────────────────────────────────────────────
+
+function SkeletonRow() {
+  return (
+    <tr className="border-b border-gray-100 align-middle">
+      <td className="px-6 py-5">
+        <div className="space-y-2">
+          <div className="h-5 w-32 animate-pulse rounded bg-gray-200"></div>
+          <div className="h-4 w-48 animate-pulse rounded bg-gray-100"></div>
+        </div>
+      </td>
+      <td className="px-4 py-5">
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 animate-pulse rounded-full bg-gray-200"></div>
+          <div className="h-5 w-28 animate-pulse rounded bg-gray-200"></div>
+        </div>
+      </td>
+      <td className="px-4 py-5">
+        <div className="space-y-2">
+          <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+          <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
+        </div>
+      </td>
+      <td className="px-4 py-5">
+        <div className="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
+      </td>
+      <td className="px-4 py-5">
+        <div className="h-8 w-24 animate-pulse rounded-full bg-gray-200"></div>
+      </td>
+      <td className="px-4 py-5">
+        <div className="space-y-2">
+          <div className="h-5 w-20 animate-pulse rounded bg-gray-200"></div>
+          <div className="h-3 w-24 animate-pulse rounded bg-gray-100"></div>
+        </div>
+      </td>
+      <td className="px-4 py-5">
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-20 animate-pulse rounded-xl bg-gray-200"></div>
+          <div className="h-8 w-8 animate-pulse rounded-md bg-gray-200"></div>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function SkeletonLoader() {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full table-auto min-w-200">
+        <thead className="border-b border-gray-200 bg-gray-50">
+          <tr>
+            <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Service</th>
+            <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Worker</th>
+            <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Date &amp; Time</th>
+            <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Location</th>
+            <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Status</th>
+            <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Amount</th>
+            <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[...Array(5)].map((_, index) => (
+            <SkeletonRow key={index} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -132,6 +208,29 @@ function EmptyState({ icon: Icon, title, description, color, iconColor }) {
 }
 
 // ─────────────────────────────────────────────
+// GET ROUTE FOR BOOKING STATUS
+// ─────────────────────────────────────────────
+
+function getBookingRoute(booking) {
+  const status = booking.status || "Pending";
+  
+  // Map status to the correct route
+  const routeMap = {
+    "Upcoming": `/client/my-bookings/upcoming/${booking.id}`,
+    "Pending": `/client/my-bookings/upcoming/${booking.id}`,
+    "Accepted": `/client/my-bookings/upcoming/${booking.id}`,
+    "New Requests": `/client/my-bookings/upcoming/${booking.id}`,
+    "In Progress": `/client/my-bookings/in-progress/${booking.id}`,
+    "Completed": `/client/my-bookings/completed/${booking.id}`,
+    "Approved": `/client/my-bookings/approved/${booking.id}`,
+    "Rejected": `/client/my-bookings/rejected/${booking.id}`,
+    "Cancelled": `/client/my-bookings/cancelled/${booking.id}`,
+  };
+  
+  return routeMap[status] || `/client/my-bookings/${booking.id}`;
+}
+
+// ─────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 
@@ -148,7 +247,6 @@ function MyBookings() {
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
 
-    // Get client ID from localStorage
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
     const clientId = userData.id || localStorage.getItem("userId");
 
@@ -180,33 +278,17 @@ function MyBookings() {
 
   const tabCounts = {
     "All Bookings": bookings.length,
-    Upcoming: bookings.filter((booking) => booking.status === "Upcoming").length,
+    Upcoming: bookings.filter((booking) => booking.status === "Upcoming" || booking.status === "Pending" || booking.status === "Accepted" || booking.status === "New Requests").length,
     "In Progress": bookings.filter((booking) => booking.status === "In Progress").length,
     Completed: bookings.filter((booking) => booking.status === "Completed").length,
+    Approved: bookings.filter((booking) => booking.status === "Approved").length,
     Cancelled: bookings.filter((booking) => booking.status === "Cancelled").length,
+    Rejected: bookings.filter((booking) => booking.status === "Rejected").length,
   };
 
   const getEmptyState = (tab) => {
     return emptyStateConfigs[tab] || emptyStateConfigs["All Bookings"];
   };
-
-  // ── Loading state ──
-  if (loading) {
-    return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
-        <Sidebar role="client" />
-        <div className="flex-1 ml-72">
-          <Navbar />
-          <main className="pt-24 px-6 pb-6 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-12 w-12 animate-spin text-[#056db3]" />
-              <p className="text-gray-500">Loading your bookings...</p>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
@@ -233,44 +315,52 @@ function MyBookings() {
           {/* ── Tabs ── */}
           <section className="mb-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="flex min-w-max">
-              {tabs.map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex items-center gap-2 border-b-[3px] px-6 py-3.5 text-base font-semibold transition-colors ${
-                    activeTab === tab
-                      ? "border-[#056db3] bg-blue-50 text-[#056db3]"
-                      : "border-transparent text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  <span>{tab}</span>
-                  <span
-                    className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-semibold ${
+              {tabs.map((tab) => {
+                // For display purposes, show "Approved" tab
+                const displayTab = tab === "Approved" ? "Approved" : tab;
+                const count = tabCounts[tab] || 0;
+                
+                return (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex items-center gap-2 border-b-[3px] px-6 py-3.5 text-base font-semibold transition-colors ${
                       activeTab === tab
-                        ? "bg-[#056db3] text-white"
-                        : "bg-gray-100 text-gray-600"
+                        ? "border-[#056db3] bg-blue-50 text-[#056db3]"
+                        : "border-transparent text-gray-600 hover:bg-gray-50"
                     }`}
                   >
-                    {tabCounts[tab]}
-                  </span>
-                </button>
-              ))}
+                    <span>{displayTab}</span>
+                    <span
+                      className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-semibold ${
+                        activeTab === tab
+                          ? "bg-[#056db3] text-white"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
           {/* ── Table ── */}
           <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="overflow-x-auto">
-              {filteredBookings.length === 0 ? (
-                <EmptyState
-                  icon={getEmptyState(activeTab).icon}
-                  title={getEmptyState(activeTab).title}
-                  description={getEmptyState(activeTab).description}
-                  color={getEmptyState(activeTab).color}
-                  iconColor={getEmptyState(activeTab).iconColor}
-                />
-              ) : (
+            {loading ? (
+              <SkeletonLoader />
+            ) : filteredBookings.length === 0 ? (
+              <EmptyState
+                icon={getEmptyState(activeTab).icon}
+                title={getEmptyState(activeTab).title}
+                description={getEmptyState(activeTab).description}
+                color={getEmptyState(activeTab).color}
+                iconColor={getEmptyState(activeTab).iconColor}
+              />
+            ) : (
+              <div className="overflow-x-auto">
                 <table className="w-full table-auto min-w-200">
                   <thead className="border-b border-gray-200 bg-gray-50">
                     <tr>
@@ -301,6 +391,7 @@ function MyBookings() {
                     {filteredBookings.map((booking) => {
                       const providerName = getProviderName(booking);
                       const providerInitials = getProviderInitials(booking);
+                      const bookingRoute = getBookingRoute(booking);
                       
                       return (
                         <tr key={booking.id} className="border-b border-gray-100 align-middle hover:bg-gray-50 transition-colors">
@@ -361,7 +452,7 @@ function MyBookings() {
                           <td className="px-4 py-5 relative">
                             <div className="flex items-center gap-4 whitespace-nowrap">
                               <Link
-                                to={`/client/my-bookings/${booking.id}`}
+                                to={bookingRoute}
                                 className="rounded-xl border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50"
                               >
                                 View
@@ -384,36 +475,36 @@ function MyBookings() {
                                   <span className="h-4 w-4 text-gray-600">💬</span>
                                   Message
                                 </Link>
-                                <button
-                                  onClick={async () => {
-                                    if (booking.status === 'Completed') {
-                                      window.alert('Completed bookings cannot be cancelled.');
-                                      setOpenMenuId(null);
-                                      return;
-                                    }
-                                    if (booking.status === 'In Progress') {
-                                      window.alert('In-progress bookings cannot be cancelled right now.');
-                                      setOpenMenuId(null);
-                                      return;
-                                    }
-                                    if (!window.confirm('Cancel this booking?')) return;
-                                    try {
-                                      setActionLoading(true);
-                                      await bookingService.cancelBooking(booking.id);
-                                      await fetchBookings();
-                                      window.alert('Booking cancelled');
-                                    } catch (e) {
-                                      console.error(e);
-                                      window.alert('Failed to cancel');
-                                    } finally {
-                                      setActionLoading(false);
-                                      setOpenMenuId(null);
-                                    }
-                                  }}
-                                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-50"
-                                >
-                                  Cancel
-                                </button>
+                                {booking.status !== "Completed" && 
+                                 booking.status !== "Approved" && 
+                                 booking.status !== "Rejected" && 
+                                 booking.status !== "Cancelled" && (
+                                  <button
+                                    onClick={async () => {
+                                      if (booking.status === 'In Progress') {
+                                        window.alert('In-progress bookings cannot be cancelled right now.');
+                                        setOpenMenuId(null);
+                                        return;
+                                      }
+                                      if (!window.confirm('Cancel this booking?')) return;
+                                      try {
+                                        setActionLoading(true);
+                                        await bookingService.cancelBooking(booking.id);
+                                        await fetchBookings();
+                                        window.alert('Booking cancelled');
+                                      } catch (e) {
+                                        console.error(e);
+                                        window.alert('Failed to cancel');
+                                      } finally {
+                                        setActionLoading(false);
+                                        setOpenMenuId(null);
+                                      }
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-50"
+                                  >
+                                    Cancel
+                                  </button>
+                                )}
                               </div>
                             )}
                           </td>
@@ -422,8 +513,8 @@ function MyBookings() {
                     })}
                   </tbody>
                 </table>
-              )}
-            </div>
+              </div>
+            )}
           </section>
         </main>
       </div>
@@ -437,7 +528,6 @@ function MyBookings() {
 
 function getInitials(name) {
   if (!name) return "--";
-  // If name is already initials (e.g., "JD"), return as-is
   if (name.length <= 2 && name === name.toUpperCase()) {
     return name;
   }
@@ -445,10 +535,8 @@ function getInitials(name) {
   const parts = normalized.split(" ").filter(Boolean);
   if (parts.length === 0) return "--";
   if (parts.length === 1) {
-    // If it's a single word, take first 2 characters
     return parts[0].slice(0, 2).toUpperCase();
   }
-  // Take first letter of first and last name
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 

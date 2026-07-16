@@ -23,11 +23,17 @@ import Navbar from "../../components/Navbar";
 
 const activeStatuses = ["New Requests", "Accepted", "Upcoming", "In Progress"];
 
+// ── Updated Status Colors to match the booking pages ──
 const STATUS_STYLES = {
-  Completed: "bg-green-100 text-green-800",
-  "In Progress": "bg-amber-100 text-amber-800",
-  Upcoming: "bg-sky-100 text-sky-800",
-  Cancelled: "bg-red-100 text-red-800",
+  "New Requests": "bg-amber-100 text-amber-800",
+  "Pending": "bg-amber-100 text-amber-800",
+  "Upcoming": "bg-sky-100 text-sky-800",
+  "Accepted": "bg-blue-100 text-blue-800",
+  "In Progress": "bg-yellow-100 text-yellow-800",
+  "Completed": "bg-green-100 text-green-800",
+  "Approved": "bg-green-100 text-green-800",
+  "Rejected": "bg-red-100 text-red-800",
+  "Cancelled": "bg-red-100 text-red-800",
 };
 
 const TIER_COLORS = { gold: "#CA8A04", blue: "#056db3", gray: "#9CA3AF" };
@@ -46,9 +52,10 @@ function getStoredUser() {
 }
 
 function getBookingProgress(status) {
-  if (status === "Completed") return 100;
+  if (status === "Completed" || status === "Approved") return 100;
   if (status === "In Progress") return 50;
   if (status === "Accepted" || status === "Upcoming") return 25;
+  if (status === "New Requests" || status === "Pending") return 10;
   return 10;
 }
 
@@ -63,9 +70,6 @@ function getGreeting() {
   return "Good evening";
 }
 
-// Client loyalty tier — same gold / blue / gray language used for
-// provider trust tiers on Find Services, applied here to the client's
-// own booking history so the two pages read as one system.
 function getClientTier(completedCount) {
   if (completedCount >= 10) return { tier: "gold", label: "Gold member" };
   if (completedCount >= 3) return { tier: "blue", label: "Regular client" };
@@ -74,16 +78,18 @@ function getClientTier(completedCount) {
 
 function getInitials(name) {
   if (!name) return "--";
-  return name
-    .split(" ")
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  if (name.length <= 2 && name === name.toUpperCase()) {
+    return name;
+  }
+  const normalized = name.toString().trim().replace(/\s+/g, " ");
+  const parts = normalized.split(" ").filter(Boolean);
+  if (parts.length === 0) return "--";
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-// Derives a trust ring for a booking's provider from whatever fields the
-// booking payload happens to carry (mirrors the tiering used on Find Services).
 function getProviderRing(booking) {
   const provider = booking?.raw?.service_provider || booking?.raw?.provider || {};
   const rating = provider.rating || null;
@@ -93,6 +99,47 @@ function getProviderRing(booking) {
   return { tier, pct, rating };
 }
 
+// ── NEW: Format date to words (e.g., "15 July 2024") ──
+function formatDateToWords(dateString) {
+  if (!dateString) return "Date pending";
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Date pending";
+    
+    return new Intl.DateTimeFormat("en-KE", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(date);
+  } catch {
+    return "Date pending";
+  }
+}
+
+// ─────────────────────────────────────────────
+// DYNAMIC ROUTING HELPER
+// ─────────────────────────────────────────────
+
+function getBookingRoute(booking) {
+  const status = booking.status || "Pending";
+  
+  // Map status to the correct route
+  const routeMap = {
+    "Upcoming": `/client/my-bookings/upcoming/${booking.id}`,
+    "Pending": `/client/my-bookings/upcoming/${booking.id}`,
+    "Accepted": `/client/my-bookings/upcoming/${booking.id}`,
+    "New Requests": `/client/my-bookings/upcoming/${booking.id}`,
+    "In Progress": `/client/my-bookings/in-progress/${booking.id}`,
+    "Completed": `/client/my-bookings/completed/${booking.id}`,
+    "Approved": `/client/my-bookings/approved/${booking.id}`,
+    "Rejected": `/client/my-bookings/rejected/${booking.id}`,
+    "Cancelled": `/client/my-bookings/cancelled/${booking.id}`,
+  };
+  
+  return routeMap[status] || `/client/my-bookings/${booking.id}`;
+}
+
 // ─────────────────────────────────────────────
 // SMALL COMPONENTS
 // ─────────────────────────────────────────────
@@ -100,15 +147,16 @@ function getProviderRing(booking) {
 function ProviderAvatar({ name, booking, size = 44 }) {
   const { tier, pct } = getProviderRing(booking);
   const ringColor = TIER_COLORS[tier];
+  const initials = getInitials(name);
 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <div
         className="h-full w-full rounded-full p-0.5"
-        style={{ background: `conic-gradient(${ringColor} ${pct}%, #056db3 ${pct}% 100%)` }}
+        style={{ background: `conic-gradient(${ringColor} ${pct}%, #e5e7eb ${pct}% 100%)` }}
       >
-        <div className="flex h-full w-full items-center justify-center rounded-full bg-white text-sm font-bold text-gray-700">
-          {getInitials(name)}
+        <div className="flex h-full w-full items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
+          {initials}
         </div>
       </div>
     </div>
@@ -151,7 +199,7 @@ function ClientDashboard() {
   const locationLabel =
     storedUser?.location || storedUser?.city || storedUser?.address || "Location unavailable";
 
-  // ── Fetch bookings (unchanged logic) ──
+  // ── Fetch bookings ──
   useEffect(() => {
     let mounted = true;
     const clientId = Number(
@@ -178,7 +226,7 @@ function ClientDashboard() {
     };
   }, [storedUser?.client_id, storedUser?.id]);
 
-  // ── Fetch wallet balance (unchanged logic) ──
+  // ── Fetch wallet balance ──
   useEffect(() => {
     let mounted = true;
     const walletUserId = Number(
@@ -211,7 +259,7 @@ function ClientDashboard() {
   const activeCount = bookings.filter((booking) =>
     activeStatuses.includes(booking.status)
   ).length;
-  const completedCount = bookings.filter((booking) => booking.status === "Completed").length;
+  const completedCount = bookings.filter((booking) => booking.status === "Completed" || booking.status === "Approved").length;
   const loyalty = Math.min(
     100,
     Math.round((completedCount / Math.max(1, bookings.length)) * 100)
@@ -224,9 +272,10 @@ function ClientDashboard() {
     null;
   const activeProgress = activeBooking ? getBookingProgress(activeBooking.status) : 0;
 
-  // Most recent completed booking — used for the "Book again" prompt.
+  // Most recent completed booking
   const lastCompleted = bookings.find((booking) => booking.status === "Completed") || null;
 
+  // ── Limit recent bookings to 5 ──
   const recentBookings = bookings.slice(0, 5);
 
   const statCards = [
@@ -395,7 +444,7 @@ function ClientDashboard() {
                       <div className="mt-1 flex items-center">
                         <Clock className="mr-1 h-4 w-4 text-gray-500" />
                         <p className="text-sm text-gray-500">
-                          {activeBooking.date || "Date pending"} {activeBooking.time || ""}
+                          {formatDateToWords(activeBooking.date)} {activeBooking.time || ""}
                         </p>
                       </div>
                     </div>
@@ -410,7 +459,7 @@ function ClientDashboard() {
                       Message worker
                     </Link>
                     <Link
-                      to={`/client/my-bookings/${activeBooking.id}`}
+                      to={getBookingRoute(activeBooking)}
                       className="rounded-lg bg-blue-100 px-4 py-2 text-blue-800 transition-colors hover:bg-blue-200"
                     >
                       <Eye className="mr-1 inline h-4 w-4" />
@@ -491,48 +540,51 @@ function ClientDashboard() {
                 </div>
               ) : (
                 <ul className="divide-y divide-gray-100">
-                  {recentBookings.map((booking) => (
-                    <li
-                      key={booking.id}
-                      className="flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <ProviderAvatar
-                          name={booking.providerName || booking.worker}
-                          booking={booking}
-                          size={44}
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold text-gray-800">
-                            {booking.service || "Service unavailable"}
-                          </p>
-                          <p className="truncate text-sm text-gray-500">
-                            {booking.providerName || booking.worker || "Provider unavailable"} ·{" "}
-                            {booking.date || "Date pending"}
-                          </p>
+                  {recentBookings.map((booking) => {
+                    const route = getBookingRoute(booking);
+                    return (
+                      <li
+                        key={booking.id}
+                        className="flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <ProviderAvatar
+                            name={booking.providerName || booking.worker}
+                            booking={booking}
+                            size={44}
+                          />
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-gray-800">
+                              {booking.service || "Service unavailable"}
+                            </p>
+                            <p className="truncate text-sm text-gray-500">
+                              {booking.providerName || booking.worker || "Provider unavailable"} ·{" "}
+                              {formatDateToWords(booking.date)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center justify-between gap-4 sm:justify-end">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                            STATUS_STYLES[booking.status] || "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {booking.status}
-                        </span>
-                        <span className="font-mono text-sm font-semibold text-gray-800">
-                          {booking.amount || formatAmount(booking.amountRaw)}
-                        </span>
-                        <Link
-                          to={`/client/my-bookings/${booking.id}`}
-                          className="text-sm font-medium text-[#056db3] hover:underline"
-                        >
-                          View
-                        </Link>
-                      </div>
-                    </li>
-                  ))}
+                        <div className="flex items-center justify-between gap-4 sm:justify-end">
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                              STATUS_STYLES[booking.status] || "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {booking.status}
+                          </span>
+                          <span className="font-mono text-sm font-semibold text-gray-800">
+                            {booking.amount || formatAmount(booking.amountRaw)}
+                          </span>
+                          <Link
+                            to={route}
+                            className="text-sm font-medium text-[#056db3] hover:underline"
+                          >
+                            View
+                          </Link>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>

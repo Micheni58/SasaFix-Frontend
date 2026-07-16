@@ -23,7 +23,6 @@ import NewJobRequestDetails from "../pages/ServiceProvider/Jobs/NewJobRequestDet
 import AcceptedJobDetails from "../pages/ServiceProvider/Jobs/AcceptedJobDetails";
 import InProgressJobDetails from "../pages/ServiceProvider/Jobs/InProgressJobDetails";
 import CompletedJobDetails from "../pages/ServiceProvider/Jobs/CompletedJobDetails";
-import MyBookingDetails from "../pages/Client/bookings/MyBookingDetails";
 import ClientProfile from "../pages/Client/Profile";
 import RoleSelection from "../pages/RoleSelection"; // new file we made
 import SignUpForm from "../components/SignUpForm"; // existing file
@@ -35,6 +34,12 @@ import Users from "../pages/Admin/Users";
 import ServiceProviders from "../pages/Admin/ServiceProviders";
 import Reviews from "../pages/ServiceProvider/Reviews";
 import CancelledJobDetails from "../pages/ServiceProvider/Jobs/CancelledJobDetails";
+import UpcomingBookingDetails from "../pages/Client/bookings/UpComingBookingDetails";
+import CancelledBookingDetails from "../pages/Client/bookings/CancelledBookingDetails";
+import CompletedBookingDetails from "../pages/Client/bookings/CompletedBookingDetails";
+import ApprovedBookingDetails from "../pages/Client/bookings/ApprovedBookingDetails";
+import InProgressBookingDetails from "../pages/Client/bookings/InProgressBookingDetails";
+import RejectedBookingDetails from "../pages/Client/bookings/RejectedBookingDetails";
 
 export default function AppRouter() {
   return (
@@ -52,14 +57,8 @@ export default function AppRouter() {
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/admin/notifications" element={<AdminNotification />} />
         <Route path="/admin/reports" element={<ReportAndAnalytics />} />
-        <Route
-          path="/admin/bookings-payments"
-          element={<BookingsAndPayments />}
-        />
-        <Route
-          path="/admin/bookings-payments/:bookingId"
-          element={<BookingsAndPaymentsDetails />}
-        />
+        <Route path="/admin/bookings-payments" element={<BookingsAndPayments />} />
+        <Route path="/admin/bookings-payments/:bookingId" element={<BookingsAndPaymentsDetails />}/>
         <Route path="/admin/payouts/:payoutId" element={<PayoutDetails />} />
         <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/service-providers" element={<ServiceProviders />} />
@@ -71,7 +70,14 @@ export default function AppRouter() {
         <Route path="/client/wallet" element={<ClientWallet />} />
         <Route path="/client/notifications" element={<ClientNotification />} />
         <Route path="/client/profile" element={<ClientProfile />} />
-
+        <Route path="/client/my-bookings" element={<MyBookings />} />
+        <Route path="/client/my-bookings/approved/:bookingId" element={<ApprovedBookingDetails />} />
+        <Route path="/client/my-bookings/in-progress/:bookingId" element={<InProgressBookingDetails />} />
+        <Route path="/client/my-bookings/completed/:bookingId" element={<CompletedBookingDetails />} />
+        <Route path="/client/my-bookings/cancelled/:bookingId" element={<CancelledBookingDetails />} />
+        <Route path="/client/my-bookings/upcoming/:bookingId" element={<UpcomingBookingDetails />} />
+        <Route path="/client/my-bookings/rejected/:bookingId" element={<RejectedBookingDetails />} />
+        
         <Route path="/provider" element={<ProviderDashboard />} />
         <Route path="/provider/messages" element={<ClientMessages />} />
         <Route path="/provider/wallet" element={<ClientWallet />} />
@@ -82,7 +88,6 @@ export default function AppRouter() {
 
         <Route path="/profile" element={<Profile />} />
 
-        <Route path="/client/my-bookings" element={<MyBookings />} />
         <Route path="/provider/my-jobs" element={<MyJobs />} />
         <Route path="/provider/my-jobs/new/:id" element={<NewJobRequestDetails />}/>
         <Route path="/provider/my-jobs/accepted/:id"element={<AcceptedJobDetails />}/>
@@ -90,7 +95,6 @@ export default function AppRouter() {
         <Route path="/provider/my-jobs/completed/:id" element={<CompletedJobDetails />}/>
         <Route path="/provider/my-jobs/cancelled/:id" element={<CancelledJobDetails />}/>
 
-        <Route path="/client/my-bookings/:bookingId" element={<MyBookingDetails />}/>
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />
       </Routes>

@@ -1,4 +1,4 @@
-// src/api/paymentsService.js - Updated with correct payout endpoints
+// src/api/paymentsService.js - Updated with correct endpoints
 
 import axios from "axios";
 
@@ -20,7 +20,7 @@ client.interceptors.request.use((config) => {
 });
 
 // ─────────────────────────────────────────────
-// PAYOUT ENDPOINTS (USING CORRECT ROUTES)
+// PAYOUT ENDPOINTS
 // ─────────────────────────────────────────────
 
 /**
@@ -51,7 +51,7 @@ export async function getAdminStats() {
     const response = await client.get("/payouts/admin/summary");
     return {
       total_revenue: response.data.total_completed_amount || 0,
-      total_commission: response.data.total_completed_amount * 0.15 || 0, // 15% commission
+      total_commission: response.data.total_completed_amount * 0.15 || 0,
       pending_payouts: response.data.total_pending_amount || 0,
       total_pending: response.data.total_pending || 0,
       total_completed: response.data.total_completed || 0,
@@ -168,19 +168,77 @@ export async function cancelPayoutRequest(payoutId) {
   }
 }
 
-const handleCompletePayout = async () => {
-    setActionLoading(true);
-    try {
-        // Call B2C endpoint
-        await paymentsService.releasePayout(payout.id);
-        setPayout({ ...payout, status: "Completed" });
-        alert("✅ Payout completed successfully!");
-    } catch (err) {
-        alert("Failed to complete payout: " + err.message);
-    } finally {
-        setActionLoading(false);
+// ─────────────────────────────────────────────
+// STK PUSH (M-PESA PAYMENT) - UPDATED ENDPOINTS
+// ─────────────────────────────────────────────
+
+/**
+ * Initiate STK Push payment
+ * @param {Object} data - Payment data
+ * @param {string} data.phone_number - M-Pesa phone number (254 format)
+ * @param {number} data.amount - Amount to pay
+ * @param {number} data.booking_id - Booking ID
+ * @param {number} data.client_id - Client ID
+ * @param {number} data.provider_id - Provider ID
+ * @param {number} data.commission_rate - Commission rate (default 10)
+ */
+export async function initiateSTKPush(data) {
+  try {
+    // Using /transactions/stk-push endpoint from escrow_resource.py
+    const response = await client.post("/transactions/stk-push", {
+      phone_number: data.phone_number,
+      amount: data.amount,
+      booking_id: data.booking_id,
+      client_id: data.client_id,
+      provider_id: data.provider_id,
+      commission_rate: data.commission_rate || 10,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || "Payment initiation failed");
     }
-};
+    throw error;
+  }
+}
+
+/**
+ * Check transaction status
+ * @param {string} checkoutRequestId - The checkout request ID from STK Push
+ */
+export async function checkTransactionStatus(checkoutRequestId) {
+  try {
+    // Using /transactions/status endpoint from escrow_resource.py
+    const response = await client.get(`/transactions/status/${checkoutRequestId}`);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || "Failed to check status");
+    }
+    throw error;
+  }
+}
+/**
+ * MANUAL CALLBACK FOR TESTING
+ * Use this to complete a transaction without receiving STK Push on phone
+ */
+export async function triggerManualCallback(checkoutRequestId, resultCode = 0, amount = null) {
+  try {
+    const response = await client.post("/transactions/mpesa/manual-callback", {
+      checkout_request_id: checkoutRequestId,
+      result_code: resultCode,
+      result_desc: resultCode === 0 ? "Success" : "Failed",
+      mpesa_reference: `TEST-${Date.now()}`,
+      amount: amount
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || "Manual callback failed");
+    }
+    throw error;
+  }
+}
 // ─────────────────────────────────────────────
 // EXPORT
 // ─────────────────────────────────────────────
@@ -195,7 +253,9 @@ const paymentsService = {
   approvePayout,
   holdPayout,
   cancelPayoutRequest,
-  handleCompletePayout,
+  initiateSTKPush,
+  checkTransactionStatus,
+  triggerManualCallback,
 };
 
 export default paymentsService;

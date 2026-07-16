@@ -1,4 +1,4 @@
-// src/api/bookingService.js - Silent 404 Handling
+// src/api/bookingService.js - Updated with APPROVED & REJECTED Statuses
 
 import axios from "axios";
 
@@ -20,17 +20,23 @@ client.interceptors.request.use((config) => {
     return config;
 });
 
+// ─────────────────────────────────────────────
+// NORMALIZERS
+// ─────────────────────────────────────────────
+
 function normalizeBooking(apiBooking) {
     const statusMap = {
         pending: "New Requests",
         accepted: "Accepted",
         in_progress: "In Progress",
         completed: "Completed",
+        approved: "Approved",
+        rejected: "Rejected",
         cancelled: "Cancelled",
     };
 
-    const providerName = apiBooking.provider_full_name || "Provider";
-    const clientName = apiBooking.client_full_name || "Client";
+    const providerName = apiBooking.provider_full_name || apiBooking.provider_name || "Provider";
+    const clientName = apiBooking.client_full_name || apiBooking.client_name || "Client";
 
     return {
         id: apiBooking.id,
@@ -64,11 +70,15 @@ function normalizeBooking(apiBooking) {
                 ? `KES ${apiBooking.amount.toLocaleString()}`
                 : apiBooking.amount || "",
         amountRaw: apiBooking.amount,
+        rejectionReason: apiBooking.rejection_reason || null,
         raw: apiBooking,
     };
 }
 
-// simple in-memory cache for users to avoid repeated network calls
+// ─────────────────────────────────────────────
+// USER CACHE
+// ─────────────────────────────────────────────
+
 const userCache = new Map();
 
 async function fetchUserById(id) {
@@ -97,7 +107,9 @@ async function normalizeBookingAsync(apiBooking) {
     return normalized;
 }
 
-// src/api/bookingService.js - Fixed listClientBookings
+// ─────────────────────────────────────────────
+// BOOKING ENDPOINTS
+// ─────────────────────────────────────────────
 
 export async function listClientBookings(clientId) {
     try {
@@ -106,12 +118,10 @@ export async function listClientBookings(clientId) {
         const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
         return results;
     } catch (error) {
-        // If endpoint returns 404 or error, return empty array
         if (error.response && error.response.status === 404) {
             console.info("No bookings found for this client");
             return [];
         }
-        // Fallback: try to get all bookings and filter by client ID
         try {
             const allBookings = await listActiveBookings();
             return (allBookings || []).filter((b) => Number(b.clientId) === Number(clientId));
@@ -128,7 +138,6 @@ export async function listProviderBookings(providerId) {
         const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
         return results;
     } catch (error) {
-        // Silently fallback to active bookings filtered by provider id
         if (error.response && error.response.status === 404) {
             try {
                 const active = await listActiveBookings();
@@ -167,11 +176,19 @@ export async function listActiveBookings() {
     }
 }
 
-export async function updateBookingStatus(bookingId, newStatus) {
+/**
+ * Update booking status with optional rejection reason
+ * @param {number} bookingId - The booking ID
+ * @param {string} newStatus - New status (pending, accepted, in_progress, completed, approved, rejected, cancelled)
+ * @param {string} rejectionReason - Optional reason for rejection (only used when status is 'rejected')
+ */
+export async function updateBookingStatus(bookingId, newStatus, rejectionReason = null) {
     try {
-        const resp = await client.patch(`/bookings/${bookingId}/status`, {
-            status: newStatus,
-        });
+        const payload = { status: newStatus };
+        if (rejectionReason && newStatus === "rejected") {
+            payload.rejection_reason = rejectionReason;
+        }
+        const resp = await client.patch(`/bookings/${bookingId}/status`, payload);
         return normalizeBooking(resp.data);
     } catch (error) {
         if (error.response && error.response.status === 404) {
@@ -212,6 +229,10 @@ export async function listProviders() {
 export async function getProviderAvailability(providerId) {
     return null;
 }
+
+// ─────────────────────────────────────────────
+// EXPORT
+// ─────────────────────────────────────────────
 
 export default {
     listClientBookings,

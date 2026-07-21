@@ -1,4 +1,4 @@
-// src/pages/ServiceProvider/Jobs/MyJobs.jsx - Fixed Client Names & Initials
+// src/pages/ServiceProvider/Jobs/MyJobs.jsx - Fixed Dropdown Menu (Matching Client Page)
 
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -473,19 +473,20 @@ function MyJobs() {
                                                                 <EllipsisVertical className="h-4 w-4 text-gray-600" />
                                                             </button>
                                                         </div>
+                                                        {/* ── Dropdown Menu (Same as Client Page) ── */}
                                                         {openMenuId === job.id && (
-                                                            <div className="absolute right-2 top-full z-40 mt-2 w-48 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                                                            <div className="absolute right-0 top-full z-40 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
                                                                 <button
                                                                     onClick={() => {
-                                                                        navigate(`/client/messages?client=${job.clientId || job.raw?.client_id || ''}`);
+                                                                        navigate(`/provider/messages?client=${job.clientId || job.raw?.client_id || ''}`);
                                                                         setOpenMenuId(null);
                                                                     }}
-                                                                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                                                 >
-                                                                    <MessageSquare className="w-4 h-4 text-gray-600" />
+                                                                    <span className="h-4 w-4 text-gray-600">💬</span>
                                                                     Message
                                                                 </button>
-                                                                {job.status !== 'Completed' && (
+                                                                {job.status !== "Completed" && job.status !== "Cancelled" && (
                                                                     <button
                                                                         onClick={async () => {
                                                                             if (!window.confirm('Cancel this booking?')) return;
@@ -499,12 +500,12 @@ function MyJobs() {
                                                                                 setOpenMenuId(null);
                                                                             }
                                                                         }}
-                                                                        className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-50 flex items-center gap-2"
+                                                                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-50"
                                                                     >
                                                                         Cancel
                                                                     </button>
                                                                 )}
-                                                                {job.status === 'New Requests' && (
+                                                                {job.status === "New Requests" && (
                                                                     <>
                                                                         <button
                                                                             onClick={() => {
@@ -512,7 +513,7 @@ function MyJobs() {
                                                                                 setModalType('accept');
                                                                                 setOpenMenuId(null);
                                                                             }}
-                                                                            className="w-full text-left px-3 py-2 text-sm text-[#056db3] hover:bg-gray-50 flex items-center gap-2"
+                                                                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#056db3] hover:bg-gray-50"
                                                                         >
                                                                             Accept
                                                                         </button>
@@ -522,7 +523,7 @@ function MyJobs() {
                                                                                 setModalType('decline');
                                                                                 setOpenMenuId(null);
                                                                             }}
-                                                                            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-50 flex items-center gap-2"
+                                                                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-50"
                                                                         >
                                                                             Decline
                                                                         </button>

@@ -19,13 +19,17 @@ import Navbar from "../../../components/Navbar";
 
 const tabs = ["All Bookings", "Upcoming", "In Progress", "Completed", "Cancelled", "Rejected"];
 
+// ── Updated Status Colors ──
 const statusStyles = {
-  Upcoming: "bg-sky-100 text-sky-800",
-  "In Progress": "bg-amber-100 text-amber-800",
-  Completed: "bg-green-100 text-green-800",
-  Approved: "bg-green-100 text-green-800",
-  Cancelled: "bg-red-100 text-red-800",
-  Rejected: "bg-red-100 text-red-800",
+  "New Requests": "bg-amber-100 text-amber-800",
+  "Pending": "bg-amber-100 text-amber-800",
+  "Upcoming": "bg-sky-100 text-sky-800",
+  "Accepted": "bg-sky-100 text-sky-800",
+  "In Progress": "bg-indigo-100 text-indigo-800",
+  "Completed": "bg-green-100 text-green-800",
+  "Approved": "bg-green-100 text-green-800",
+  "Rejected": "bg-red-100 text-red-800",
+  "Cancelled": "bg-red-100 text-red-800",
 };
 
 const emptyStateConfigs = {
@@ -214,7 +218,6 @@ function EmptyState({ icon: Icon, title, description, color, iconColor }) {
 function getBookingRoute(booking) {
   const status = booking.status || "Pending";
   
-  // Map status to the correct route
   const routeMap = {
     "Upcoming": `/client/my-bookings/upcoming/${booking.id}`,
     "Pending": `/client/my-bookings/upcoming/${booking.id}`,
@@ -271,14 +274,28 @@ function MyBookings() {
     fetchBookings();
   }, []);
 
+  // ── Fix: Upcoming should include "New Requests", "Pending", "Accepted" ──
   const filteredBookings =
     activeTab === "All Bookings"
       ? bookings
-      : bookings.filter((booking) => booking.status === activeTab);
+      : bookings.filter((booking) => {
+          if (activeTab === "Upcoming") {
+            return booking.status === "Upcoming" || 
+                   booking.status === "Pending" || 
+                   booking.status === "Accepted" || 
+                   booking.status === "New Requests";
+          }
+          return booking.status === activeTab;
+        });
 
   const tabCounts = {
     "All Bookings": bookings.length,
-    Upcoming: bookings.filter((booking) => booking.status === "Upcoming" || booking.status === "Pending" || booking.status === "Accepted" || booking.status === "New Requests").length,
+    Upcoming: bookings.filter((booking) => 
+      booking.status === "Upcoming" || 
+      booking.status === "Pending" || 
+      booking.status === "Accepted" || 
+      booking.status === "New Requests"
+    ).length,
     "In Progress": bookings.filter((booking) => booking.status === "In Progress").length,
     Completed: bookings.filter((booking) => booking.status === "Completed").length,
     Approved: bookings.filter((booking) => booking.status === "Approved").length,
@@ -316,7 +333,6 @@ function MyBookings() {
           <section className="mb-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="flex min-w-max">
               {tabs.map((tab) => {
-                // For display purposes, show "Approved" tab
                 const displayTab = tab === "Approved" ? "Approved" : tab;
                 const count = tabCounts[tab] || 0;
                 
@@ -361,7 +377,7 @@ function MyBookings() {
               />
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full table-auto min-w-200">
+                <table className="w-full table-auto">
                   <thead className="border-b border-gray-200 bg-gray-50">
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
@@ -396,17 +412,18 @@ function MyBookings() {
                       return (
                         <tr key={booking.id} className="border-b border-gray-100 align-middle hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-5">
-                            <div className="max-w-42.5">
-                              <p className="text-base font-semibold text-gray-800">{booking.service}</p>
-                              <p className="mt-1 text-sm leading-6 text-gray-500">{booking.details}</p>
+                            {/* ── Fixed width for service column ── */}
+                            <div className="max-w-50">
+                              <p className="text-base font-semibold text-gray-800 truncate">{booking.service}</p>
+                              <p className="mt-1 text-sm leading-6 text-gray-500 truncate">{booking.details}</p>
                             </div>
                           </td>
                           <td className="px-4 py-5">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white shrink-0">
                                 {providerInitials}
                               </div>
-                              <div className="max-w-30 text-sm font-semibold leading-6 text-gray-800">
+                              <div className="max-w-30 text-sm font-semibold leading-6 text-gray-800 truncate">
                                 {providerName}
                               </div>
                             </div>
@@ -414,19 +431,19 @@ function MyBookings() {
                           <td className="px-4 py-5">
                             <div className="space-y-2 text-gray-600">
                               <div className="flex items-center gap-2">
-                                <Calendar className="h-3.5 w-3.5 text-gray-500" />
-                                <span className="text-sm">{formatBookingDate(booking.date)}</span>
+                                <Calendar className="h-3.5 w-3.5 text-gray-500 shrink-0" />
+                                <span className="text-sm whitespace-nowrap">{formatBookingDate(booking.date)}</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Clock3 className="h-3.5 w-3.5 text-gray-500" />
-                                <span className="text-sm">{booking.time}</span>
+                                <Clock3 className="h-3.5 w-3.5 text-gray-500 shrink-0" />
+                                <span className="text-sm whitespace-nowrap">{booking.time}</span>
                               </div>
                             </div>
                           </td>
                           <td className="px-4 py-5">
                             <div className="flex items-center gap-2 text-gray-600">
-                              <MapPin className="h-3.5 w-3.5 text-gray-500" />
-                              <span className="max-w-33.75 text-sm leading-6 truncate">{booking.location}</span>
+                              <MapPin className="h-3.5 w-3.5 text-gray-500 shrink-0" />
+                              <span className="max-w-32.5 text-sm leading-6 truncate">{booking.location}</span>
                             </div>
                           </td>
                           <td className="px-4 py-5 whitespace-nowrap">
@@ -440,7 +457,7 @@ function MyBookings() {
                           </td>
                           <td className="px-4 py-5">
                             <div>
-                              <div className="text-sm font-bold text-gray-800">{booking.amount || 'KES 0'}</div>
+                              <div className="text-sm font-bold text-gray-800 whitespace-nowrap">{booking.amount || 'KES 0'}</div>
                               <div className="text-xs text-gray-500 mt-1">{(() => {
                                   const amt = booking.amountRaw || booking.raw?.amount || 0;
                                   const isPremium = !!(booking.raw?.service_provider?.premium || booking.raw?.service_provider?.is_premium);

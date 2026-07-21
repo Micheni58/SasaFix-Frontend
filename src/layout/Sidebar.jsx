@@ -65,11 +65,6 @@ function Sidebar({ role = "client" }) {
       icon: <Bell size={20} />,
     },
     {
-      name: "Referrals",
-      path: "/client/referrals",
-      icon: <Gift size={20} />,
-    },
-    {
       name: "Profile",
       path: "/client/profile",
       icon: <User size={20} />,

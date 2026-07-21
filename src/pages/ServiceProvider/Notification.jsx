@@ -1,7 +1,7 @@
 // src/pages/ServiceProvider/Notification.jsx - Updated for Provider
 
 import { useEffect, useMemo, useState } from "react";
-import { Briefcase, DollarSign, MessageCircle, Bell, Trash2, Loader2, RefreshCw, Calendar } from "lucide-react";
+import { Briefcase, DollarSign, MessageCircle, Bell, Trash2, Loader2, RefreshCw, Calendar, Clock } from "lucide-react";
 import {
     deleteNotification,
     fetchNotifications,
@@ -13,6 +13,52 @@ import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 
 const tabs = ["All", "Unread", "Jobs", "Payments", "Messages"];
+
+// ── Updated time logic ──
+function getTimeAgo(dateValue) {
+    if (!dateValue) return "Just now";
+
+    const createdAt = new Date(dateValue);
+    if (Number.isNaN(createdAt.getTime())) return "Just now";
+
+    const diffMs = Date.now() - createdAt.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    const diffWeeks = Math.floor(diffDays / 7);
+
+    if (diffSeconds < 60) return "Just now";
+    if (diffMinutes < 60) return `${diffMinutes} min${diffMinutes === 1 ? "" : "s"} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffWeeks === 1) return "1 week ago";
+    if (diffWeeks < 4) return `${diffWeeks} weeks ago`;
+    
+    return createdAt.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+}
+
+// ── Check if notification should be shown (read notifications older than 3 days) ──
+function shouldShowNotification(notification) {
+    // If not read, always show
+    if (!notification.read) return true;
+    
+    // If read, check if it's older than 3 days
+    if (!notification.createdAt) return true;
+    
+    const createdAt = new Date(notification.createdAt);
+    if (Number.isNaN(createdAt.getTime())) return true;
+    
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    
+    return createdAt > threeDaysAgo;
+}
 
 function IconFor({ type }) {
     switch (type) {
@@ -58,8 +104,14 @@ export default function ProviderNotification() {
                 fetchNotifications(),
                 fetchUnreadNotificationCount(),
             ]);
-            setNotifications(data || []);
-            setUnreadCount(count || 0);
+            
+            // Filter out read notifications older than 3 days
+            const filteredData = (data || []).filter(shouldShowNotification);
+            
+            setNotifications(filteredData);
+            // Count unread from filtered data
+            const unread = filteredData.filter((n) => !n.read).length;
+            setUnreadCount(unread);
         } catch (err) {
             console.error(err);
             setError(err.message || "Failed to load notifications");
@@ -75,18 +127,55 @@ export default function ProviderNotification() {
     }, []);
 
     const filtered = useMemo(() => {
-        if (activeTab === "Unread") return notifications.filter((n) => !n.read);
-        if (activeTab === "Jobs") return notifications.filter((n) => n.type === "job" || n.type === "booking");
-        if (activeTab === "Payments") return notifications.filter((n) => n.type === "payment");
-        if (activeTab === "Messages") return notifications.filter((n) => n.type === "message");
-        return notifications;
+        let result = notifications;
+        
+        if (activeTab === "Unread") {
+            result = notifications.filter((n) => !n.read);
+        } else if (activeTab === "Jobs") {
+            result = notifications.filter((n) => n.type === "job" || n.type === "booking");
+        } else if (activeTab === "Payments") {
+            // ── Payments tab: only payment-related notifications ──
+            result = notifications.filter((n) => {
+                if (n.type !== "payment") return false;
+                
+                // Filter for payment-specific keywords in title or body
+                const title = (n.title || "").toLowerCase();
+                const body = (n.text || n.body || "").toLowerCase();
+                
+                const paymentKeywords = [
+                    "payment", "paid", "pay", "withdrawal", "withdraw", 
+                    "earnings", "earning", "wallet", "balance", "commission",
+                    "payout", "approved", "released", "completed", "pending"
+                ];
+                
+                return paymentKeywords.some(keyword => 
+                    title.includes(keyword) || body.includes(keyword)
+                );
+            });
+        } else if (activeTab === "Messages") {
+            result = notifications.filter((n) => n.type === "message");
+        }
+        
+        return result;
     }, [activeTab, notifications]);
 
     const counts = useMemo(() => ({
         All: notifications.length,
         Unread: notifications.filter((n) => !n.read).length,
         Jobs: notifications.filter((n) => n.type === "job" || n.type === "booking").length,
-        Payments: notifications.filter((n) => n.type === "payment").length,
+        Payments: notifications.filter((n) => {
+            if (n.type !== "payment") return false;
+            const title = (n.title || "").toLowerCase();
+            const body = (n.text || n.body || "").toLowerCase();
+            const paymentKeywords = [
+                "payment", "paid", "pay", "withdrawal", "withdraw", 
+                "earnings", "earning", "wallet", "balance", "commission",
+                "payout", "approved", "released", "completed", "pending"
+            ];
+            return paymentKeywords.some(keyword => 
+                title.includes(keyword) || body.includes(keyword)
+            );
+        }).length,
         Messages: notifications.filter((n) => n.type === "message").length,
     }), [notifications]);
 
@@ -203,7 +292,7 @@ export default function ProviderNotification() {
                                     <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-semibold ${
                                         activeTab === tab ? "bg-[#056db3] text-white" : "bg-gray-100 text-gray-600"
                                     }`}>
-                                        {counts[tab]}
+                                        {counts[tab] || 0}
                                     </span>
                                 </button>
                             ))}
@@ -258,7 +347,7 @@ export default function ProviderNotification() {
                                             <p className={`text-sm ${n.read ? "font-medium" : "font-semibold"} text-gray-900`}>
                                                 {n.title}
                                             </p>
-                                            <p className="mt-0.5 text-sm text-gray-600 truncate">{n.text}</p>
+                                            <p className="mt-0.5 text-sm text-gray-600 truncate">{n.text || n.body}</p>
                                             {n.relatedBookingId && (
                                                 <p className="mt-0.5 text-xs text-[#056db3]">
                                                     Booking #{n.relatedBookingId}
@@ -267,7 +356,7 @@ export default function ProviderNotification() {
                                         </div>
 
                                         <div className="flex items-center gap-4 shrink-0">
-                                            <div className="text-xs text-gray-500">{n.timeAgo}</div>
+                                            <div className="text-xs text-gray-500">{n.timeAgo || getTimeAgo(n.createdAt)}</div>
                                             {!n.read && (
                                                 <div className="h-2 w-2 rounded-full bg-[#056db3]" />
                                             )}

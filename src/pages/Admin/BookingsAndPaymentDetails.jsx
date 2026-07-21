@@ -1,4 +1,4 @@
-// src/pages/Admin/BookingsAndPaymentsDetails.jsx - Updated to use getBooking
+// src/pages/Admin/BookingsAndPaymentsDetails.jsx - Fully Updated with Form Fixes
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -22,9 +22,16 @@ import {
   Loader2,
   RefreshCw,
   AlertCircle,
+  MessageSquare,
+  ThumbsUp,
+  ThumbsDown,
+  AlertTriangle,
+  History,
 } from "lucide-react";
 
 import bookingService from "../../api/bookingService";
+import ratingService from "../../api/ratingService";
+import reviewService from "../../api/reviewService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 
@@ -33,13 +40,31 @@ import Navbar from "../../components/Navbar";
 // ─────────────────────────────────────────────
 
 const statusStyles = {
-  Completed: "bg-green-100 text-green-700",
-  "In Progress": "bg-blue-100 text-blue-700",
-  Scheduled: "bg-amber-100 text-amber-700",
-  Pending: "bg-yellow-100 text-yellow-700",
-  Cancelled: "bg-red-100 text-red-700",
+  "pending": "bg-yellow-100 text-yellow-700",
+  "accepted": "bg-blue-100 text-blue-700",
+  "in_progress": "bg-amber-100 text-amber-700",
+  "completed": "bg-green-100 text-green-700",
+  "approved": "bg-green-100 text-green-700",
+  "rejected": "bg-red-100 text-red-700",
+  "cancelled": "bg-red-100 text-red-700",
+  "Pending": "bg-yellow-100 text-yellow-700",
+  "Accepted": "bg-blue-100 text-blue-700",
+  "In Progress": "bg-amber-100 text-amber-700",
+  "Completed": "bg-green-100 text-green-700",
+  "Approved": "bg-green-100 text-green-700",
+  "Rejected": "bg-red-100 text-red-700",
+  "Cancelled": "bg-red-100 text-red-700",
   "New Requests": "bg-purple-100 text-purple-700",
-  Accepted: "bg-blue-100 text-blue-700",
+};
+
+const statusDisplayMap = {
+  "pending": "Pending",
+  "accepted": "Accepted",
+  "in_progress": "In Progress",
+  "completed": "Completed",
+  "approved": "Approved",
+  "rejected": "Rejected",
+  "cancelled": "Cancelled",
 };
 
 function formatDate(date) {
@@ -63,8 +88,7 @@ function formatDateTime(date) {
 }
 
 function formatCurrency(amount) {
-  if (!amount) return "KES 0";
-  // If amount is already a string with "KES", return it
+  if (!amount && amount !== 0) return "KES 0";
   if (typeof amount === "string" && amount.startsWith("KES")) {
     return amount;
   }
@@ -79,6 +103,63 @@ function getInitials(name) {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+}
+
+function getStatusDisplay(status) {
+  return statusDisplayMap[status?.toLowerCase()] || status || "Pending";
+}
+
+// ─────────────────────────────────────────────
+// SKELETON LOADER
+// ─────────────────────────────────────────────
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="flex items-center gap-4">
+        <div className="h-4 w-32 rounded bg-gray-200" />
+        <div className="h-8 w-48 rounded bg-gray-200" />
+      </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-4 h-10 w-10 rounded-2xl bg-gray-200" />
+            <div className="h-8 w-24 rounded bg-gray-200" />
+            <div className="mt-1 h-4 w-20 rounded bg-gray-200" />
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-center gap-2">
+            <div className="h-5 w-5 rounded bg-gray-200" />
+            <div className="h-6 w-40 rounded bg-gray-200" />
+          </div>
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="flex items-start justify-between py-3 border-b border-gray-100">
+              <div className="h-4 w-24 rounded bg-gray-200" />
+              <div className="h-4 w-32 rounded bg-gray-200" />
+            </div>
+          ))}
+        </div>
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="h-5 w-5 rounded bg-gray-200" />
+              <div className="h-6 w-20 rounded bg-gray-200" />
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="h-14 w-14 rounded-full bg-gray-200" />
+              <div className="mt-3 h-5 w-32 rounded bg-gray-200" />
+              <div className="mt-2 h-4 w-40 rounded bg-gray-200" />
+              <div className="mt-1 h-4 w-36 rounded bg-gray-200" />
+              <div className="mt-4 h-10 w-full rounded-lg bg-gray-200" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -126,77 +207,39 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, isLoading })
   );
 }
 
-function EmptyBookingState({ onBack }) {
+function TimelineItem({ task, completed, isLast }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-      <div className="rounded-full bg-amber-50 p-6 mb-6">
-        <AlertCircle className="h-16 w-16 text-amber-500" />
+    <div className={`relative flex gap-4 ${!isLast ? "pb-8" : ""}`}>
+      {!isLast && (
+        <div className="absolute left-5 top-10 h-full w-0.5 bg-gray-200" />
+      )}
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white border-2 border-gray-200">
+        {completed ? (
+          <CheckCircle2 className="h-5 w-5 text-green-500" />
+        ) : (
+          <Clock3 className="h-5 w-5 text-gray-400" />
+        )}
       </div>
-      <h3 className="text-2xl font-bold text-gray-800 mb-3">Booking Not Found</h3>
-      <p className="text-gray-500 max-w-md mb-8">
-        The booking you're looking for doesn't exist or may have been removed.
-      </p>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 rounded-xl bg-[#056db3] px-6 py-3 text-white font-semibold hover:bg-[#045a94] transition-colors"
-      >
-        <ArrowLeft className="h-5 w-5" />
-        Back to Bookings
-      </button>
+      <div className="pt-1">
+        <p className={`text-sm font-medium ${completed ? "text-gray-900" : "text-gray-500"}`}>
+          {task}
+        </p>
+        {completed && (
+          <p className="text-xs text-gray-400">Completed</p>
+        )}
+      </div>
     </div>
   );
 }
 
-function LoadingSkeleton() {
+function EmptyState({ icon: Icon, title, description }) {
   return (
-    <div className="space-y-6 animate-pulse">
-      {/* Header skeleton */}
-      <div className="flex items-center gap-4">
-        <div className="h-10 w-32 rounded bg-gray-200" />
-        <div className="h-8 w-48 rounded bg-gray-200" />
+    <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+      <div className="rounded-full bg-gray-100 p-3 mb-3">
+        <Icon className="h-6 w-6 text-gray-400" />
       </div>
-      
-      {/* Summary cards skeleton */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 h-10 w-10 rounded-2xl bg-gray-200" />
-            <div className="h-8 w-24 rounded bg-gray-200" />
-            <div className="mt-1 h-4 w-20 rounded bg-gray-200" />
-          </div>
-        ))}
-      </div>
-
-      {/* Main content skeleton */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-center gap-2">
-            <div className="h-5 w-5 rounded bg-gray-200" />
-            <div className="h-6 w-40 rounded bg-gray-200" />
-          </div>
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="flex items-start justify-between py-3 border-b border-gray-100">
-              <div className="h-4 w-24 rounded bg-gray-200" />
-              <div className="h-4 w-32 rounded bg-gray-200" />
-            </div>
-          ))}
-        </div>
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-2">
-              <div className="h-5 w-5 rounded bg-gray-200" />
-              <div className="h-6 w-20 rounded bg-gray-200" />
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="h-14 w-14 rounded-full bg-gray-200" />
-              <div className="mt-3 h-5 w-32 rounded bg-gray-200" />
-              <div className="mt-2 h-4 w-40 rounded bg-gray-200" />
-              <div className="mt-1 h-4 w-36 rounded bg-gray-200" />
-              <div className="mt-4 h-10 w-full rounded-lg bg-gray-200" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <h4 className="text-sm font-semibold text-gray-700">{title}</h4>
+      <p className="text-sm text-gray-500 mt-1">{description}</p>
     </div>
   );
 }
@@ -214,6 +257,8 @@ function BookingsAndPaymentsDetails() {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [adminNote, setAdminNote] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   // ── Fetch Booking Details ──
   const fetchBookingDetails = async (showRefresh = false) => {
@@ -224,7 +269,6 @@ function BookingsAndPaymentsDetails() {
     setNotFound(false);
 
     try {
-      // Use the existing getBooking function
       const data = await bookingService.getBooking(bookingId);
 
       if (!data) {
@@ -233,44 +277,97 @@ function BookingsAndPaymentsDetails() {
         return;
       }
 
-      // The data is already normalized by bookingService.getBooking
-      // But we need to ensure we have all the fields we need
+      // Fetch provider details (ratings and reviews)
+      let providerRatings = { averageScore: 0, totalRatings: 0 };
+      let providerReviews = [];
+      
+      try {
+        const providerId = data.serviceProviderId || data.raw?.service_provider_id;
+        if (providerId) {
+          const [ratings, reviews] = await Promise.all([
+            ratingService.getProviderAverageRating(providerId),
+            reviewService.getProviderReviews(providerId),
+          ]);
+          providerRatings = ratings || { averageScore: 0, totalRatings: 0 };
+          providerReviews = reviews || [];
+        }
+      } catch (e) {
+        console.warn("Could not fetch provider details:", e);
+      }
+
+      // Calculate duration from start and end time
+      let duration = "Not specified";
+      if (data.startTime && data.endTime) {
+        try {
+          const start = new Date(`1970-01-01T${data.startTime}`);
+          const end = new Date(`1970-01-01T${data.endTime}`);
+          const diffMs = end - start;
+          const diffHours = diffMs / (1000 * 60 * 60);
+          if (diffHours > 0) {
+            const hrs = Math.floor(diffHours);
+            const mins = Math.round((diffHours - hrs) * 60);
+            duration = hrs > 0 ? `${hrs}h ${mins > 0 ? `${mins}m` : ""}` : `${mins}m`;
+          }
+        } catch (e) {
+          duration = "Not specified";
+        }
+      }
+
+      // Determine commission rate (10% default)
+      const commissionRate = 0.10;
+      const amount = Number(data.amountRaw || data.amount || 0);
+      const commission = amount * commissionRate;
+      const providerPayout = amount - commission;
+
+      // Get provider name from raw data
+      const providerName = data.providerName || data.worker || 
+        data.raw?.service_provider?.name || 
+        data.raw?.provider_name ||
+        `Provider #${data.serviceProviderId}`;
+
+      // Get client name
+      const clientName = data.client || data.clientName || 
+        data.raw?.client?.full_name ||
+        `Client #${data.clientId}`;
+
       const formattedBooking = {
         id: data.id || bookingId,
-        client: data.client || data.clientName || `Client #${data.clientId}` || "Unknown Client",
-        provider: data.providerName || data.worker || `Provider #${data.serviceProviderId}` || "Unknown Provider",
+        client: clientName,
+        provider: providerName,
         service: data.service || "Service Not Specified",
         date: data.date || data.scheduledDate || null,
-        amount: data.amountRaw || data.amount || 0,
-        commission: data.commission || data.commission_amount || 0,
+        amount: amount,
+        commission: commission,
         status: data.status || "Pending",
         description: data.details || data.description || "No description provided",
         location: data.location || "Not specified",
         scheduledDate: data.date || data.scheduledDate,
         startTime: data.time ? data.time.split(" - ")[0] : "Not specified",
         endTime: data.time ? data.time.split(" - ")[1] : "Not specified",
-        duration: data.duration || "Not specified",
-        createdOn: data.created_at || data.createdAt,
-        lastUpdated: data.updated_at || data.updatedAt,
-        clientEmail: data.clientEmail || data.clientObj?.email || "No email",
-        clientPhone: data.clientPhone || data.clientObj?.phone || "No phone",
-        providerEmail: data.providerEmail || "No email",
-        providerPhone: data.providerPhone || "No phone",
-        providerCategory: data.providerCategory || "Service Provider",
-        providerRating: data.providerRating || 0,
-        providerReviews: data.providerReviews || 0,
-        providerPayout: data.providerPayout || data.net_amount || (Number(data.amountRaw) - (data.commission || 0)),
-        mpesaRef: data.mpesaRef || data.mpesa_reference || "",
-        verified: data.verified || false,
-        clientInitials: data.clientInitials || getInitials(data.client),
-        providerInitials: data.initials || getInitials(data.providerName),
+        duration: duration,
+        createdOn: data.created_at || data.createdAt || data.raw?.created_at,
+        lastUpdated: data.updated_at || data.updatedAt || data.raw?.updated_at,
+        clientEmail: data.clientEmail || data.raw?.client?.email || "No email",
+        clientPhone: data.clientPhone || data.raw?.client?.phone || "No phone",
+        providerEmail: data.providerEmail || data.raw?.service_provider?.contact_email || "No email",
+        providerPhone: data.providerPhone || data.raw?.service_provider?.contact_phone || "No phone",
+        providerCategory: data.raw?.service_provider?.service_category || "Service Provider",
+        providerRating: providerRatings.averageScore || 0,
+        providerReviews: providerRatings.totalRatings || 0,
+        providerPayout: providerPayout,
+        mpesaRef: data.mpesaRef || data.mpesa_reference || data.raw?.mpesa_reference || "",
+        verified: data.raw?.service_provider?.is_verified || false,
+        clientInitials: getInitials(clientName),
+        providerInitials: getInitials(providerName),
+        clientId: data.clientId || data.raw?.client_id,
+        providerId: data.serviceProviderId || data.raw?.service_provider_id,
         raw: data,
+        providerReviewsList: providerReviews,
       };
 
       setBooking(formattedBooking);
     } catch (err) {
       console.error("Error fetching booking details:", err);
-      // Check if it's a 404
       if (err.response && err.response.status === 404) {
         setNotFound(true);
       } else {
@@ -296,6 +393,43 @@ function BookingsAndPaymentsDetails() {
     fetchBookingDetails(true);
   };
 
+  // ── Admin Actions ──
+  const handleAdminAction = async (action, data = null) => {
+    setActionLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (action === "review") {
+        setBooking(prev => ({ ...prev, reviewed: true }));
+        alert("✅ Booking marked as reviewed");
+      } else if (action === "flag") {
+        setBooking(prev => ({ ...prev, flagged: !prev.flagged }));
+        alert(booking?.flagged ? "✅ Booking unflagged" : "⚠️ Booking flagged for review");
+      } else if (action === "export") {
+        alert("📄 Exporting booking details as PDF...");
+      } else if (action === "save_note") {
+        if (data?.note) {
+          setBooking(prev => ({ ...prev, adminNote: data.note }));
+          alert("✅ Admin note saved");
+          setAdminNote("");
+        }
+      }
+    } catch (err) {
+      console.error(`Failed to perform ${action}:`, err);
+      alert(`Failed to ${action}: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ── Status Check ──
+  const getStatusColor = (status) => {
+    const normalizedStatus = status?.toLowerCase() || "pending";
+    return statusStyles[normalizedStatus] || statusStyles[status] || "bg-gray-100 text-gray-700";
+  };
+
+  const displayStatus = getStatusDisplay(booking?.status);
+
   // ── Loading state ──
   if (loading) {
     return (
@@ -312,7 +446,7 @@ function BookingsAndPaymentsDetails() {
   }
 
   // ── Not Found state ──
-  if (notFound) {
+  if (notFound || !booking) {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
@@ -326,75 +460,11 @@ function BookingsAndPaymentsDetails() {
               <ArrowLeft className="h-4 w-4" />
               Back to Bookings
             </button>
-            <EmptyBookingState onBack={handleBack} />
-          </main>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Error state - Clean and friendly ──
-  if (error) {
-    return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
-        <Sidebar role="admin" />
-        <div className="flex-1 ml-72">
-          <Navbar />
-          <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
-            <button
-              onClick={handleBack}
-              className="mb-6 flex items-center gap-2 text-sm font-medium text-[#056db3] hover:underline"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Bookings
-            </button>
-
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center max-w-2xl mx-auto">
-              <div className="rounded-full bg-amber-100 p-4 mx-auto w-fit mb-4">
-                <RefreshCw className="h-8 w-8 text-amber-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Unable to Load Booking</h3>
-              <p className="text-gray-600 mb-6">
-                We're having trouble loading this booking. This could be a temporary issue.
-              </p>
-              <div className="flex justify-center gap-4">
-                <button
-                  onClick={handleBack}
-                  className="rounded-xl border border-gray-300 px-6 py-2.5 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Go Back
-                </button>
-                <button
-                  onClick={handleRetry}
-                  className="rounded-xl bg-[#056db3] px-6 py-2.5 text-white font-medium hover:bg-[#045a94] transition-colors flex items-center gap-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Try Again
-                </button>
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
-
-  // ── No booking found after loading ──
-  if (!booking) {
-    return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
-        <Sidebar role="admin" />
-        <div className="flex-1 ml-72">
-          <Navbar />
-          <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
-            <button
-              onClick={handleBack}
-              className="mb-6 flex items-center gap-2 text-sm font-medium text-[#056db3] hover:underline"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Bookings
-            </button>
-            <EmptyBookingState onBack={handleBack} />
+            <EmptyState
+              icon={AlertCircle}
+              title="Booking Not Found"
+              description="The booking you're looking for doesn't exist or may have been removed."
+            />
           </main>
         </div>
       </div>
@@ -432,11 +502,9 @@ function BookingsAndPaymentsDetails() {
                   Booking #{booking.id}
                 </span>
                 <span
-                  className={`rounded-full px-3 py-1 text-sm font-semibold ${
-                    statusStyles[booking.status] || "bg-gray-100 text-gray-700"
-                  }`}
+                  className={`rounded-full px-3 py-1 text-sm font-semibold ${getStatusColor(booking.status)}`}
                 >
-                  {booking.status || "Unknown"}
+                  {displayStatus}
                 </span>
                 <button
                   onClick={() => fetchBookingDetails(true)}
@@ -450,8 +518,8 @@ function BookingsAndPaymentsDetails() {
             </div>
           </div>
 
-          {/* ── Summary Cards ── */}
-          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {/* ── Summary Cards - Responsive Grid ── */}
+          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <SummaryCard
               icon={ArrowUpRight}
               iconBg="bg-[#dfe6ff]"
@@ -464,7 +532,7 @@ function BookingsAndPaymentsDetails() {
               icon={Wallet}
               iconBg="bg-[#dcfce7]"
               iconColor="text-[#16a34a]"
-              label="Commission Earned"
+              label="Commission (10%)"
               value={formatCurrency(booking.commission)}
               isLoading={loading}
             />
@@ -481,41 +549,78 @@ function BookingsAndPaymentsDetails() {
               iconBg="bg-[#fef3c7]"
               iconColor="text-[#f97316]"
               label="Status"
-              value={booking.status || "Unknown"}
+              value={displayStatus}
               isLoading={loading}
             />
           </div>
 
-          {/* ── Main Content — Two Columns ── */}
+          {/* ── Main Content ── */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Left Column — Booking Information */}
-            <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="mb-5 flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-[#056db3]" />
-                <h2 className="text-lg font-bold text-gray-900">
-                  Booking Information
-                </h2>
+            <div className="lg:col-span-2 space-y-6">
+              {/* Booking Info Card */}
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="mb-5 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-[#056db3]" />
+                  <h2 className="text-lg font-bold text-gray-900">
+                    Booking Information
+                  </h2>
+                </div>
+
+                <DetailRow label="Service" value={booking.service} />
+                <DetailRow label="Description" value={booking.description} />
+                <DetailRow label="Location" value={booking.location} />
+                <DetailRow label="Scheduled Date" value={booking.scheduledDate ? formatDate(booking.scheduledDate) : "-"} />
+                <DetailRow label="Time" value={`${booking.startTime} - ${booking.endTime}`} />
+                <DetailRow label="Duration" value={booking.duration} />
+                <DetailRow label="Created On" value={booking.createdOn ? formatDateTime(booking.createdOn) : "-"} />
+                <DetailRow label="Last Updated" value={booking.lastUpdated ? formatDateTime(booking.lastUpdated) : "-"} isLast />
+
+                <div className="mt-6 flex h-32 items-center justify-center rounded-xl bg-gray-100">
+                  <div className="flex flex-col items-center gap-2 text-gray-400">
+                    <MapPin className="h-6 w-6" />
+                    <span className="text-sm font-medium">{booking.location || "Location not specified"}</span>
+                  </div>
+                </div>
               </div>
 
-              <DetailRow label="Service" value={booking.service} />
-              <DetailRow label="Description" value={booking.description} />
-              <DetailRow label="Location" value={booking.location} />
-              <DetailRow label="Scheduled Date" value={booking.scheduledDate ? formatDate(booking.scheduledDate) : "-"} />
-              <DetailRow label="Time" value={booking.time || `${booking.startTime} - ${booking.endTime}`} />
-              <DetailRow label="Duration" value={booking.duration} />
-              <DetailRow label="Created On" value={booking.createdOn ? formatDateTime(booking.createdOn) : "-"} />
-              <DetailRow label="Last Updated" value={booking.lastUpdated ? formatDateTime(booking.lastUpdated) : "-"} isLast />
-
-              {/* Map Placeholder */}
-              <div className="mt-6 flex h-32 items-center justify-center rounded-xl bg-gray-100">
-                <div className="flex flex-col items-center gap-2 text-gray-400">
-                  <MapPin className="h-6 w-6" />
-                  <span className="text-sm font-medium">{booking.location || "Location not specified"}</span>
+              {/* Timeline Card */}
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="mb-5 flex items-center gap-2">
+                  <History className="h-5 w-5 text-[#056db3]" />
+                  <h2 className="text-lg font-bold text-gray-900">Booking Timeline</h2>
+                </div>
+                <div className="space-y-0">
+                  <TimelineItem 
+                    task="Booking Created" 
+                    completed={true} 
+                    isLast={false}
+                  />
+                  <TimelineItem 
+                    task="Provider Accepted" 
+                    completed={booking.status === "accepted" || booking.status === "in_progress" || booking.status === "completed" || booking.status === "approved"}
+                    isLast={false}
+                  />
+                  <TimelineItem 
+                    task="Work In Progress" 
+                    completed={booking.status === "in_progress" || booking.status === "completed" || booking.status === "approved"}
+                    isLast={false}
+                  />
+                  <TimelineItem 
+                    task="Work Completed" 
+                    completed={booking.status === "completed" || booking.status === "approved"}
+                    isLast={false}
+                  />
+                  <TimelineItem 
+                    task="Client Approved" 
+                    completed={booking.status === "approved"}
+                    isLast={true}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Right Column — Client and Provider */}
+            {/* Right Column */}
             <div className="space-y-6">
               {/* Client Card */}
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -525,17 +630,20 @@ function BookingsAndPaymentsDetails() {
                 </div>
 
                 <div className="flex flex-col items-center text-center">
-                  <Avatar initials={booking.clientInitials || getInitials(booking.client)} />
+                  <Avatar initials={booking.clientInitials} />
                   <p className="mt-3 text-base font-bold text-gray-900">
-                    {booking.client || "Unknown"}
+                    {booking.client}
                   </p>
-                  <div className="mt-2 flex items-center gap-2 text-sm text-gray-500">
-                    <Mail className="h-4 w-4" />
-                    {booking.clientEmail}
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
-                    <Phone className="h-4 w-4" />
-                    {booking.clientPhone}
+                  <p className="text-sm text-gray-500">Client ID: #{booking.clientId}</p>
+                  <div className="mt-3 w-full space-y-2 text-left">
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Mail className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{booking.clientEmail}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Phone className="h-4 w-4 shrink-0" />
+                      <span>{booking.clientPhone}</span>
+                    </div>
                   </div>
                   <button className="mt-4 w-full rounded-lg border-2 border-[#056db3] px-4 py-2 text-sm font-medium text-[#056db3] transition-colors hover:bg-[#056db3] hover:text-white">
                     View Client Profile
@@ -551,13 +659,14 @@ function BookingsAndPaymentsDetails() {
                 </div>
 
                 <div className="flex flex-col items-center text-center">
-                  <Avatar initials={booking.providerInitials || getInitials(booking.provider)} />
+                  <Avatar initials={booking.providerInitials} />
                   <p className="mt-3 text-base font-bold text-gray-900">
-                    {booking.provider || "Unknown"}
+                    {booking.provider}
                   </p>
                   <p className="text-sm font-medium text-[#056db3]">
                     {booking.providerCategory}
                   </p>
+                  <p className="text-sm text-gray-500">Provider ID: #{booking.providerId}</p>
 
                   {/* Rating */}
                   <div className="mt-2 flex items-center gap-1">
@@ -572,7 +681,7 @@ function BookingsAndPaymentsDetails() {
                       />
                     ))}
                     <span className="ml-1 text-sm font-medium text-gray-700">
-                      {booking.providerRating || "N/A"}
+                      {booking.providerRating ? booking.providerRating.toFixed(1) : "N/A"}
                     </span>
                     <span className="text-sm text-gray-400">
                       ({booking.providerReviews || 0} reviews)
@@ -589,13 +698,15 @@ function BookingsAndPaymentsDetails() {
                     </div>
                   )}
 
-                  <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
-                    <Mail className="h-4 w-4" />
-                    {booking.providerEmail}
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
-                    <Phone className="h-4 w-4" />
-                    {booking.providerPhone}
+                  <div className="mt-3 w-full space-y-2 text-left">
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Mail className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{booking.providerEmail}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Phone className="h-4 w-4 shrink-0" />
+                      <span>{booking.providerPhone}</span>
+                    </div>
                   </div>
                   <button className="mt-4 w-full rounded-lg border-2 border-[#056db3] px-4 py-2 text-sm font-medium text-[#056db3] transition-colors hover:bg-[#056db3] hover:text-white">
                     View Provider Profile
@@ -643,7 +754,7 @@ function BookingsAndPaymentsDetails() {
                   </tr>
                   <tr className="border-b border-gray-100">
                     <td className="px-5 py-4 text-sm font-medium text-gray-800">
-                      Platform Commission (15%)
+                      Platform Commission (10%)
                     </td>
                     <td className="px-5 py-4 text-sm font-semibold text-red-500">
                       {formatCurrency(booking.commission)}
@@ -668,7 +779,7 @@ function BookingsAndPaymentsDetails() {
             </div>
 
             {/* M-Pesa Reference */}
-            {booking.mpesaRef && (
+            {booking.mpesaRef ? (
               <div className="mt-5 flex items-center gap-3 rounded-xl bg-gray-50 px-5 py-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
                   <span className="text-xs font-bold text-green-700">M</span>
@@ -677,6 +788,18 @@ function BookingsAndPaymentsDetails() {
                   <p className="text-sm font-medium text-gray-700">Paid via M-Pesa</p>
                   <p className="text-xs text-gray-400">
                     Transaction Ref: {booking.mpesaRef}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-5 flex items-center gap-3 rounded-xl bg-gray-50 px-5 py-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
+                  <span className="text-xs font-bold text-gray-500">!</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Payment Status</p>
+                  <p className="text-xs text-gray-400">
+                    {booking.status === "approved" ? "Payment pending release" : "No payment recorded yet"}
                   </p>
                 </div>
               </div>
@@ -691,34 +814,64 @@ function BookingsAndPaymentsDetails() {
             </div>
 
             <div className="mb-6 flex flex-wrap gap-3">
-              <button className="flex items-center gap-2 rounded-xl bg-[#056db3] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#045a96]">
-                <Eye className="h-4 w-4" />
+              <button
+                onClick={() => handleAdminAction("review")}
+                disabled={actionLoading}
+                className="flex items-center gap-2 rounded-xl bg-[#056db3] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#045a96] disabled:opacity-50"
+              >
+                {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
                 Mark as Reviewed
               </button>
-              <button className="flex items-center gap-2 rounded-xl border border-red-400 px-5 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-500 hover:text-white">
+              <button
+                onClick={() => handleAdminAction("flag")}
+                disabled={actionLoading}
+                className={`flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-medium transition-colors ${
+                  booking?.flagged
+                    ? "border-green-400 text-green-500 hover:bg-green-500 hover:text-white"
+                    : "border-red-400 text-red-500 hover:bg-red-500 hover:text-white"
+                }`}
+              >
                 <Flag className="h-4 w-4" />
-                Flag Booking
+                {booking?.flagged ? "Unflag Booking" : "Flag Booking"}
               </button>
-              <button className="flex items-center gap-2 rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100">
+              <button
+                onClick={() => handleAdminAction("export")}
+                disabled={actionLoading}
+                className="flex items-center gap-2 rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+              >
                 <Download className="h-4 w-4" />
                 Export PDF
               </button>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
+              <label htmlFor="admin-notes" className="mb-2 block text-sm font-medium text-gray-700">
                 Admin Notes
               </label>
               <textarea
+                id="admin-notes"
+                name="admin-notes"
                 rows={4}
+                value={adminNote}
+                onChange={(e) => setAdminNote(e.target.value)}
                 placeholder="Add internal notes about this booking..."
                 className="w-full rounded-xl border border-gray-200 p-4 text-sm text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:border-2 focus:border-[#056db3]"
               />
               <div className="mt-3 flex justify-end">
-                <button className="rounded-xl bg-[#056db3] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#045a96]">
-                  Save Notes
+                <button
+                  onClick={() => handleAdminAction("save_note", { note: adminNote })}
+                  disabled={actionLoading || !adminNote.trim()}
+                  className="rounded-xl bg-[#056db3] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#045a96] disabled:opacity-50 flex items-center gap-2"
+                >
+                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Notes"}
                 </button>
               </div>
+              {booking?.adminNote && (
+                <div className="mt-3 rounded-xl bg-gray-50 p-3">
+                  <p className="text-xs font-medium text-gray-500">Previous Notes:</p>
+                  <p className="text-sm text-gray-700 mt-1">{booking.adminNote}</p>
+                </div>
+              )}
             </div>
           </div>
         </main>

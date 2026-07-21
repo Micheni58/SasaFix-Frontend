@@ -1,4 +1,4 @@
-// src/pages/admin/BookingsAndPayments.jsx - Fixed Modal Rendering
+// src/pages/admin/BookingsAndPayments.jsx - With Skeleton Loaders
 
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -45,6 +45,8 @@ const bookingStatusStyles = {
   Cancelled: "bg-red-100 text-red-700",
   "New Requests": "bg-purple-100 text-purple-700",
   Accepted: "bg-blue-100 text-blue-700",
+  Approved: "bg-green-100 text-green-700",
+  Rejected: "bg-red-100 text-red-700",
 };
 
 const payoutStatusStyles = {
@@ -83,6 +85,88 @@ function getInitials(name) {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+}
+
+// ─────────────────────────────────────────────
+// SKELETON LOADERS
+// ─────────────────────────────────────────────
+
+function SkeletonStatCard() {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="mb-4 h-10 w-10 rounded-2xl bg-gray-200 animate-pulse" />
+      <div className="h-8 w-32 animate-pulse rounded bg-gray-200" />
+      <div className="mt-2 h-4 w-24 animate-pulse rounded bg-gray-200" />
+    </div>
+  );
+}
+
+function SkeletonTableRow() {
+  return (
+    <tr className="border-b border-gray-100">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-gray-200 animate-pulse" />
+          <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
+        </div>
+      </td>
+      <td className="px-3 py-3">
+        <div className="h-4 w-20 animate-pulse rounded bg-gray-200" />
+      </td>
+      <td className="px-3 py-3">
+        <div className="h-4 w-16 animate-pulse rounded bg-gray-200" />
+      </td>
+      <td className="px-3 py-3">
+        <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
+      </td>
+      <td className="px-3 py-3">
+        <div className="h-6 w-20 animate-pulse rounded-full bg-gray-200" />
+      </td>
+      <td className="px-3 py-3">
+        <div className="h-8 w-16 animate-pulse rounded-lg bg-gray-200" />
+      </td>
+    </tr>
+  );
+}
+
+function SkeletonTable() {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-175 table-auto">
+        <thead className="border-b border-gray-200 bg-gray-50">
+          <tr>
+            {[...Array(6)].map((_, i) => (
+              <th key={i} className="px-4 py-3">
+                <div className="h-3 w-16 animate-pulse rounded bg-gray-200" />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {[...Array(5)].map((_, i) => (
+            <SkeletonTableRow key={i} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SkeletonFilters() {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5 shadow-sm">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center">
+        <div className="relative flex-1">
+          <div className="h-12 w-full animate-pulse rounded-xl bg-gray-200" />
+        </div>
+        <div className="flex flex-wrap gap-3 md:ml-auto">
+          <div className="h-12 w-40 animate-pulse rounded-xl bg-gray-200" />
+          <div className="h-12 w-40 animate-pulse rounded-xl bg-gray-200" />
+          <div className="h-12 w-28 animate-pulse rounded-xl bg-gray-200" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -633,16 +717,44 @@ function BookingsAndPayments() {
     p.status === "Pending" || p.status === "pending"
   ).length;
 
-  // ── Loading state ──
+  // ── Loading state with skeletons ──
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="flex min-h-screen bg-[#f8fafc] overflow-hidden">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-72 min-w-0">
           <Navbar />
-          <main className="pt-24 px-6 pb-6">
-            <div className="flex h-64 items-center justify-center">
-              <Loader2 className="h-12 w-12 animate-spin text-[#056db3]" />
+          <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full overflow-x-hidden">
+            {/* Header Skeleton */}
+            <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <div className="h-9 w-64 animate-pulse rounded bg-gray-200" />
+                <div className="mt-1 h-5 w-48 animate-pulse rounded bg-gray-200" />
+              </div>
+              <div className="h-10 w-28 animate-pulse rounded-lg bg-gray-200" />
+            </div>
+
+            {/* Stats Skeleton */}
+            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <SkeletonStatCard key={i} />
+              ))}
+            </div>
+
+            {/* Tabs Skeleton */}
+            <div className="mb-6 border-b border-gray-200">
+              <div className="flex gap-6 md:gap-8">
+                <div className="h-10 w-32 animate-pulse rounded bg-gray-200" />
+                <div className="h-10 w-40 animate-pulse rounded bg-gray-200" />
+              </div>
+            </div>
+
+            {/* Filters Skeleton */}
+            <SkeletonFilters />
+
+            {/* Table Skeleton */}
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+              <SkeletonTable />
             </div>
           </main>
         </div>

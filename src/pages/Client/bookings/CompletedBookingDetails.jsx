@@ -185,7 +185,8 @@ function CompletedBookingDetails() {
             setBooking(updated);
             window.alert("✅ Work approved! Please proceed with payment.");
             // Navigate to approved page
-            navigate(`/client/bookings/approved/${bookingId}`);
+            // /client/my-bookings/approved/:bookingId
+            navigate(`/client/my-bookings/approved/${bookingId}`);
         } catch (err) {
             console.error(err);
             window.alert("Failed to approve work: " + err.message);

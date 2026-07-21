@@ -1,13 +1,57 @@
-// src/pages/ServiceProvider/ProviderDashboard.jsx - Updated
+// src/pages/ServiceProvider/ProviderDashboard.jsx - FINAL FIXED
 
 import { useEffect, useState } from "react";
-import { MapPin, Briefcase, CheckCircle, Wallet, Star, Clock, MessageCircle, Eye, DollarSign, TrendingUp, Search, Calendar, ChevronRight, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  MapPin,
+  Briefcase,
+  CheckCircle,
+  Wallet,
+  Star,
+  Clock,
+  MessageCircle,
+  Eye,
+  Search,
+  Calendar,
+  ChevronRight,
+  ShieldCheck,
+  RotateCcw,
+  TrendingUp,
+  DollarSign,
+} from "lucide-react";
 import bookingService from "../../api/bookingService";
+import { getWalletBalance } from "../../api/walletService";
+import ratingService from "../../api/ratingService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 
+// ── Status Colors ──
+const STATUS_STYLES = {
+  "New Requests": "bg-amber-100 text-amber-800",
+  "Pending": "bg-amber-100 text-amber-800",
+  "Accepted": "bg-sky-100 text-sky-800",
+  "Upcoming": "bg-sky-100 text-sky-800",
+  "In Progress": "bg-indigo-100 text-indigo-800",
+  "Completed": "bg-green-100 text-green-800",
+  "Approved": "bg-green-100 text-green-800",
+  "Rejected": "bg-red-100 text-red-800",
+  "Cancelled": "bg-red-100 text-red-800",
+};
+
 const TIER_COLORS = { gold: "#CA8A04", blue: "#056db3", gray: "#9CA3AF" };
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+
+function getStoredUser() {
+  try {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -16,229 +60,398 @@ function getGreeting() {
   return "Good evening";
 }
 
+function formatAmount(amount) {
+  return `KES ${Number(amount || 0).toLocaleString()}`;
+}
+
+function getInitials(name) {
+  if (!name) return "--";
+  if (name.length <= 2 && name === name.toUpperCase()) {
+    return name;
+  }
+  const normalized = name.toString().trim().replace(/\s+/g, " ");
+  const parts = normalized.split(" ").filter(Boolean);
+  if (parts.length === 0) return "--";
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
 function getProviderTier(rating, completionRate) {
   if (rating && rating >= 4.7 && completionRate >= 90) return { tier: "gold", label: "Top rated pro" };
   if (rating && rating >= 4.0) return { tier: "blue", label: "Verified pro" };
   return { tier: "gray", label: "Building reputation" };
 }
 
-function getInitials(name) {
-  if (!name) return "--";
-  return name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
+function formatDateToWords(dateString) {
+  if (!dateString) return "Date pending";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Date pending";
+    return new Intl.DateTimeFormat("en-KE", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(date);
+  } catch {
+    return "Date pending";
+  }
 }
 
-function StatCardSkeleton() {
+function isToday(dateString) {
+  if (!dateString) return false;
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return false;
+    const today = new Date();
+    return date.getFullYear() === today.getFullYear() &&
+           date.getMonth() === today.getMonth() &&
+           date.getDate() === today.getDate();
+  } catch {
+    return false;
+  }
+}
+
+function getBookingRoute(booking) {
+  const status = booking.status || "Pending";
+  const routeMap = {
+    "New Requests": `/provider/my-jobs/new/${booking.id}`,
+    "Pending": `/provider/my-jobs/new/${booking.id}`,
+    "Upcoming": `/provider/my-jobs/upcoming/${booking.id}`,
+    "Accepted": `/provider/my-jobs/accepted/${booking.id}`,
+    "In Progress": `/provider/my-jobs/in-progress/${booking.id}`,
+    "Completed": `/provider/my-jobs/completed/${booking.id}`,
+    "Approved": `/provider/my-jobs/approved/${booking.id}`,
+    "Rejected": `/provider/my-jobs/rejected/${booking.id}`,
+    "Cancelled": `/provider/my-jobs/cancelled/${booking.id}`,
+  };
+  return routeMap[status] || `/provider/my-jobs/${booking.id}`;
+}
+
+// ─────────────────────────────────────────────
+// COMPONENTS
+// ─────────────────────────────────────────────
+
+function ClientAvatar({ name, size = 44 }) {
+  const initials = getInitials(name);
   return (
-    <div className="bg-white border border-gray-200 p-4 rounded-xl">
-      <div className="flex items-center justify-between">
-        <div className="flex-1 space-y-2">
-          <div className="h-3 w-24 animate-pulse rounded bg-gray-200" />
-          <div className="h-6 w-16 animate-pulse rounded bg-gray-200" />
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <div className="h-full w-full rounded-full p-0.5" style={{ background: `conic-gradient(#056db3 100%, #e5e7eb 100%)` }}>
+        <div className="flex h-full w-full items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
+          {initials}
         </div>
-        <div className="h-11 w-11 shrink-0 animate-pulse rounded-full bg-gray-200" />
       </div>
     </div>
   );
 }
 
-function ProviderDashboard() {
-  const [providerBookings, setProviderBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [monthlyEarnings, setMonthlyEarnings] = useState(0);
-  const [todaysJobsCount, setTodaysJobsCount] = useState(0);
-  const [completionRate, setCompletionRate] = useState(0);
-  const [providerRating, setProviderRating] = useState(null);
-  const [availability, setAvailability] = useState(null);
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [walletLoading, setWalletLoading] = useState(true);
+function StatCardSkeleton() {
+  return (
+    <div className="min-h-28 rounded-xl border border-gray-200 bg-white p-4">
+      <div className="flex h-full items-center justify-between gap-4">
+        <div className="flex-1 space-y-2">
+          <div className="h-3 w-20 animate-pulse rounded bg-gray-200" />
+          <div className="h-6 w-24 animate-pulse rounded bg-gray-200" />
+        </div>
+        <div className="h-11 w-11 shrink-0 animate-pulse rounded-lg bg-gray-200" />
+      </div>
+    </div>
+  );
+}
 
-  // derive logged-in provider display name from stored auth user
-  const storedUser = (() => {
-    try {
-      const raw = localStorage.getItem("user");
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) {
-      return null;
+function StatCard({ label, value, icon: Icon, iconBg, isLoading }) {
+  return (
+    <div className="min-h-28 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex h-full items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-sm font-medium text-gray-600">{label}</h2>
+          {isLoading ? (
+            <div className="mt-2 h-6 w-20 animate-pulse rounded bg-gray-200" />
+          ) : (
+            <p className="mt-2 font-mono text-xl font-bold text-gray-800">{value}</p>
+          )}
+        </div>
+        <div className={`shrink-0 rounded-lg p-2 ${iconBg}`}>
+          <Icon className="h-6 w-6" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Availability Card ──
+function AvailabilityCard({ bookings }) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dayAfter = new Date();
+  dayAfter.setDate(dayAfter.getDate() + 2);
+  const dayAfterStr = dayAfter.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let hour = 9; hour <= 17; hour += 2) {
+      const start = `${hour.toString().padStart(2, '0')}:00`;
+      const end = `${(hour + 2).toString().padStart(2, '0')}:00`;
+      slots.push(`${start} - ${end}`);
     }
-  })();
-
-  const displayName = storedUser
-    ? (storedUser.full_name || storedUser.name || `${storedUser.first_name || ""} ${storedUser.last_name || ""}`.trim() || storedUser.email || "Provider")
-    : "Provider";
-
-  // ── Status Color Mapping ──
-  const getStatusStyles = (status) => {
-    const statusMap = {
-      "Upcoming": "bg-blue-100 text-blue-800",
-      "Scheduled": "bg-blue-100 text-blue-800",
-      "Pending": "bg-blue-100 text-blue-800",
-      "New Requests": "bg-blue-100 text-blue-800",
-      "In Progress": "bg-yellow-100 text-yellow-800",
-      "Accepted": "bg-yellow-100 text-yellow-800",
-      "Completed": "bg-green-100 text-green-800",
-      "Cancelled": "bg-red-100 text-red-800",
-    };
-    return statusMap[status] || "bg-gray-100 text-gray-800";
+    return slots;
   };
 
+  const allSlots = generateTimeSlots();
+  const todayBookings = bookings.filter(b => isToday(b.date || b.scheduled_date));
+  const bookedSlots = todayBookings.map(b => b.time || `${b.scheduled_start_time} - ${b.scheduled_end_time}`);
+
+  const slots = allSlots.map(slot => ({
+    time: slot,
+    booked: bookedSlots.some(b => b && b.includes(slot.split(' - ')[0]))
+  }));
+
+  const tomorrowSlots = allSlots.slice(0, 3);
+  const nextDaySlots = allSlots.slice(0, 3);
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-lg text-gray-800">Today</h3>
+            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
+              {slots.filter(s => s.booked).length} Booked
+            </span>
+          </div>
+          <div className="space-y-2">
+            {slots.slice(0, 4).map((slot, index) => (
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
+                <span className="text-sm font-medium text-gray-700">{slot.time}</span>
+                <span className={`text-xs font-medium ${slot.booked ? "text-blue-600" : "text-green-600"}`}>
+                  {slot.booked ? "Booked" : "Available"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-lg text-gray-800">Tomorrow</h3>
+            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">Available</span>
+          </div>
+          <div className="space-y-2">
+            {tomorrowSlots.map((slot, index) => (
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
+                <span className="text-sm font-medium text-gray-700">{slot}</span>
+                <span className="text-xs font-medium text-green-600">Available</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-lg text-gray-800">{dayAfterStr}</h3>
+            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">Available</span>
+          </div>
+          <div className="space-y-2">
+            {nextDaySlots.map((slot, index) => (
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
+                <span className="text-sm font-medium text-gray-700">{slot}</span>
+                <span className="text-xs font-medium text-green-600">Available</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <Link to="/provider/availability" className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
+        <Calendar className="h-4 w-4" />
+        Manage Availability
+      </Link>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────
+
+function ProviderDashboard() {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletLoading, setWalletLoading] = useState(true);
+  const [providerRating, setProviderRating] = useState(null);
+  const [totalRatings, setTotalRatings] = useState(0);
+  const [providerSpecialty, setProviderSpecialty] = useState("Service Provider");
+  const [providerLocation, setProviderLocation] = useState("Nairobi, Kenya");
+  const [monthlyEarnings, setMonthlyEarnings] = useState(0);
+
+  const storedUser = getStoredUser();
+  const displayName = storedUser
+    ? storedUser.full_name ||
+      storedUser.name ||
+      `${storedUser.first_name || ""} ${storedUser.last_name || ""}`.trim() ||
+      storedUser.email ||
+      "Provider"
+    : "Provider";
+
+  const providerId = Number(
+    storedUser?.provider_id || storedUser?.service_provider_id || 
+    storedUser?.id || localStorage.getItem("userId") || 1
+  );
+
+  // ── Fetch bookings ──
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     setError(null);
-    const providerId = Number(storedUser?.provider_id ?? storedUser?.id ?? localStorage.getItem("userId") ?? 1);
 
-    const setBookingsFromList = (list) => {
-      if (!mounted) return;
-      setProviderBookings(list || []);
+    const fetchData = async () => {
       try {
-        const now = new Date();
-        let monthSum = 0;
-        let todayCount = 0;
-        let completed = 0;
-        let total = 0;
-        (list || []).forEach((b) => {
-          total += 1;
-          if (b.status === 'Completed' || b.status === 'completed') completed += 1;
-          const amount = Number(b.amountRaw || 0);
-          let parsed = null;
-          if (b.date) parsed = new Date(b.date);
-          if (parsed && !isNaN(parsed.getTime())) {
-            if (parsed.getMonth() === now.getMonth() && parsed.getFullYear() === now.getFullYear()) monthSum += amount;
-            if (parsed.getFullYear() === now.getFullYear() && parsed.getMonth() === now.getMonth() && parsed.getDate() === now.getDate()) todayCount += 1;
-          } else {
-            monthSum += amount;
+        // Fetch bookings
+        const data = await bookingService.listProviderBookings(providerId);
+        if (!mounted) return;
+        setBookings(data || []);
+
+        // Get provider details from first booking
+        if (data && data.length > 0) {
+          const firstBooking = data[0];
+          const provider = firstBooking.raw?.service_provider;
+          if (provider?.service_category) {
+            setProviderSpecialty(provider.service_category);
           }
-        });
-        setMonthlyEarnings(monthSum);
-        setTodaysJobsCount(todayCount);
-        setCompletionRate(total > 0 ? Math.round((completed / total) * 100) : 0);
-      } catch (e) {
-        console.warn('Stats compute failed', e);
-      }
-    };
-
-    bookingService
-      .listProviderBookings(providerId)
-      .then((list) => {
-        if (!mounted) return;
-        if (list && list.length > 0) {
-          setBookingsFromList(list);
-        } else {
-          bookingService.listActiveBookings().then((active) => {
-            if (!mounted) return;
-            const providerName = displayName;
-            const providerEmail = storedUser?.email;
-            const filtered = (active || []).filter((b) => {
-              const nameMatch = (b.provider_full_name || b.providerName || b.worker || '').toString().toLowerCase().includes((providerName || '').toLowerCase());
-              const emailMatch = (b.service_provider && (b.service_provider.contact_email || b.service_provider.email) || '').toString().toLowerCase() === (providerEmail || '').toLowerCase();
-              return nameMatch || emailMatch;
-            });
-            setBookingsFromList(filtered);
-          }).catch(() => {
-            setBookingsFromList([]);
-          });
+          if (provider?.location) {
+            setProviderLocation(provider.location);
+          }
         }
-      })
-      .catch((err) => {
+
+        // Fetch average rating from rating service
+        try {
+          const ratingData = await ratingService.getProviderAverageRating(providerId);
+          if (mounted && ratingData) {
+            setProviderRating(ratingData.averageScore || 0);
+            setTotalRatings(ratingData.totalRatings || 0);
+          }
+        } catch (ratingErr) {
+          console.warn("Could not fetch rating:", ratingErr);
+        }
+
+        // Calculate monthly earnings
+        const today = new Date();
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        
+        const earnings = (data || []).filter(b => {
+          const date = b.date || b.scheduled_date;
+          if (!date) return false;
+          const d = new Date(date);
+          if (isNaN(d.getTime())) return false;
+          return d >= monthStart && d <= monthEnd &&
+                 (b.status === "Completed" || b.status === "Approved");
+        }).reduce((sum, b) => sum + (b.amountRaw || 0), 0);
+        
+        if (mounted) {
+          setMonthlyEarnings(earnings);
+        }
+
+      } catch (err) {
         console.error(err);
-        if (!mounted) return;
-        bookingService.listActiveBookings().then((active) => {
-          if (!mounted) return;
-          const providerName = displayName;
-          const providerEmail = storedUser?.email;
-          const filtered = (active || []).filter((b) => {
-            const nameMatch = (b.provider_full_name || b.providerName || b.worker || '').toString().toLowerCase().includes((providerName || '').toLowerCase());
-            const emailMatch = (b.service_provider && (b.service_provider.contact_email || b.service_provider.email) || '').toString().toLowerCase() === (providerEmail || '').toLowerCase();
-            return nameMatch || emailMatch;
-          });
-          setBookingsFromList(filtered);
-        }).catch(() => {
-          if (!mounted) return;
-          setError(err.message || "Failed to load bookings");
-        });
-      })
-      .finally(() => mounted && setLoading(false));
-
-    try {
-      const userId = storedUser?.id || localStorage.getItem("userId");
-      if (userId) {
-        fetch(`/api/wallets/user/${userId}/balance`)
-          .then(res => res.json())
-          .then(data => {
-            if (mounted) {
-              setWalletBalance(data.balance || 0);
-            }
-          })
-          .catch(() => {})
-          .finally(() => { if (mounted) setWalletLoading(false); });
-      } else {
-        setWalletLoading(false);
+        if (mounted) {
+          setError(err.message || "Failed to load data");
+        }
+      } finally {
+        if (mounted) setLoading(false);
       }
-    } catch (e) {
-      setWalletLoading(false);
-    }
-
-    bookingService.getProviderAvailability(providerId).then((av) => {
-      if (mounted) setAvailability(av || null);
-    }).catch(() => {
-      if (mounted) setAvailability(null);
-    });
-
-    bookingService.listProviders().then((provList) => {
-      if (!mounted) return;
-      const prov = (provList || []).find((p) => p.id === providerId || p.provider_id === providerId);
-      if (prov && prov.rating) setProviderRating(prov.rating);
-    }).catch(() => {});
-
-    return () => {
-      mounted = false;
     };
-  }, []);
+
+    fetchData();
+
+    return () => { mounted = false; };
+  }, [providerId]);
+
+  // ── Fetch wallet balance ──
+  useEffect(() => {
+    let mounted = true;
+    const userId = Number(storedUser?.id || localStorage.getItem("userId") || 0);
+    if (!userId) { setWalletLoading(false); return; }
+    getWalletBalance(userId)
+      .then((data) => { if (mounted) setWalletBalance(data.balance || 0); })
+      .catch(() => {})
+      .finally(() => { if (mounted) setWalletLoading(false); });
+    return () => { mounted = false; };
+  }, [storedUser?.id]);
+
+  // ── Derived stats ──
+  const today = new Date();
+  
+  // TODAY'S JOBS: Show ALL new requests + bookings scheduled for today
+  const todaysBookings = bookings.filter((b) => {
+    if (b.status === "New Requests" || b.status === "Pending") {
+      return true;
+    }
+    const bookingDate = b.date || b.scheduled_date || b.booking_date;
+    if (!bookingDate) return false;
+    try {
+      const d = new Date(bookingDate);
+      if (isNaN(d.getTime())) return false;
+      return d.getFullYear() === today.getFullYear() &&
+             d.getMonth() === today.getMonth() &&
+             d.getDate() === today.getDate();
+    } catch {
+      return false;
+    }
+  });
+  
+  const todaysJobsCount = todaysBookings.length;
+  const displayedJobs = todaysBookings.slice(0, 5);
+
+  // ACTIVE JOBS: ACCEPTED and IN_PROGRESS
+  const activeStatuses = ["Accepted", "In Progress"];
+  const activeJobs = bookings.filter((b) => activeStatuses.includes(b.status));
+  const activeCount = activeJobs.length;
+
+  // Completed bookings for completion rate
+  const completedCount = bookings.filter(
+    (b) => b.status === "Completed" || b.status === "Approved"
+  ).length;
+  const totalBookings = bookings.length;
+  const completionRate = totalBookings > 0 ? Math.round((completedCount / totalBookings) * 100) : 0;
 
   const providerTier = getProviderTier(providerRating, completionRate);
-  const todaysBookings = providerBookings.filter((b) => {
-    if (!b.date) return false;
-    const d = new Date(b.date);
-    const now = new Date();
-    return !isNaN(d.getTime()) && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-  });
-  const jobsToShow = todaysBookings.length > 0 ? todaysBookings : providerBookings;
+  const activeJob = activeJobs.length > 0 ? activeJobs[0] : null;
 
+  // ── Stat Cards ──
   const statCards = [
     {
-      label: "Today's jobs",
-      value: todaysJobsCount,
-      sub: todaysJobsCount === 0 ? 'No change' : `+${todaysJobsCount} today`,
-      icon: <Briefcase className="w-6 h-6 text-[#056db3]" />,
-      iconClass: "bg-blue-100",
+      label: "Average Rating",
+      value: providerRating ? `${providerRating.toFixed(1)} ★` : '—',
+      icon: Star,
+      iconBg: "bg-yellow-100 text-yellow-500",
+      isLoading: false,
     },
     {
-      label: "Completion rate",
+      label: "Completion Rate",
       value: `${completionRate}%`,
-      sub: completionRate ? 'Updated' : '—',
-      icon: <TrendingUp className="w-6 h-6 text-purple-600" />,
-      iconClass: "bg-purple-100",
+      icon: TrendingUp,
+      iconBg: "bg-purple-100 text-purple-600",
+      isLoading: false,
     },
     {
-      label: "Wallet balance",
-      value: `KES ${walletBalance.toLocaleString()}`,
-      sub: walletBalance > 0 ? 'Available for withdrawal' : 'No funds available',
-      icon: <Wallet className="w-6 h-6 text-green-600" />,
-      iconClass: "bg-green-100",
-      loading: walletLoading,
+      label: "Active Jobs",
+      value: activeCount,
+      icon: Briefcase,
+      iconBg: "bg-blue-100 text-[#056db3]",
+      isLoading: false,
     },
     {
-      label: "Average rating",
-      value: providerRating ?? '—',
-      sub: providerRating ? 'Based on provider data' : 'No rating yet',
-      icon: <Star className="w-6 h-6 text-yellow-500" />,
-      iconClass: "bg-yellow-100",
+      label: "Wallet Balance",
+      value: formatAmount(walletBalance),
+      icon: Wallet,
+      iconBg: "bg-green-100 text-green-600",
+      isLoading: walletLoading,
     },
   ];
 
   const quickActions = [
-    { label: "New requests", to: "/provider/my-jobs", icon: Briefcase },
+    { label: "My Jobs", to: "/provider/my-jobs", icon: Briefcase },
     { label: "Wallet", to: "/provider/wallet", icon: Wallet },
     { label: "Messages", to: "/provider/messages", icon: MessageCircle },
     { label: "Availability", to: "/provider/availability", icon: Calendar },
@@ -247,14 +460,17 @@ function ProviderDashboard() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-72">
+      <div className="ml-72 min-w-0 flex-1">
         <Navbar />
-        <main className="pt-24 px-6 pb-6">
+        <main className="px-6 pb-6 pt-24">
+          {/* ── Header ── */}
           <section className="mb-8">
-            <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-5">
+            <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-3xl font-bold text-gray-800">{getGreeting()}, {displayName.split(" ")[0]}</h1>
+                  <h1 className="text-3xl font-bold text-gray-800">
+                    {getGreeting()}, {displayName.split(" ")[0]}
+                  </h1>
                   <span
                     className="flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
                     style={{
@@ -266,16 +482,16 @@ function ProviderDashboard() {
                     {providerTier.label}
                   </span>
                 </div>
-                <div className="flex items-center mt-2">
-                  <MapPin className="w-4 h-4 text-[#056db3] mr-1" />
-                  <h2 className="text-lg text-gray-600">Plumbing Specialist • Westlands, Nairobi</h2>
+                <div className="mt-2 flex items-center">
+                  <MapPin className="mr-2 h-5 w-5 text-[#056db3]" />
+                  <h2 className="text-lg text-gray-600">
+                    {providerSpecialty} • {providerLocation}
+                  </h2>
                 </div>
               </div>
-              <Link to="/provider/my-jobs">
-                <button className="flex items-center gap-2 text-white bg-[#056db3] hover:bg-[#045ca0] font-semibold rounded-xl py-3 px-5 transition-colors">
-                  <Briefcase className="w-4 h-4" />
-                  View new requests
-                </button>
+              <Link to="/provider/my-jobs" className="flex items-center justify-center gap-2 rounded-xl bg-[#056db3] px-5 py-3 font-semibold text-white transition-colors hover:bg-[#045a94]">
+                <Briefcase className="h-4 w-4" />
+                View Jobs
               </Link>
             </div>
 
@@ -294,169 +510,157 @@ function ProviderDashboard() {
             </div>
           </section>
 
-          <section className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* ── Stat cards ── */}
+          <section className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {loading
               ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
               : statCards.map((card) => (
-                  <div key={card.label} className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0">
-                        <h2 className="text-sm font-medium text-gray-600">{card.label}</h2>
-                        {card.loading ? (
-                          <div className="mt-2 h-6 w-20 animate-pulse rounded bg-gray-200" />
-                        ) : (
-                          <p className="text-2xl font-bold text-gray-800 mt-1 font-mono">{card.value}</p>
-                        )}
-                        <p className="text-sm text-gray-600 mt-0.5">{card.sub}</p>
-                      </div>
-                      <div className={`p-2 rounded-full shrink-0 ${card.iconClass}`}>{card.icon}</div>
-                    </div>
-                  </div>
+                  <StatCard
+                    key={card.label}
+                    label={card.label}
+                    value={card.value}
+                    icon={card.icon}
+                    iconBg={card.iconBg}
+                    isLoading={card.isLoading}
+                  />
                 ))}
           </section>
 
-          <section className="bg-white rounded-xl shadow-sm">
-            <div className="p-6 pb-0">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="font-bold text-xl text-gray-800">Today's jobs</h2>
-                <Link to="/provider/my-jobs" className="flex items-center gap-1 text-[#056db3] hover:underline font-medium">
-                  View all
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
+          {/* ── Monthly Earnings ── */}
+          {!loading && monthlyEarnings > 0 && (
+            <section className="mb-8 flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                  <DollarSign className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">This month's earnings</p>
+                  <p className="font-semibold text-gray-800">{formatAmount(monthlyEarnings)}</p>
+                </div>
               </div>
-            </div>
-            <div className="border-t border-gray-200">
-              {loading ? (
-                <div className="space-y-3 p-6">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-4">
-                      <div className="h-9 w-9 animate-pulse rounded-full bg-gray-200" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-3 w-1/3 animate-pulse rounded bg-gray-200" />
-                        <div className="h-3 w-1/4 animate-pulse rounded bg-gray-200" />
+              <Link to="/provider/wallet" className="flex items-center justify-center gap-1 rounded-lg border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
+                <Wallet className="h-4 w-4" />
+                View wallet
+              </Link>
+            </section>
+          )}
+
+          {/* ── Side by Side: Active Jobs & Today's Jobs ── */}
+          <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Active Jobs Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg text-gray-800">Active Jobs</h3>
+                <span className="text-sm font-medium text-[#056db3]">{activeCount} active</span>
+              </div>
+              {activeJob ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <ClientAvatar name={activeJob.client || activeJob.clientName || `Client #${activeJob.clientId}`} size={48} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800 truncate">{activeJob.service}</p>
+                      <p className="text-sm text-gray-500 truncate">{activeJob.client || activeJob.clientName || "Client"}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Clock className="h-3.5 w-3.5 text-gray-400" />
+                        <span className="text-xs text-gray-500">{formatDateToWords(activeJob.date)}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : error ? (
-                <div className="py-10 text-center text-red-500 text-sm">{error}</div>
-              ) : jobsToShow.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 py-10 text-center">
-                  <Calendar className="h-10 w-10 text-gray-300" />
-                  <p className="font-semibold text-gray-800">No bookings found</p>
-                  <p className="text-sm text-gray-500">New job requests will show up here.</p>
+                    <Link to={getBookingRoute(activeJob)} className="flex items-center gap-1 rounded-lg bg-[#056db3] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#045a94] transition-colors">
+                      <Eye className="h-3.5 w-3.5" />
+                      View
+                    </Link>
+                  </div>
+                  {activeJobs.length > 1 && (
+                    <div className="border-t border-gray-100 pt-3 mt-2">
+                      <p className="text-xs text-gray-500">+{activeJobs.length - 1} more active job{activeJobs.length - 1 > 1 ? 's' : ''}</p>
+                    </div>
+                  )}
+                  <div className="mt-2">
+                    <div className="mb-1 flex justify-between text-xs text-gray-600">
+                      <span>Progress</span>
+                      <span className="font-mono">{activeJob.status === "In Progress" ? "50%" : "25%"}</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-gray-200">
+                      <div className="h-2 rounded-full bg-[#056db3] transition-all" style={{ width: activeJob.status === "In Progress" ? "50%" : "25%" }} />
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full table-auto">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="text-left py-3 px-6 font-medium text-gray-600">Client</th>
-                        <th className="text-left py-3 px-6 font-medium text-gray-600">Service</th>
-                        <th className="text-left py-3 px-6 font-medium text-gray-600">Time</th>
-                        <th className="text-left py-3 px-6 font-medium text-gray-600">Location</th>
-                        <th className="text-left py-3 px-6 font-medium text-gray-600">Status</th>
-                        <th className="text-left py-3 px-6 font-medium text-gray-600">Payment</th>
-                        <th className="text-left py-3 px-6 font-medium text-gray-600">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {jobsToShow.map((b, index) => {
-                        const status = b.status || "Pending";
-                        const statusClass = getStatusStyles(status);
-                        const clientName = b.clientName || (b.client && (b.client.full_name || b.client.name)) || (b.clientId ? `Client #${b.clientId}` : 'Client');
-
-                        return (
-                          <tr key={b.id || index} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-4 px-6">
-                              <div className="flex items-center gap-2">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-xs font-bold text-white shrink-0">
-                                  {getInitials(clientName)}
-                                </div>
-                                <span className="font-medium">{clientName}</span>
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">{b.service || b.service_name}</td>
-                            <td className="py-4 px-6">{b.time || (b.date ? b.date : '')}</td>
-                            <td className="py-4 px-6">
-                              <div className="flex items-center">
-                                <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                                <span>{b.location || ''}</span>
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <span className={`inline-block whitespace-nowrap px-3 py-1 rounded-md text-xs font-medium ${statusClass}`}>
-                                {status}
-                              </span>
-                            </td>
-                            <td className="py-4 px-6 font-bold font-mono">{b.amount || b.amountRaw ? (b.amount || `KES ${b.amountRaw}`) : ''}</td>
-                            <td className="py-4 px-6">
-                              {(() => {
-                                const statusLower = (b.status || '').toString().toLowerCase();
-                                if (statusLower.includes('in progress')) return (<Link to={`/provider/my-jobs/in-progress/${b.id}`} className="text-[#056db3] hover:underline font-medium">View</Link>);
-                                if (statusLower.includes('completed')) return (<Link to={`/provider/my-jobs/completed/${b.id}`} className="text-[#056db3] hover:underline font-medium">View</Link>);
-                                return (<Link to={`/provider/my-jobs/new/${b.id}`} className="text-[#056db3] hover:underline font-medium">View</Link>);
-                              })()}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <Briefcase className="h-12 w-12 text-gray-300 mb-3" />
+                  <p className="text-gray-600 font-medium">No active jobs</p>
+                  <p className="text-sm text-gray-400">Accepted jobs will appear here</p>
+                  <Link to="/provider/my-jobs" className="mt-3 rounded-lg bg-[#056db3] px-4 py-2 text-xs font-semibold text-white hover:bg-[#045a94] transition-colors">
+                    View requests
+                  </Link>
                 </div>
               )}
             </div>
-          </section>
 
-          <section className="bg-white rounded-xl shadow-sm mt-6 p-6">
-            <div className="mb-4">
-              <h2 className="font-bold text-xl text-gray-800">Availability schedule</h2>
+            {/* Today's Jobs Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-6 pb-4">
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="text-xl font-bold text-gray-800">Today's Jobs</h3>
+                  <Link to="/provider/my-jobs" className="flex items-center gap-1 font-medium text-[#056db3] hover:underline">
+                    View all
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+              <div className="border-t border-gray-200">
+                {loading ? (
+                  <div className="space-y-3 p-6">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="flex items-center gap-4">
+                        <div className="h-11 w-11 animate-pulse rounded-full bg-gray-200" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3 w-1/3 animate-pulse rounded bg-gray-200" />
+                          <div className="h-3 w-1/4 animate-pulse rounded bg-gray-200" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : error ? (
+                  <div className="p-10 text-center text-sm text-red-500">{error}</div>
+                ) : displayedJobs.length === 0 ? (
+                  <div className="flex flex-col items-center gap-3 p-10 text-center">
+                    <Calendar className="h-10 w-10 text-gray-300" />
+                    <p className="font-semibold text-gray-800">No jobs today</p>
+                    <p className="text-sm text-gray-500">New requests will appear here</p>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-gray-100">
+                    {displayedJobs.map((job) => (
+                      <li key={job.id} className="flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <ClientAvatar name={job.client || job.clientName || `Client #${job.clientId}`} size={44} />
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-gray-800">{job.service || "Service unavailable"}</p>
+                            <p className="truncate text-sm text-gray-500">{job.client || job.clientName || "Client"}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-4 sm:justify-end">
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[job.status] || "bg-gray-100 text-gray-700"}`}>
+                            {job.status}
+                          </span>
+                          <span className="font-mono text-sm font-semibold text-gray-800">
+                            {job.amount || formatAmount(job.amountRaw)}
+                          </span>
+                          <Link to={getBookingRoute(job)} className="text-sm font-medium text-[#056db3] hover:underline">
+                            View
+                          </Link>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
-                <div className="flex justify-between items-center mb-4">
-                  <h1 className="font-bold text-lg text-gray-800">Today</h1>
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium font-mono">{availability && availability.today ? `${availability.today.length} Booked` : `${todaysJobsCount} Jobs`}</span>
-                </div>
-                <div className="space-y-2">
-                  {(availability && availability.today && Array.isArray(availability.today) ? availability.today : []).slice(0,3).map((slot, i) => (
-                    <div key={i} className={`flex items-center justify-between p-2 border rounded-md ${slot.booked ? 'border-blue-100 bg-blue-50' : 'border-green-100 bg-green-50'}`}>
-                      <span className="text-sm font-medium">{slot.time || slot.start || slot.label || `Slot ${i+1}`}</span>
-                      <span className={`text-xs ${slot.booked ? 'text-gray-600' : 'text-green-600'}`}>{slot.booked ? 'Booked' : 'Available'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
-                <div className="flex justify-between items-center mb-4">
-                  <h1 className="font-bold text-lg text-gray-800">Tomorrow</h1>
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium font-mono">{availability && availability.tomorrow ? `${availability.tomorrow.length} Booked` : '—'}</span>
-                </div>
-                <div className="space-y-2">
-                  {(availability && availability.tomorrow && Array.isArray(availability.tomorrow) ? availability.tomorrow : []).slice(0,3).map((slot, i) => (
-                    <div key={i} className={`flex items-center justify-between p-2 border rounded-md ${slot.booked ? 'border-blue-100 bg-blue-50' : 'border-green-100 bg-green-50'}`}>
-                      <span className="text-sm font-medium">{slot.time || slot.start || slot.label || `Slot ${i+1}`}</span>
-                      <span className={`text-xs ${slot.booked ? 'text-gray-600' : 'text-green-600'}`}>{slot.booked ? 'Booked' : 'Available'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
-                <div className="flex justify-between items-center mb-4">
-                  <h1 className="font-bold text-lg text-gray-800">{availability && availability.nextDateLabel ? availability.nextDateLabel : 'Upcoming'}</h1>
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium font-mono">{availability && availability.next ? `${(Array.isArray(availability.next) ? availability.next.length : 1)} Booked` : '—'}</span>
-                </div>
-                <div className="space-y-2">
-                  {(availability && availability.next && Array.isArray(availability.next) ? availability.next : []).slice(0,3).map((slot,i) => (
-                    <div key={i} className={`flex items-center justify-between p-2 border rounded-md ${slot.booked ? 'border-blue-100 bg-blue-50' : 'border-green-100 bg-green-50'}`}>
-                      <span className="text-sm font-medium">{slot.time || slot.start || slot.label || `Slot ${i+1}`}</span>
-                      <span className={`text-xs ${slot.booked ? 'text-gray-600' : 'text-green-600'}`}>{slot.booked ? 'Booked' : 'Available'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
+          </div>
+
+          {/* ── Availability Card ── */}
+          <AvailabilityCard bookings={bookings} />
         </main>
       </div>
     </div>

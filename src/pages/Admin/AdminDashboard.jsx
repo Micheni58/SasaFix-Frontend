@@ -1,4 +1,4 @@
-// src/pages/Admin/AdminDashboard.jsx - Final Version with Endpoints Ready
+// src/pages/Admin/AdminDashboard.jsx - Fixed Chart
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -63,8 +63,10 @@ function getStatusStyles(status) {
     Scheduled: "bg-amber-100 text-amber-700",
     Pending: "bg-yellow-100 text-yellow-700",
     Cancelled: "bg-red-100 text-red-700",
-    "New Requests": "bg-purple-100 text-purple-700",
-    Accepted: "bg-blue-100 text-blue-700",
+    "New Requests": "bg-amber-50 text-amber-700",
+    Accepted: "bg-green-200 text-green-700",
+    Approved: "bg-green-100 text-green-700",
+    Rejected: "bg-red-100 text-red-700",
   };
   return styles[status] || "bg-gray-100 text-gray-700";
 }
@@ -78,8 +80,100 @@ function getStatusIcon(status) {
     Cancelled: XCircle,
     "New Requests": AlertTriangle,
     Accepted: CheckCircle,
+    Approved: CheckCircle,
+    Rejected: XCircle,
   };
   return icons[status] || Activity;
+}
+
+// ─────────────────────────────────────────────
+// SKELETON LOADER COMPONENTS
+// ─────────────────────────────────────────────
+
+function SkeletonStatCard() {
+  return (
+    <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
+      <div className="flex flex-col items-start">
+        <div className="p-3 rounded-full mb-3 bg-gray-200 animate-pulse">
+          <div className="w-6 h-6" />
+        </div>
+        <div className="h-8 w-24 animate-pulse rounded bg-gray-200 mb-1" />
+        <div className="h-4 w-20 animate-pulse rounded bg-gray-200" />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonChart() {
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <div className="h-6 w-40 animate-pulse rounded bg-gray-200 mb-2" />
+          <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+        </div>
+        <div className="h-8 w-24 animate-pulse rounded bg-gray-200" />
+      </div>
+      <div className="h-72 w-full animate-pulse rounded bg-gray-100" />
+    </div>
+  );
+}
+
+function SkeletonQuickStats() {
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+      <div className="h-6 w-32 animate-pulse rounded bg-gray-200 mb-4" />
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gray-200 animate-pulse">
+                <div className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="h-4 w-24 animate-pulse rounded bg-gray-200 mb-1" />
+                <div className="h-5 w-20 animate-pulse rounded bg-gray-200" />
+              </div>
+            </div>
+            <div className="w-5 h-5 animate-pulse rounded bg-gray-200" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SkeletonTable() {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="p-6 pb-0">
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="h-6 w-40 animate-pulse rounded bg-gray-200 mb-2" />
+            <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+          </div>
+          <div className="h-6 w-20 animate-pulse rounded bg-gray-200" />
+        </div>
+      </div>
+      <div className="border-t border-gray-200 mt-4 overflow-x-auto">
+        <div className="p-6 space-y-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-4">
+              <div className="h-4 w-16 animate-pulse rounded bg-gray-200" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-48 animate-pulse rounded bg-gray-200" />
+                <div className="h-3 w-32 animate-pulse rounded bg-gray-200" />
+              </div>
+              <div className="h-4 w-20 animate-pulse rounded bg-gray-200" />
+              <div className="h-6 w-24 animate-pulse rounded-full bg-gray-200" />
+              <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
+              <div className="h-4 w-12 animate-pulse rounded bg-gray-200" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -94,7 +188,7 @@ function StatCard({ title, value, icon: Icon, iconBg, trend, isLoading, onClick 
         onClick ? "cursor-pointer hover:border-[#056db3]" : ""
       }`}
     >
-      {trend && (
+      {trend && !isLoading && (
         <div className="absolute top-4 right-4">
           <span className="text-sm text-green-600 font-medium">{trend}</span>
         </div>
@@ -115,17 +209,84 @@ function StatCard({ title, value, icon: Icon, iconBg, trend, isLoading, onClick 
 }
 
 // ─────────────────────────────────────────────
+// CHART COMPONENT
+// ─────────────────────────────────────────────
+
+function BookingChart({ data }) {
+  const [chartReady, setChartReady] = useState(false);
+
+  useEffect(() => {
+    // Small delay to ensure the DOM is ready
+    const timer = setTimeout(() => {
+      setChartReady(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!chartReady || !data || data.length === 0) {
+    return (
+      <div className="h-72 w-full flex items-center justify-center bg-gray-50 rounded-lg">
+        <p className="text-gray-400">Loading chart data...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: "100%", height: "300px" }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis
+            dataKey="month"
+            stroke="#6b7280"
+            fontSize={12}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            stroke="#6b7280"
+            fontSize={12}
+            tickLine={false}
+            axisLine={false}
+            allowDecimals={false}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "white",
+              border: "1px solid #e5e7eb",
+              borderRadius: "8px",
+              padding: "8px 12px",
+            }}
+            formatter={(value) => [value, "Bookings"]}
+          />
+          <Legend />
+          <Line
+            type="monotone"
+            dataKey="bookings"
+            stroke="#056db3"
+            strokeWidth={3}
+            dot={{ fill: "#056db3", r: 4 }}
+            activeDot={{ r: 6 }}
+            name="Bookings"
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 
 function AdminDashboard() {
   const navigate = useNavigate();
 
-  // ── State ──
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalProviders: 0,
     activeBookings: 0,
+    totalBookings: 0,
     platformCommission: 0,
     totalRevenue: 0,
     pendingPayouts: 0,
@@ -137,7 +298,6 @@ function AdminDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  // ── Fetch Dashboard Data ──
   const fetchDashboardData = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
@@ -145,7 +305,6 @@ function AdminDashboard() {
     setError(null);
 
     try {
-      // ── Fetch Users (endpoint to be added by backend team) ──
       let totalUsers = 0;
       try {
         const resp = await fetch("/api/users");
@@ -155,11 +314,9 @@ function AdminDashboard() {
           totalUsers = users.length;
         }
       } catch (e) {
-        // Endpoint not ready yet - silently handle
         console.info("Users endpoint not yet available");
       }
 
-      // ── Fetch Service Providers (endpoint to be added by backend team) ──
       let totalProviders = 0;
       try {
         const resp = await fetch("/api/service-providers");
@@ -169,11 +326,9 @@ function AdminDashboard() {
           totalProviders = providers.length;
         }
       } catch (e) {
-        // Endpoint not ready yet - silently handle
         console.info("Service providers endpoint not yet available");
       }
 
-      // ── Fetch Active Bookings ──
       let activeBookings = [];
       let activeBookingsCount = 0;
       try {
@@ -185,16 +340,8 @@ function AdminDashboard() {
         console.warn("Active bookings endpoint not available");
       }
 
-      // ── Fetch All Bookings for Stats ──
-      let allBookings = [];
-      try {
-        allBookings = await bookingService.listActiveBookings();
-        if (!Array.isArray(allBookings)) allBookings = [];
-      } catch (e) {
-        console.warn("Bookings endpoint not available");
-      }
+      const allBookings = activeBookings || [];
 
-      // ── Fetch Payout Stats ──
       let payoutStats = { total_pending_amount: 0, total_completed_amount: 0 };
       try {
         const statsData = await paymentsService.getAdminStats();
@@ -203,26 +350,30 @@ function AdminDashboard() {
         console.warn("Payout stats endpoint not available");
       }
 
-      // ── Calculate Revenue and Commission ──
       let totalRevenue = 0;
       let commission = 0;
       (allBookings || []).forEach((b) => {
-        let amount = b.amount || b.amountRaw || b.gross_amount || 0;
-        if (typeof amount === "string" && amount.includes("KES")) {
-          amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
+        const status = b.status || "";
+        const isPaidStatus = status === "Completed" || status === "Approved" || 
+                            status === "completed" || status === "approved";
+        
+        if (isPaidStatus) {
+          let amount = b.amountRaw || b.amount || 0;
+          if (typeof amount === "string" && amount.includes("KES")) {
+            amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
+          }
+          totalRevenue += Number(amount);
+          commission += Number(amount) * 0.1;
         }
-        totalRevenue += Number(amount);
-        commission += Number(amount) * 0.1;
       });
 
-      // ── Monthly Booking Data ──
       const months = Array.from({ length: 12 }, (_, i) => ({
         month: new Date(0, i).toLocaleString("default", { month: "short" }),
         bookings: 0,
       }));
 
       (allBookings || []).forEach((b) => {
-        const dateStr = b.scheduled_date || b.date || b.created_at || b.createdAt || null;
+        const dateStr = b.date || b.scheduled_date || null;
         let d = dateStr ? new Date(dateStr) : null;
         if (d && !isNaN(d.getTime())) {
           const m = d.getMonth();
@@ -232,36 +383,38 @@ function AdminDashboard() {
 
       setBookingData(months);
 
-      // ── Recent Activities ──
-      const recent = ((activeBookings || [])
+      const recent = ((allBookings || [])
         .slice(0, 10)
         .filter((b) => b)
         .map((b) => {
-          let amount = b.amount || b.amountRaw || b.gross_amount || 0;
+          let amount = b.amountRaw || b.amount || 0;
           if (typeof amount === "string" && amount.includes("KES")) {
             amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
           }
 
+          const clientName = b.client || b.clientName || `Client #${b.clientId}`;
+          const providerName = b.providerName || b.worker || `Provider #${b.serviceProviderId}`;
+
           return {
             id: b.id,
             type: "Booking",
-            worker: b.worker || b.providerName || b.provider || b.service_provider?.name || "Provider",
-            client: b.clientName || b.client || b.client?.name || `Client #${b.clientId || ""}`,
-            service: b.service || b.service_name || "",
+            worker: providerName,
+            client: clientName,
+            service: b.service || "",
             amount: Number(amount),
             status: b.status || "Pending",
-            time: b.date || b.scheduled_date || b.booking_date || b.created_at || "",
+            time: b.date || b.scheduled_date || "",
             formattedAmount: formatCurrency(Number(amount)),
           };
         }));
 
       setRecentActivities(recent);
 
-      // ── Set Stats ──
       setStats({
         totalUsers: totalUsers || 0,
         totalProviders: totalProviders || 0,
         activeBookings: activeBookingsCount || 0,
+        totalBookings: allBookings.length || 0,
         platformCommission: Math.round(commission) || 0,
         totalRevenue: Math.round(totalRevenue) || 0,
         pendingPayouts: payoutStats.total_pending_amount || 0,
@@ -280,7 +433,6 @@ function AdminDashboard() {
     fetchDashboardData();
   }, []);
 
-  // ── Export Chart Data as CSV ──
   const exportChartData = () => {
     const headers = ["Month", "Bookings"];
     const rows = bookingData.map((item) => [item.month, item.bookings]);
@@ -295,12 +447,31 @@ function AdminDashboard() {
     URL.revokeObjectURL(url);
   };
 
-  // ── Navigate handlers ──
   const navigateTo = (path) => {
     navigate(path);
   };
 
-  // ── Loading state ──
+  const getDisplayStatus = (status) => {
+    const statusMap = {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled",
+      "Pending": "Pending",
+      "Accepted": "Accepted",
+      "In Progress": "In Progress",
+      "Completed": "Completed",
+      "Approved": "Approved",
+      "Rejected": "Rejected",
+      "Cancelled": "Cancelled",
+      "New Requests": "New Requests",
+    };
+    return statusMap[status] || status || "Pending";
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
@@ -308,8 +479,50 @@ function AdminDashboard() {
         <div className="flex-1 ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6">
-            <div className="flex h-64 items-center justify-center">
-              <RefreshCw className="h-12 w-12 animate-spin text-[#056db3]" />
+            <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <div className="h-9 w-64 animate-pulse rounded bg-gray-200 mb-2" />
+                <div className="h-5 w-48 animate-pulse rounded bg-gray-200" />
+              </div>
+              <div className="h-10 w-28 animate-pulse rounded-lg bg-gray-200" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {[1, 2, 3, 4].map((i) => (
+                <SkeletonStatCard key={i} />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              <div className="lg:col-span-2">
+                <SkeletonChart />
+              </div>
+              <div>
+                <SkeletonQuickStats />
+              </div>
+            </div>
+            <SkeletonTable />
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen bg-[#f8fafc]">
+        <Sidebar role="admin" />
+        <div className="flex-1 ml-72">
+          <Navbar />
+          <main className="pt-24 px-6 pb-6">
+            <div className="flex flex-col items-center justify-center h-64">
+              <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
+              <p className="text-lg text-gray-700">Failed to load dashboard</p>
+              <p className="text-sm text-gray-500 mt-2">{error}</p>
+              <button
+                onClick={() => fetchDashboardData()}
+                className="mt-4 px-4 py-2 bg-[#056db3] text-white rounded-lg hover:bg-[#045a94]"
+              >
+                Retry
+              </button>
             </div>
           </main>
         </div>
@@ -324,7 +537,6 @@ function AdminDashboard() {
         <Navbar />
         <main className="pt-24 px-6 pb-6">
 
-          {/* ── Page Header ── */}
           <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
@@ -336,11 +548,10 @@ function AdminDashboard() {
               className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
+              {refreshing ? "Refreshing..." : "Refresh"}
             </button>
           </div>
 
-          {/* ── Stats Cards ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard
               title="Total Users"
@@ -374,20 +585,18 @@ function AdminDashboard() {
               value={formatCurrency(stats.platformCommission)}
               icon={DollarSign}
               iconBg="bg-green-100 text-green-600"
-              trend="+18.7%"
+              trend={stats.platformCommission > 0 ? "+18.7%" : "0%"}
               isLoading={loading}
               onClick={() => navigateTo("/admin/payments/commission")}
             />
           </div>
 
-          {/* ── Revenue & Quick Stats Row ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* ── Bookings Over Time (Line Chart) ── */}
             <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                 <div>
                   <h2 className="font-bold text-xl text-gray-800">Bookings Over Time</h2>
-                  <p className="text-gray-600 text-sm">Monthly booking trends</p>
+                  <p className="text-gray-600 text-sm">All bookings created</p>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -406,49 +615,10 @@ function AdminDashboard() {
                   </Link>
                 </div>
               </div>
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={bookingData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="month"
-                      stroke="#6b7280"
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      stroke="#6b7280"
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                      allowDecimals={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                        padding: "8px 12px",
-                      }}
-                      formatter={(value) => [value, "Bookings"]}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="bookings"
-                      stroke="#056db3"
-                      strokeWidth={3}
-                      dot={{ fill: "#056db3", r: 4 }}
-                      activeDot={{ r: 6 }}
-                      name="Bookings"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+              {/* ✅ FIX: Use the BookingChart component with a delay */}
+              <BookingChart data={bookingData} />
             </div>
 
-            {/* ── Quick Stats ── */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <h2 className="font-bold text-xl text-gray-800 mb-4">Quick Stats</h2>
               <div className="space-y-4">
@@ -484,22 +654,30 @@ function AdminDashboard() {
                     <div>
                       <p className="text-sm text-gray-500">Completion Rate</p>
                       <p className="font-bold text-gray-800">
-                        {bookingData.reduce((sum, m) => sum + m.bookings, 0) > 0
-                          ? `${Math.round(
-                              (bookingData[bookingData.length - 1]?.bookings || 0) /
-                                (bookingData.reduce((s, m) => s + m.bookings, 0) || 1) * 100
-                            )}%`
+                        {stats.totalBookings > 0
+                          ? `${Math.round((stats.activeBookings / stats.totalBookings) * 100)}%`
                           : "0%"}
                       </p>
                     </div>
                   </div>
                   <Activity className="h-5 w-5 text-green-500" />
                 </div>
+                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <Calendar className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Total Bookings</p>
+                      <p className="font-bold text-gray-800">{stats.totalBookings}</p>
+                    </div>
+                  </div>
+                  <TrendingUp className="h-5 w-5 text-purple-500" />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* ── Recent Activity Table ── */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-6 pb-0 flex items-center justify-between flex-wrap gap-4">
               <div>
@@ -552,8 +730,9 @@ function AdminDashboard() {
                     </tr>
                   ) : (
                     recentActivities.map((activity, index) => {
-                      const StatusIcon = getStatusIcon(activity.status);
-                      const statusClass = getStatusStyles(activity.status);
+                      const displayStatus = getDisplayStatus(activity.status);
+                      const StatusIcon = getStatusIcon(displayStatus);
+                      const statusClass = getStatusStyles(displayStatus);
                       return (
                         <tr key={activity.id || index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                           <td className="py-4 px-6">
@@ -576,7 +755,7 @@ function AdminDashboard() {
                           <td className="py-4 px-6">
                             <span className={`px-3 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 w-fit ${statusClass}`}>
                               <StatusIcon className="h-3 w-3" />
-                              {activity.status}
+                              {displayStatus}
                             </span>
                           </td>
                           <td className="py-4 px-6 text-gray-500 text-sm whitespace-nowrap">

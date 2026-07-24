@@ -1,4 +1,4 @@
-// src/pages/admin/BookingsAndPayments.jsx - With Skeleton Loaders
+// src/pages/admin/BookingsAndPayments.jsx - Fully Updated
 
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -33,7 +33,7 @@ import Navbar from "../../components/Navbar";
 // HELPERS
 // ─────────────────────────────────────────────
 
-const statusOptions = ["All Status", "Completed", "In Progress", "Scheduled", "Pending", "Cancelled", "New Requests", "Accepted"];
+const statusOptions = ["All Status", "Completed", "In Progress", "Scheduled", "Pending", "Cancelled", "New Requests", "Accepted", "Approved", "Rejected"];
 const payoutStatusOptions = ["All Status", "Pending", "Approved", "Processing", "Completed", "Failed", "Held"];
 const timeOptions = ["All Time", "This Week", "This Month", "This Quarter"];
 
@@ -460,27 +460,25 @@ function BookingsAndPayments() {
     setError(null);
 
     try {
-      // Fetch bookings
-      let bookingsData = [];
+      // ── Fetch ALL bookings ──
+      let allBookings = [];
       try {
-        bookingsData = await bookingService.listActiveBookings();
+        // Use listActiveBookings which returns normalized bookings
+        const bookingsData = await bookingService.listActiveBookings();
+        allBookings = bookingsData || [];
       } catch (bookingErr) {
-        if (bookingErr.response && bookingErr.response.status === 404) {
-          console.warn("Bookings endpoint not available yet");
-          bookingsData = [];
-        } else {
-          throw bookingErr;
-        }
+        console.warn("Bookings endpoint not available");
+        allBookings = [];
       }
 
-      // Fetch payouts
+      // ── Fetch payouts ──
       const payoutsData = await paymentsService.getPayoutRequests();
 
-      // Fetch stats
+      // ── Fetch stats ──
       const statsData = await paymentsService.getAdminStats();
 
-      // Transform bookings
-      const formattedBookings = (bookingsData || []).map((b) => ({
+      // ── Transform bookings (ALL statuses will be shown) ──
+      const formattedBookings = (allBookings || []).map((b) => ({
         id: b.id,
         client: b.client || b.clientName || `Client #${b.clientId}` || "Unknown Client",
         provider: b.providerName || b.worker || `Provider #${b.serviceProviderId}` || "Unknown Provider",

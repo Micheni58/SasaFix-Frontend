@@ -1,4 +1,4 @@
-// src/pages/Admin/BookingsAndPaymentsDetails.jsx - Fully Updated with Form Fixes
+// src/pages/admin/BookingsAndPaymentsDetails.jsx - Fully Updated with Release Funds
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -32,6 +32,7 @@ import {
 import bookingService from "../../api/bookingService";
 import ratingService from "../../api/ratingService";
 import reviewService from "../../api/reviewService";
+import paymentsService from "../../api/paymentsService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 
@@ -259,6 +260,8 @@ function BookingsAndPaymentsDetails() {
   const [notFound, setNotFound] = useState(false);
   const [adminNote, setAdminNote] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [escrowTransaction, setEscrowTransaction] = useState(null);
+  const [showReleaseModal, setShowReleaseModal] = useState(false);
 
   // ── Fetch Booking Details ──
   const fetchBookingDetails = async (showRefresh = false) => {
@@ -366,6 +369,21 @@ function BookingsAndPaymentsDetails() {
       };
 
       setBooking(formattedBooking);
+      
+      // Fetch escrow transaction
+      try {
+        const escrowData = await paymentsService.getBookingEscrowTransaction(bookingId);
+        if (escrowData && escrowData.length > 0) {
+          const escrow = escrowData.find(t => 
+            t.type === "payment" && 
+            (t.status === "COMPLETED" || t.status === "PENDING" || t.status === "RELEASED")
+          );
+          setEscrowTransaction(escrow);
+        }
+      } catch (e) {
+        console.warn("No escrow transaction found");
+      }
+
     } catch (err) {
       console.error("Error fetching booking details:", err);
       if (err.response && err.response.status === 404) {
@@ -391,6 +409,36 @@ function BookingsAndPaymentsDetails() {
   // ── Handle Retry ──
   const handleRetry = () => {
     fetchBookingDetails(true);
+  };
+
+  // ── Handle Release Escrow Funds ──
+  const handleReleaseFunds = async () => {
+    if (!escrowTransaction) {
+      alert("No escrow transaction found for this booking");
+      return;
+    }
+    
+    const amount = escrowTransaction.net_amount || escrowTransaction.gross_amount || 0;
+    if (!window.confirm(`Are you sure you want to release KES ${amount.toLocaleString()} to the provider?`)) {
+      return;
+    }
+    
+    setActionLoading(true);
+    try {
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const adminId = storedUser.id || 9;
+      
+      await paymentsService.releaseEscrowFunds(escrowTransaction.id, adminId);
+      alert("✅ Funds released successfully to provider wallet!");
+      
+      // Refresh data
+      await fetchBookingDetails(true);
+      
+    } catch (err) {
+      alert("Failed to release funds: " + err.message);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   // ── Admin Actions ──
@@ -518,7 +566,7 @@ function BookingsAndPaymentsDetails() {
             </div>
           </div>
 
-          {/* ── Summary Cards - Responsive Grid ── */}
+          {/* ── Summary Cards ── */}
           <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <SummaryCard
               icon={ArrowUpRight}
@@ -778,6 +826,32 @@ function BookingsAndPaymentsDetails() {
               </table>
             </div>
 
+            {/* ── Escrow Status ── */}
+            {escrowTransaction && (
+              <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
+                    <Wallet className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-blue-800">Escrow Status</p>
+                    <p className="text-sm text-blue-700">
+                      {escrowTransaction.status === "COMPLETED" 
+                        ? `✅ KES ${(escrowTransaction.net_amount || escrowTransaction.gross_amount)?.toLocaleString()} held in escrow. Awaiting admin release.` 
+                        : escrowTransaction.status === "RELEASED"
+                        ? `✅ Funds released to provider`
+                        : escrowTransaction.status === "PENDING"
+                        ? `⏳ Payment pending...`
+                        : `📊 Status: ${escrowTransaction.status}`}
+                    </p>
+                    {escrowTransaction.mpesa_reference && (
+                      <p className="text-xs text-blue-600">M-Pesa Ref: {escrowTransaction.mpesa_reference}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* M-Pesa Reference */}
             {booking.mpesaRef ? (
               <div className="mt-5 flex items-center gap-3 rounded-xl bg-gray-50 px-5 py-3">
@@ -843,6 +917,27 @@ function BookingsAndPaymentsDetails() {
                 Export PDF
               </button>
             </div>
+
+            {/* ── RELEASE FUNDS BUTTON ── */}
+            {booking?.status === "approved" && escrowTransaction?.status === "COMPLETED" && (
+              <button
+                onClick={handleReleaseFunds}
+                disabled={actionLoading}
+                className="mb-6 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+              >
+                {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+                Release Funds to Provider
+              </button>
+            )}
+
+            {/* ── RELEASE FUNDS INFO ── */}
+            {booking?.status === "approved" && escrowTransaction?.status === "COMPLETED" && (
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+                <AlertCircle className="inline h-4 w-4 mr-1" />
+                This booking has been approved and payment is held in escrow. 
+                Click the button above to release funds to the provider's wallet.
+              </div>
+            )}
 
             <div>
               <label htmlFor="admin-notes" className="mb-2 block text-sm font-medium text-gray-700">

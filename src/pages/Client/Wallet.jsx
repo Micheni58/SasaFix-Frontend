@@ -1,4 +1,4 @@
-// src/pages/ClientWallet.jsx - Client Wallet Page
+// src/pages/ClientWallet.jsx - Fully Updated with Skeleton Loaders
 
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -32,17 +32,17 @@ import walletService from "../../api/walletService";
 const filterOptions = ["Day", "Week", "Month", "Year"];
 
 const statusStyles = {
-    completed: "bg-green-100 text-green-700",
-    pending: "bg-amber-100 text-amber-700",
-    failed: "bg-red-100 text-red-700",
-    processing: "bg-blue-100 text-blue-700",
+    COMPLETED: "bg-green-100 text-green-700",
+    PENDING: "bg-amber-100 text-amber-700",
+    FAILED: "bg-red-100 text-red-700",
+    RELEASED: "bg-blue-100 text-blue-700",
 };
 
 const typeStyles = {
     payment: "bg-red-50 text-red-500",
     payout: "bg-purple-50 text-purple-600",
-    topup: "bg-green-50 text-green-600",
     refund: "bg-blue-50 text-[#056db3]",
+    topup: "bg-green-50 text-green-600",
 };
 
 const paymentMethodIcons = {
@@ -73,6 +73,69 @@ function formatDate(dateString) {
         day: "numeric",
     });
 }
+
+// ─────────────────────────────────────────────
+// SKELETON COMPONENTS
+// ─────────────────────────────────────────────
+
+function SkeletonStatCard() {
+    return (
+        <div className="rounded-lg p-5 shadow-sm flex items-start gap-4 bg-gray-50">
+            <div className="flex h-11 w-11 items-center justify-center bg-gray-200 animate-pulse rounded-lg" />
+            <div className="flex-1">
+                <div className="h-4 w-20 bg-gray-200 animate-pulse rounded mb-2" />
+                <div className="h-6 w-24 bg-gray-200 animate-pulse rounded" />
+                <div className="mt-1 h-3 w-16 bg-gray-200 animate-pulse rounded" />
+            </div>
+        </div>
+    );
+}
+
+function SkeletonTransactionRow() {
+    return (
+        <tr className="border-b border-gray-100">
+            <td className="px-6 py-4">
+                <div className="h-6 w-20 bg-gray-200 animate-pulse rounded" />
+            </td>
+            <td className="px-4 py-4">
+                <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
+            </td>
+            <td className="px-4 py-4">
+                <div className="h-4 w-24 bg-gray-200 animate-pulse rounded" />
+            </td>
+            <td className="px-4 py-4">
+                <div className="h-6 w-20 bg-gray-200 animate-pulse rounded-full" />
+            </td>
+            <td className="px-4 py-4 text-right">
+                <div className="h-4 w-20 bg-gray-200 animate-pulse rounded ml-auto" />
+            </td>
+        </tr>
+    );
+}
+
+function SkeletonPaymentMethod() {
+    return (
+        <div className="flex min-h-20 items-center justify-between rounded-sm border border-gray-200 px-4 py-4">
+            <div className="flex items-center gap-4">
+                <div className="h-10 w-10 bg-gray-200 animate-pulse rounded-xl" />
+                <div>
+                    <div className="h-5 w-32 bg-gray-200 animate-pulse rounded mb-1" />
+                    <div className="h-4 w-24 bg-gray-200 animate-pulse rounded" />
+                </div>
+            </div>
+            <div className="flex items-center gap-2">
+                <div className="h-5 w-16 bg-gray-200 animate-pulse rounded-full" />
+                <div className="h-8 w-8 bg-gray-200 animate-pulse rounded" />
+                <div className="h-8 w-8 bg-gray-200 animate-pulse rounded" />
+                <div className="h-8 w-8 bg-gray-200 animate-pulse rounded" />
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
+// COMPONENTS
+// ─────────────────────────────────────────────
 
 function StatCard({ icon, iconBg, label, value, sub, isLoading }) {
     return (
@@ -154,22 +217,24 @@ function ClientWallet() {
             setError(null);
 
             try {
-                // Fetch balance
                 const balanceData = await walletService.getWalletBalance(user.id);
                 setBalance(balanceData.balance || 0);
 
-                // Fetch transactions
                 const txData = await walletService.getTransactionHistory(user.id, {
                     filter: activeFilter.toLowerCase(),
                 });
                 setTransactions(txData.transactions || []);
 
-                // Fetch payment methods
                 const methods = await walletService.getPaymentMethods(user.id);
                 setPaymentMethods(methods || []);
 
             } catch (err) {
-                setError(err.message || "Failed to load wallet data");
+                if (err.status === 404) {
+                    setTransactions([]);
+                    setPaymentMethods([]);
+                } else {
+                    setError(err.message || "Failed to load wallet data");
+                }
                 console.error("Wallet error:", err);
             } finally {
                 setLoading(false);
@@ -370,6 +435,9 @@ function ClientWallet() {
         .filter((t) => t.amount > 0 || t.type === "topup" || t.type === "refund")
         .reduce((sum, t) => sum + (t.amount || t.grossAmount || 0), 0);
 
+    const hasTransactions = transactions.length > 0;
+    const hasPaymentMethods = paymentMethods.length > 0;
+
     // ── Loading state ──
     if (loading) {
         return (
@@ -377,9 +445,96 @@ function ClientWallet() {
                 <Sidebar role={sidebarRole} />
                 <div className="flex-1 ml-72">
                     <Navbar />
-                    <main className="pt-24 px-6 pb-10">
-                        <div className="flex h-64 items-center justify-center">
-                            <Loader2 className="h-12 w-12 animate-spin text-[#056db3]" />
+                    <main className="pt-24 px-6 pb-10 space-y-8">
+                        {/* Page Header Skeleton */}
+                        <div>
+                            <div className="h-9 w-48 bg-gray-200 animate-pulse rounded" />
+                            <div className="mt-1 h-5 w-64 bg-gray-200 animate-pulse rounded" />
+                        </div>
+
+                        {/* Balance Card Skeleton */}
+                        <div className="relative overflow-hidden rounded-lg bg-[#056db3] p-8 text-white shadow-md">
+                            <div className="relative">
+                                <div className="h-5 w-32 bg-white/20 animate-pulse rounded" />
+                                <div className="mt-2 h-12 w-48 bg-white/20 animate-pulse rounded" />
+                                <div className="mt-2 h-5 w-40 bg-white/20 animate-pulse rounded" />
+                                <div className="mt-6 flex gap-3">
+                                    <div className="h-11 w-28 bg-white/20 animate-pulse rounded-xl" />
+                                    <div className="h-11 w-28 bg-white/20 animate-pulse rounded-xl" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Stats Grid Skeleton */}
+                        <div className="grid grid-cols-3 gap-6">
+                            {[...Array(3)].map((_, i) => (
+                                <SkeletonStatCard key={i} />
+                            ))}
+                        </div>
+
+                        {/* Payment Methods & Quick Stats Skeleton */}
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="rounded-sm border border-gray-200 bg-white p-6 shadow-sm">
+                                <div className="mb-5">
+                                    <div className="h-6 w-40 bg-gray-200 animate-pulse rounded" />
+                                    <div className="mt-1 h-4 w-48 bg-gray-200 animate-pulse rounded" />
+                                </div>
+                                <div className="space-y-3">
+                                    {[...Array(2)].map((_, i) => (
+                                        <SkeletonPaymentMethod key={i} />
+                                    ))}
+                                    <div className="h-12 w-full bg-gray-200 animate-pulse rounded-lg" />
+                                </div>
+                            </div>
+                            <div className="rounded-sm border border-gray-200 bg-white p-6 shadow-sm">
+                                <div className="mb-5">
+                                    <div className="h-6 w-40 bg-gray-200 animate-pulse rounded" />
+                                    <div className="mt-1 h-4 w-48 bg-gray-200 animate-pulse rounded" />
+                                </div>
+                                <div className="space-y-4">
+                                    {[...Array(3)].map((_, i) => (
+                                        <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50">
+                                            <div className="h-6 w-6 bg-gray-200 animate-pulse rounded-full" />
+                                            <div className="flex-1">
+                                                <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
+                                                <div className="mt-1 h-3 w-48 bg-gray-200 animate-pulse rounded" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Transactions Table Skeleton */}
+                        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+                            <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-6 py-5">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-6 w-40 bg-gray-200 animate-pulse rounded" />
+                                    <div className="h-5 w-8 bg-gray-200 animate-pulse rounded-full" />
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-32 bg-gray-200 animate-pulse rounded-xl" />
+                                    <div className="h-10 w-28 bg-gray-200 animate-pulse rounded-xl" />
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full table-auto">
+                                    <thead className="border-b border-gray-100 bg-gray-50">
+                                        <tr>
+                                            {[...Array(5)].map((_, i) => (
+                                                <th key={i} className="px-6 py-3.5">
+                                                    <div className="h-3 w-16 bg-gray-200 animate-pulse rounded" />
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {[...Array(5)].map((_, i) => (
+                                            <SkeletonTransactionRow key={i} />
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </main>
                 </div>
@@ -412,6 +567,7 @@ function ClientWallet() {
         );
     }
 
+    // ── Main view (rest of the component remains the same) ──
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role={sidebarRole} />
@@ -441,7 +597,7 @@ function ClientWallet() {
                                     KES {balance.toLocaleString()}
                                 </p>
                                 <p className="mt-2 text-sm text-blue-200">
-                                    Ready to book your next service
+                                    {balance === 0 ? "Add money to start booking services" : "Ready to book your next service"}
                                 </p>
 
                                 <div className="mt-6 flex gap-3">
@@ -469,6 +625,34 @@ function ClientWallet() {
                         </div>
                     </div>
 
+                    {/* ── Stats Grid ── */}
+                    <div className="grid grid-cols-3 gap-6">
+                        <StatCard
+                            icon={<ArrowUpRight className="h-6 w-6 text-red-500" />}
+                            iconBg="bg-red-50"
+                            label="Total Spent"
+                            value={`KES ${totalSpent.toLocaleString()}`}
+                            sub={hasTransactions ? "All time" : "No spending yet"}
+                            isLoading={loading}
+                        />
+                        <StatCard
+                            icon={<ArrowDownLeft className="h-6 w-6 text-green-600" />}
+                            iconBg="bg-green-50"
+                            label="Total Added"
+                            value={`KES ${totalAdded.toLocaleString()}`}
+                            sub={hasTransactions ? "All time" : "No deposits yet"}
+                            isLoading={loading}
+                        />
+                        <StatCard
+                            icon={<ShoppingBag className="h-6 w-6 text-[#056db3]" />}
+                            iconBg="bg-blue-50"
+                            label="Transactions"
+                            value={transactions.length}
+                            sub={hasTransactions ? "All time" : "No transactions yet"}
+                            isLoading={loading}
+                        />
+                    </div>
+
                     <div className="grid grid-cols-2 gap-6">
                         {/* ── Payment Methods ── */}
                         <div className="rounded-sm border border-gray-200 bg-white p-6 shadow-sm">
@@ -482,7 +666,7 @@ function ClientWallet() {
                             </div>
 
                             <div className="space-y-3">
-                                {paymentMethods.length === 0 ? (
+                                {!hasPaymentMethods ? (
                                     <div className="py-8 text-center">
                                         <p className="text-sm text-gray-500">
                                             No payment methods added yet.
@@ -565,43 +749,67 @@ function ClientWallet() {
                             </div>
                         </div>
 
-                        {/* ── Transaction Summary ── */}
+                        {/* ── Quick Stats ── */}
                         <div className="rounded-sm border border-gray-200 bg-white p-6 shadow-sm">
                             <div className="mb-5">
                                 <h2 className="text-lg font-bold text-gray-800">
-                                    Spending Summary
+                                    {hasTransactions ? "Recent Activity" : "Getting Started"}
                                 </h2>
                                 <p className="text-sm text-gray-500">
-                                    Your payment activity overview
+                                    {hasTransactions ? "Your latest transactions" : "Tips to get started"}
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-4">
-                                <StatCard
-                                    icon={<ArrowUpRight className="h-6 w-6 text-red-500" />}
-                                    iconBg="bg-red-50"
-                                    label="Total Spent"
-                                    value={`KES ${totalSpent.toLocaleString()}`}
-                                    sub="This month"
-                                    isLoading={loading}
-                                />
-                                <StatCard
-                                    icon={<ArrowDownLeft className="h-6 w-6 text-green-600" />}
-                                    iconBg="bg-green-50"
-                                    label="Total Added"
-                                    value={`KES ${totalAdded.toLocaleString()}`}
-                                    sub="This month"
-                                    isLoading={loading}
-                                />
-                                <StatCard
-                                    icon={<ShoppingBag className="h-6 w-6 text-[#056db3]" />}
-                                    iconBg="bg-blue-50"
-                                    label="Transactions"
-                                    value={transactions.length}
-                                    sub="This month"
-                                    isLoading={loading}
-                                />
-                            </div>
+                            {!hasTransactions ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50">
+                                        <div className="mt-1 rounded-full bg-[#056db3] p-1.5">
+                                            <ShoppingBag className="h-4 w-4 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-800">Book a Service</p>
+                                            <p className="text-xs text-gray-500">Find a provider and book your first service</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50">
+                                        <div className="mt-1 rounded-full bg-green-600 p-1.5">
+                                            <ArrowDownLeft className="h-4 w-4 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-800">Add Money</p>
+                                            <p className="text-xs text-gray-500">Fund your wallet to pay for services</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3 p-3 rounded-lg bg-purple-50">
+                                        <div className="mt-1 rounded-full bg-purple-600 p-1.5">
+                                            <Check className="h-4 w-4 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-800">Pay & Review</p>
+                                            <p className="text-xs text-gray-500">Complete bookings and leave reviews</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {transactions.slice(0, 5).map((tx) => (
+                                        <div key={tx.id} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0">
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-800">{tx.description}</p>
+                                                <p className="text-xs text-gray-400">{tx.date}</p>
+                                            </div>
+                                            <span className={`text-sm font-bold ${tx.amount > 0 ? "text-green-600" : "text-red-500"}`}>
+                                                {formatAmount(tx.amount)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    {transactions.length > 5 && (
+                                        <p className="text-xs text-center text-gray-400 mt-2">
+                                            + {transactions.length - 5} more transactions
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -633,7 +841,12 @@ function ClientWallet() {
                                 </label>
                                 <button
                                     onClick={handleExport}
-                                    className="flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                                    disabled={!hasTransactions}
+                                    className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
+                                        hasTransactions
+                                            ? "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                            : "border-gray-100 text-gray-300 cursor-not-allowed"
+                                    }`}
                                 >
                                     <Download className="h-4 w-4" />
                                     Export CSV
@@ -641,36 +854,40 @@ function ClientWallet() {
                             </div>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full table-auto">
-                                <thead className="border-b border-gray-100 bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Type
-                                        </th>
-                                        <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Description
-                                        </th>
-                                        <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Date
-                                        </th>
-                                        <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Status
-                                        </th>
-                                        <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            Amount
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200">
-                                    {transactions.length === 0 ? (
+                        {!hasTransactions ? (
+                            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                                <div className="rounded-full bg-gray-100 p-6 mb-6">
+                                    <History className="h-16 w-16 text-gray-300" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800 mb-2">No Transactions Yet</h3>
+                                <p className="text-gray-500 max-w-md">
+                                    You haven't made any transactions yet. Add money to your wallet or book a service to get started.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full table-auto">
+                                    <thead className="border-b border-gray-100 bg-gray-50">
                                         <tr>
-                                            <td colSpan="5" className="py-10 text-center text-sm text-gray-500">
-                                                No transactions found.
-                                            </td>
+                                            <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Type
+                                            </th>
+                                            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Description
+                                            </th>
+                                            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Date
+                                            </th>
+                                            <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Status
+                                            </th>
+                                            <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Amount
+                                            </th>
                                         </tr>
-                                    ) : (
-                                        transactions.map((tx) => (
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {transactions.map((tx) => (
                                             <tr
                                                 key={tx.id}
                                                 className="transition-colors hover:bg-gray-50"
@@ -707,11 +924,11 @@ function ClientWallet() {
                                                     </span>
                                                 </td>
                                             </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 </main>
             </div>

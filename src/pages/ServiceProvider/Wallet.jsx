@@ -1,4 +1,4 @@
-// src/pages/ProviderWallet.jsx - Updated with better empty state
+// src/pages/ProviderWallet.jsx - Fully Updated with Skeleton Loaders
 
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -21,10 +21,8 @@ import {
     Calendar,
     DollarSign,
     ShoppingBag,
-    Users,
     Clock,
-    Gift,
-    Sparkles,
+    History,
 } from "lucide-react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
@@ -38,10 +36,10 @@ import walletService from "../../api/walletService";
 const filterOptions = ["Day", "Week", "Month", "Year"];
 
 const statusStyles = {
-    completed: "bg-green-100 text-green-700",
-    pending: "bg-amber-100 text-amber-700",
-    failed: "bg-red-100 text-red-700",
-    processing: "bg-blue-100 text-blue-700",
+    COMPLETED: "bg-green-100 text-green-700",
+    PENDING: "bg-amber-100 text-amber-700",
+    FAILED: "bg-red-100 text-red-700",
+    RELEASED: "bg-blue-100 text-blue-700",
 };
 
 const typeStyles = {
@@ -80,6 +78,69 @@ function formatDate(dateString) {
     });
 }
 
+// ─────────────────────────────────────────────
+// SKELETON COMPONENTS
+// ─────────────────────────────────────────────
+
+function SkeletonStatCard() {
+    return (
+        <div className="rounded-lg p-5 shadow-sm flex items-start gap-4 bg-gray-50">
+            <div className="flex h-11 w-11 items-center justify-center bg-gray-200 animate-pulse rounded-lg" />
+            <div className="flex-1">
+                <div className="h-4 w-20 bg-gray-200 animate-pulse rounded mb-2" />
+                <div className="h-6 w-24 bg-gray-200 animate-pulse rounded" />
+                <div className="mt-1 h-3 w-16 bg-gray-200 animate-pulse rounded" />
+            </div>
+        </div>
+    );
+}
+
+function SkeletonTransactionRow() {
+    return (
+        <tr className="border-b border-gray-100">
+            <td className="px-6 py-4">
+                <div className="h-6 w-20 bg-gray-200 animate-pulse rounded" />
+            </td>
+            <td className="px-4 py-4">
+                <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
+            </td>
+            <td className="px-4 py-4">
+                <div className="h-4 w-24 bg-gray-200 animate-pulse rounded" />
+            </td>
+            <td className="px-4 py-4">
+                <div className="h-6 w-20 bg-gray-200 animate-pulse rounded-full" />
+            </td>
+            <td className="px-4 py-4 text-right">
+                <div className="h-4 w-20 bg-gray-200 animate-pulse rounded ml-auto" />
+            </td>
+        </tr>
+    );
+}
+
+function SkeletonPaymentMethod() {
+    return (
+        <div className="flex min-h-20 items-center justify-between rounded-sm border border-gray-200 px-4 py-4">
+            <div className="flex items-center gap-4">
+                <div className="h-10 w-10 bg-gray-200 animate-pulse rounded-xl" />
+                <div>
+                    <div className="h-5 w-32 bg-gray-200 animate-pulse rounded mb-1" />
+                    <div className="h-4 w-24 bg-gray-200 animate-pulse rounded" />
+                </div>
+            </div>
+            <div className="flex items-center gap-2">
+                <div className="h-5 w-16 bg-gray-200 animate-pulse rounded-full" />
+                <div className="h-8 w-8 bg-gray-200 animate-pulse rounded" />
+                <div className="h-8 w-8 bg-gray-200 animate-pulse rounded" />
+                <div className="h-8 w-8 bg-gray-200 animate-pulse rounded" />
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
+// COMPONENTS
+// ─────────────────────────────────────────────
+
 function StatCard({ icon, iconBg, label, value, sub, isLoading }) {
     return (
         <div className={`rounded-lg p-5 shadow-sm flex items-start gap-4 ${iconBg}`}>
@@ -95,28 +156,6 @@ function StatCard({ icon, iconBg, label, value, sub, isLoading }) {
                 )}
                 {sub && <p className="mt-0.5 text-xs text-gray-400">{sub}</p>}
             </div>
-        </div>
-    );
-}
-
-// Empty State Component for Providers
-function EmptyState({ icon: Icon, title, description, actionText, onAction }) {
-    return (
-        <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <div className="rounded-full bg-blue-50 p-6 mb-6">
-                <Icon className="h-16 w-16 text-[#056db3]" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">{title}</h3>
-            <p className="text-gray-500 max-w-md mb-6">{description}</p>
-            {onAction && (
-                <button
-                    onClick={onAction}
-                    className="rounded-lg bg-[#056db3] px-6 py-3 text-white font-semibold hover:bg-[#045a94] transition-colors flex items-center gap-2"
-                >
-                    <Plus className="h-4 w-4" />
-                    {actionText}
-                </button>
-            )}
         </div>
     );
 }
@@ -167,11 +206,16 @@ function ProviderWallet() {
         if (storedUser) {
             try {
                 setUser(JSON.parse(storedUser));
+                if (storedUser.provider_id) {
+                    setProviderId(storedUser.provider_id);
+                }
             } catch (e) {
                 console.error("Failed to parse user data", e);
             }
         }
     }, []);
+
+    const [providerId, setProviderId] = useState(null);
 
     // ── Fetch wallet data ──
     useEffect(() => {
@@ -182,22 +226,18 @@ function ProviderWallet() {
             setError(null);
 
             try {
-                // Fetch balance - will return 0 if no wallet exists
                 const balanceData = await walletService.getWalletBalance(user.id);
                 setBalance(balanceData.balance || 0);
 
-                // Fetch transactions - will return empty array if none exist
                 const txData = await walletService.getTransactionHistory(user.id, {
                     filter: activeFilter.toLowerCase(),
                 });
                 setTransactions(txData.transactions || []);
 
-                // Fetch payment methods - will return empty array if none exist
                 const methods = await walletService.getPaymentMethods(user.id);
                 setPaymentMethods(methods || []);
 
             } catch (err) {
-                // Don't show error for 404s - just set empty data
                 if (err.status === 404) {
                     setTransactions([]);
                     setPaymentMethods([]);
@@ -402,7 +442,6 @@ function ProviderWallet() {
         .filter((t) => t.amount < 0 || t.type === "payout")
         .reduce((sum, t) => sum + Math.abs(t.amount || t.grossAmount || 0), 0);
 
-    // ── Check if provider has any transactions ──
     const hasTransactions = transactions.length > 0;
     const hasPaymentMethods = paymentMethods.length > 0;
 
@@ -413,9 +452,95 @@ function ProviderWallet() {
                 <Sidebar role={sidebarRole} />
                 <div className="flex-1 ml-72">
                     <Navbar />
-                    <main className="pt-24 px-6 pb-10">
-                        <div className="flex h-64 items-center justify-center">
-                            <Loader2 className="h-12 w-12 animate-spin text-[#056db3]" />
+                    <main className="pt-24 px-6 pb-10 space-y-8">
+                        {/* Page Header Skeleton */}
+                        <div>
+                            <div className="h-9 w-48 bg-gray-200 animate-pulse rounded" />
+                            <div className="mt-1 h-5 w-64 bg-gray-200 animate-pulse rounded" />
+                        </div>
+
+                        {/* Balance Card Skeleton */}
+                        <div className="relative overflow-hidden rounded-lg bg-linear-to-r from-[#056db3] to-[#0891b2] p-8 text-white shadow-md">
+                            <div className="relative">
+                                <div className="h-5 w-32 bg-white/20 animate-pulse rounded" />
+                                <div className="mt-2 h-12 w-48 bg-white/20 animate-pulse rounded" />
+                                <div className="mt-2 h-5 w-40 bg-white/20 animate-pulse rounded" />
+                                <div className="mt-6">
+                                    <div className="h-11 w-36 bg-white/20 animate-pulse rounded-xl" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Stats Grid Skeleton */}
+                        <div className="grid grid-cols-3 gap-6">
+                            {[...Array(3)].map((_, i) => (
+                                <SkeletonStatCard key={i} />
+                            ))}
+                        </div>
+
+                        {/* Payment Methods & Quick Stats Skeleton */}
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="rounded-sm border border-gray-200 bg-white p-6 shadow-sm">
+                                <div className="mb-5">
+                                    <div className="h-6 w-40 bg-gray-200 animate-pulse rounded" />
+                                    <div className="mt-1 h-4 w-48 bg-gray-200 animate-pulse rounded" />
+                                </div>
+                                <div className="space-y-3">
+                                    {[...Array(2)].map((_, i) => (
+                                        <SkeletonPaymentMethod key={i} />
+                                    ))}
+                                    <div className="h-12 w-full bg-gray-200 animate-pulse rounded-lg" />
+                                </div>
+                            </div>
+                            <div className="rounded-sm border border-gray-200 bg-white p-6 shadow-sm">
+                                <div className="mb-5">
+                                    <div className="h-6 w-40 bg-gray-200 animate-pulse rounded" />
+                                    <div className="mt-1 h-4 w-48 bg-gray-200 animate-pulse rounded" />
+                                </div>
+                                <div className="space-y-4">
+                                    {[...Array(3)].map((_, i) => (
+                                        <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50">
+                                            <div className="h-6 w-6 bg-gray-200 animate-pulse rounded-full" />
+                                            <div className="flex-1">
+                                                <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
+                                                <div className="mt-1 h-3 w-48 bg-gray-200 animate-pulse rounded" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Transactions Table Skeleton */}
+                        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+                            <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-6 py-5">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-6 w-40 bg-gray-200 animate-pulse rounded" />
+                                    <div className="h-5 w-8 bg-gray-200 animate-pulse rounded-full" />
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-32 bg-gray-200 animate-pulse rounded-xl" />
+                                    <div className="h-10 w-28 bg-gray-200 animate-pulse rounded-xl" />
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full table-auto">
+                                    <thead className="border-b border-gray-100 bg-gray-50">
+                                        <tr>
+                                            {[...Array(5)].map((_, i) => (
+                                                <th key={i} className="px-6 py-3.5">
+                                                    <div className="h-3 w-16 bg-gray-200 animate-pulse rounded" />
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {[...Array(5)].map((_, i) => (
+                                            <SkeletonTransactionRow key={i} />
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </main>
                 </div>
@@ -448,6 +573,7 @@ function ProviderWallet() {
         );
     }
 
+    // ── Main view ──
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role={sidebarRole} />
@@ -556,13 +682,14 @@ function ProviderWallet() {
 
                             <div className="space-y-3">
                                 {!hasPaymentMethods ? (
-                                    <EmptyState
-                                        icon={CreditCard}
-                                        title="No Payment Methods"
-                                        description="Add a payment method to receive your earnings. You can add M-Pesa, Visa, Mastercard, or Bank Account."
-                                        actionText="Add Payment Method"
-                                        onAction={openAddMethodModal}
-                                    />
+                                    <div className="py-8 text-center">
+                                        <p className="text-sm text-gray-500">
+                                            No payment methods added yet.
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            Add a payment method to receive your earnings.
+                                        </p>
+                                    </div>
                                 ) : (
                                     paymentMethods.map((method) => {
                                         const IconComponent = paymentMethodIcons[method.type] || CreditCard;
@@ -627,19 +754,17 @@ function ProviderWallet() {
                                     })
                                 )}
                                 
-                                {hasPaymentMethods && (
-                                    <button
-                                        onClick={openAddMethodModal}
-                                        className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[#056db3] px-3 py-3 text-md font-bold text-[#056db3] transition-colors hover:bg-blue-100 hover:text-[#056db3]"
-                                    >
-                                        <Plus className="h-4 w-4" />
-                                        Add Payment Method
-                                    </button>
-                                )}
+                                <button
+                                    onClick={openAddMethodModal}
+                                    className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[#056db3] px-3 py-3 text-md font-bold text-[#056db3] transition-colors hover:bg-blue-100 hover:text-[#056db3]"
+                                >
+                                    <Plus className="h-4 w-4" />
+                                    Add Payment Method
+                                </button>
                             </div>
                         </div>
 
-                        {/* ── Quick Stats / Getting Started ── */}
+                        {/* ── Quick Stats ── */}
                         <div className="rounded-sm border border-gray-200 bg-white p-6 shadow-sm">
                             <div className="mb-5">
                                 <h2 className="text-lg font-bold text-gray-800">
@@ -663,7 +788,7 @@ function ProviderWallet() {
                                     </div>
                                     <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50">
                                         <div className="mt-1 rounded-full bg-green-600 p-1.5">
-                                            <Gift className="h-4 w-4 text-white" />
+                                            <DollarSign className="h-4 w-4 text-white" />
                                         </div>
                                         <div>
                                             <p className="text-sm font-semibold text-gray-800">Get Paid</p>
@@ -672,7 +797,7 @@ function ProviderWallet() {
                                     </div>
                                     <div className="flex items-start gap-3 p-3 rounded-lg bg-purple-50">
                                         <div className="mt-1 rounded-full bg-purple-600 p-1.5">
-                                            <Sparkles className="h-4 w-4 text-white" />
+                                            <TrendingUp className="h-4 w-4 text-white" />
                                         </div>
                                         <div>
                                             <p className="text-sm font-semibold text-gray-800">Build Your Reputation</p>
@@ -745,11 +870,15 @@ function ProviderWallet() {
                         </div>
 
                         {!hasTransactions ? (
-                            <EmptyState
-                                icon={Clock}
-                                title="No Transactions Yet"
-                                description="You haven't completed any jobs yet. Start accepting service requests to begin earning and see your transaction history here."
-                            />
+                            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                                <div className="rounded-full bg-gray-100 p-6 mb-6">
+                                    <History className="h-16 w-16 text-gray-300" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800 mb-2">No Transactions Yet</h3>
+                                <p className="text-gray-500 max-w-md">
+                                    You haven't completed any jobs yet. Start accepting service requests to begin earning and see your transaction history here.
+                                </p>
+                            </div>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full table-auto">

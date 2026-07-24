@@ -4,7 +4,7 @@ import Home from "../pages/Home";
 import Login from "../pages/Login";
 import SignUp from "../pages/SignUp";
 import About from "../pages/About";
-
+import AdminEscrow from "../pages/Admin/AdminEscrow";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import AdminNotification from "../pages/Admin/Notification";
 import AdminSettings from "../pages/Admin/Settings";
@@ -62,6 +62,7 @@ export default function AppRouter() {
         <Route path="/admin/payouts/:payoutId" element={<PayoutDetails />} />
         <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/service-providers" element={<ServiceProviders />} />
+        <Route path="/admin/escrow" element={<AdminEscrow />} />
         {/* Client Routes */}
 
         <Route path="/client" element={<ClientDashboard />} />

@@ -124,7 +124,6 @@ export async function getWalletBalance(userId) {
   }
 }
 
-
 /**
  * Create a wallet for a user
  */
@@ -218,6 +217,7 @@ export async function getTransactionHistory(userId, params = {}) {
     throw handleError(error);
   }
 }
+
 // ─────────────────────────────────────────────
 // PAYMENT METHODS (UPDATED WITH REAL ENDPOINTS)
 // ─────────────────────────────────────────────
@@ -282,7 +282,7 @@ export async function deletePaymentMethod(userId, methodId) {
 }
 
 // ─────────────────────────────────────────────
-// M-PESA PAYMENT ENDPOINTS
+// M-PESA PAYMENT ENDPOINTS (CORRECTED)
 // ─────────────────────────────────────────────
 
 /**
@@ -290,12 +290,13 @@ export async function deletePaymentMethod(userId, methodId) {
  */
 export async function initiateSTKPush(paymentData) {
   try {
-    const response = await client.post("/mpesa/stk-push", {
+    // ✅ Using /transactions/stk-push endpoint from escrow_resource.py
+    const response = await client.post("/transactions/stk-push", {
       phone_number: paymentData.phone_number,
       amount: paymentData.amount,
-      booking_id: paymentData.booking_id,
+      booking_id: paymentData.booking_id || 1,
       client_id: paymentData.client_id,
-      provider_id: paymentData.provider_id,
+      provider_id: paymentData.provider_id || 1,
       commission_rate: paymentData.commission_rate || 10,
     });
     
@@ -315,33 +316,30 @@ export async function initiateSTKPush(paymentData) {
 /**
  * Get transaction status
  */
-export async function getTransactionStatus(transactionId) {
+export async function getTransactionStatus(checkoutRequestId) {
   try {
-    const response = await client.get(`/mpesa/transaction/${transactionId}`);
-    return normalizeTransaction(response.data);
+    // ✅ Using /transactions/status endpoint from escrow_resource.py
+    const response = await client.get(`/transactions/status/${checkoutRequestId}`);
+    return response.data;
   } catch (error) {
     throw handleError(error);
   }
 }
 
 /**
- * Initiate B2C payment (provider payout)
+ * Manual callback for testing
  */
-export async function initiateB2CPayment(payoutData) {
+export async function triggerManualCallback(checkoutRequestId, resultCode = 0, amount = null) {
   try {
-    const response = await client.post("/mpesa/b2c/send", {
-      payout_request_id: payoutData.payout_request_id,
-      phone_number: payoutData.phone_number,
-      amount: payoutData.amount,
-      provider_id: payoutData.provider_id,
+    // ✅ Using /transactions/mpesa/manual-callback endpoint from escrow_resource.py
+    const response = await client.post("/transactions/mpesa/manual-callback", {
+      checkout_request_id: checkoutRequestId,
+      result_code: resultCode,
+      result_desc: resultCode === 0 ? "Success" : "Failed",
+      mpesa_reference: `TEST-${Date.now()}`,
+      amount: amount
     });
-    
-    return {
-      message: response.data.message,
-      payoutId: response.data.payout_id,
-      status: response.data.status,
-      raw: response.data,
-    };
+    return response.data;
   } catch (error) {
     throw handleError(error);
   }
@@ -424,7 +422,7 @@ const walletService = {
   // M-Pesa endpoints
   initiateSTKPush,
   getTransactionStatus,
-  initiateB2CPayment,
+  triggerManualCallback,
 };
 
 export default walletService;

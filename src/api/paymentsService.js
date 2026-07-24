@@ -1,4 +1,4 @@
-// src/api/paymentsService.js - Updated with correct endpoints
+// src/api/paymentsService.js - Fully Updated
 
 import axios from "axios";
 
@@ -23,9 +23,6 @@ client.interceptors.request.use((config) => {
 // PAYOUT ENDPOINTS
 // ─────────────────────────────────────────────
 
-/**
- * Get all payout requests (Admin only)
- */
 export async function getPayoutRequests(params = {}) {
   try {
     const queryParams = new URLSearchParams();
@@ -43,9 +40,6 @@ export async function getPayoutRequests(params = {}) {
   }
 }
 
-/**
- * Get payout summary for admin dashboard
- */
 export async function getAdminStats() {
   try {
     const response = await client.get("/payouts/admin/summary");
@@ -75,9 +69,6 @@ export async function getAdminStats() {
   }
 }
 
-/**
- * Get provider payouts
- */
 export async function getProviderPayouts(providerId) {
   try {
     const response = await client.get(`/payouts/provider/${providerId}`);
@@ -91,9 +82,6 @@ export async function getProviderPayouts(providerId) {
   }
 }
 
-/**
- * Get provider pending payouts
- */
 export async function getProviderPendingPayouts(providerId) {
   try {
     const response = await client.get(`/payouts/provider/${providerId}/pending`);
@@ -107,9 +95,6 @@ export async function getProviderPendingPayouts(providerId) {
   }
 }
 
-/**
- * Create a payout request (Provider)
- */
 export async function createPayoutRequest(data) {
   try {
     const response = await client.post("/payouts", data);
@@ -119,9 +104,6 @@ export async function createPayoutRequest(data) {
   }
 }
 
-/**
- * Admin action on payout (Approve/Hold)
- */
 export async function updatePayoutStatus(payoutId, status, adminNote = null) {
   try {
     const response = await client.patch(`/payouts/${payoutId}/admin-action`, {
@@ -138,23 +120,14 @@ export async function updatePayoutStatus(payoutId, status, adminNote = null) {
   }
 }
 
-/**
- * Approve a payout (convenience function)
- */
 export async function approvePayout(payoutId) {
   return updatePayoutStatus(payoutId, "approved");
 }
 
-/**
- * Hold a payout (convenience function)
- */
 export async function holdPayout(payoutId, reason) {
   return updatePayoutStatus(payoutId, "held", reason);
 }
 
-/**
- * Cancel a payout (Provider)
- */
 export async function cancelPayoutRequest(payoutId) {
   try {
     const response = await client.patch(`/payouts/${payoutId}/cancel`);
@@ -169,22 +142,11 @@ export async function cancelPayoutRequest(payoutId) {
 }
 
 // ─────────────────────────────────────────────
-// STK PUSH (M-PESA PAYMENT) - UPDATED ENDPOINTS
+// STK PUSH ENDPOINTS
 // ─────────────────────────────────────────────
 
-/**
- * Initiate STK Push payment
- * @param {Object} data - Payment data
- * @param {string} data.phone_number - M-Pesa phone number (254 format)
- * @param {number} data.amount - Amount to pay
- * @param {number} data.booking_id - Booking ID
- * @param {number} data.client_id - Client ID
- * @param {number} data.provider_id - Provider ID
- * @param {number} data.commission_rate - Commission rate (default 10)
- */
 export async function initiateSTKPush(data) {
   try {
-    // Using /transactions/stk-push endpoint from escrow_resource.py
     const response = await client.post("/transactions/stk-push", {
       phone_number: data.phone_number,
       amount: data.amount,
@@ -202,13 +164,8 @@ export async function initiateSTKPush(data) {
   }
 }
 
-/**
- * Check transaction status
- * @param {string} checkoutRequestId - The checkout request ID from STK Push
- */
 export async function checkTransactionStatus(checkoutRequestId) {
   try {
-    // Using /transactions/status endpoint from escrow_resource.py
     const response = await client.get(`/transactions/status/${checkoutRequestId}`);
     return response.data;
   } catch (error) {
@@ -218,10 +175,7 @@ export async function checkTransactionStatus(checkoutRequestId) {
     throw error;
   }
 }
-/**
- * MANUAL CALLBACK FOR TESTING
- * Use this to complete a transaction without receiving STK Push on phone
- */
+
 export async function triggerManualCallback(checkoutRequestId, resultCode = 0, amount = null) {
   try {
     const response = await client.post("/transactions/mpesa/manual-callback", {
@@ -239,11 +193,97 @@ export async function triggerManualCallback(checkoutRequestId, resultCode = 0, a
     throw error;
   }
 }
+
+// ─────────────────────────────────────────────
+// ESCROW ENDPOINTS
+// ─────────────────────────────────────────────
+
+export async function getEscrowTransactions(status = null) {
+  try {
+    const url = status ? `/transactions/escrow/all?status=${status}` : "/transactions/escrow/all";
+    const response = await client.get(url);
+    const data = response.data || [];
+    
+    // Transform data to ensure consistency
+    return data.map(t => ({
+      id: t.id,
+      booking_id: t.booking_id,
+      client_id: t.client_id,
+      provider_id: t.provider_id,
+      provider_name: t.provider_name || `Provider #${t.provider_id}`,
+      gross_amount: t.gross_amount || 0,
+      net_amount: t.net_amount || 0,
+      commission_amount: t.commission_amount || 0,
+      commission_rate: t.commission_rate || 10,
+      status: t.status || "PENDING",
+      mpesa_reference: t.mpesa_reference || null,
+      checkout_request_id: t.checkout_request_id || null,
+      payer_phone: t.payer_phone || null,
+      created_at: t.created_at || null,
+      released_at: t.released_at || null,
+      released_by: t.released_by || null,
+    }));
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      console.warn("Escrow endpoint not available yet");
+      return [];
+    }
+    throw error;
+  }
+}
+
+export async function getBookingEscrowTransaction(bookingId) {
+  try {
+    const response = await client.get(`/transactions/booking/${bookingId}`);
+    return response.data || [];
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+export async function releaseEscrowFunds(transactionId, adminId) {
+  try {
+    const response = await client.patch(`/transactions/escrow/${transactionId}/release`, {
+      admin_id: adminId,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || "Failed to release funds");
+    }
+    throw error;
+  }
+}
+
+export async function getEscrowSummary() {
+  try {
+    const response = await client.get("/transactions/admin/escrow/summary");
+    return response.data;
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      return {
+        total_in_escrow: 0,
+        total_released: 0,
+        pending_count: 0,
+        completed_count: 0,
+        released_count: 0,
+        formatted_escrow: "KES 0.00",
+        formatted_released: "KES 0.00",
+      };
+    }
+    throw error;
+  }
+}
+
 // ─────────────────────────────────────────────
 // EXPORT
 // ─────────────────────────────────────────────
 
 const paymentsService = {
+  // Payouts
   getPayoutRequests,
   getAdminStats,
   getProviderPayouts,
@@ -253,9 +293,17 @@ const paymentsService = {
   approvePayout,
   holdPayout,
   cancelPayoutRequest,
+  
+  // STK Push
   initiateSTKPush,
   checkTransactionStatus,
   triggerManualCallback,
+  
+  // Escrow
+  getEscrowTransactions,
+  getBookingEscrowTransaction,
+  releaseEscrowFunds,
+  getEscrowSummary,
 };
 
 export default paymentsService;

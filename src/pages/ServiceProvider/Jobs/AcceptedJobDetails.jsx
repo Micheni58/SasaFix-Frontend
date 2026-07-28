@@ -469,7 +469,7 @@ function AcceptedJobDetails() {
                 <button
                   onClick={() => setModalType("start")}
                   disabled={actionLoading}
-                  className="w-full flex items-center justify-center gap-2 bg-green-600 border-2 border-green-600 text-white font-semibold py-3 px-2 rounded-lg hover:bg-green-700 hover:border-green-700 transition-colors disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 bg-green-600 border-2 border-green-600 text-white font-semibold py-2 px-2 rounded-lg hover:bg-green-700 hover:border-green-700 transition-colors disabled:opacity-50"
                 >
                   {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlayCircle className="w-5 h-5" />}
                   Start Work
@@ -477,7 +477,7 @@ function AcceptedJobDetails() {
 
                 {/* ── Message Client - Blue border ── */}
                 <Link to={`/client/messages?client=${bookingId}`}>
-                  <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-3 px-2 rounded-lg hover:bg-blue-50 transition-colors">
+                  <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-50 transition-colors">
                     <MessageSquare className="w-5 h-5" />
                     Message Client
                   </button>
@@ -486,7 +486,7 @@ function AcceptedJobDetails() {
                 {/* ── Request Reschedule - Grey border with mt-4 ── */}
                 <button
                   onClick={() => setShowRescheduleModal(true)}
-                  className="w-full flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 font-semibold py-3 px-2 rounded-lg hover:bg-gray-50 transition-colors mt-4"
+                  className="w-full flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 font-semibold py-2 px-2 rounded-lg hover:bg-gray-50 transition-colors mt-4"
                 >
                   <RotateCcw className="w-5 h-5" />
                   Request Reschedule

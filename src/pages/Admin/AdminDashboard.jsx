@@ -1,4 +1,4 @@
-// src/pages/Admin/AdminDashboard.jsx - Fixed Chart
+// src/pages/Admin/AdminDashboard.jsx - Updated Payout Integration
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -18,6 +18,7 @@ import {
   Activity,
   CreditCard,
   Download,
+  Wallet,
 } from "lucide-react";
 import {
   LineChart,
@@ -58,30 +59,34 @@ function formatDate(date) {
 
 function getStatusStyles(status) {
   const styles = {
-    Completed: "bg-green-100 text-green-700",
+    "Completed": "bg-green-100 text-green-700",
     "In Progress": "bg-blue-100 text-blue-700",
-    Scheduled: "bg-amber-100 text-amber-700",
-    Pending: "bg-yellow-100 text-yellow-700",
-    Cancelled: "bg-red-100 text-red-700",
+    "Scheduled": "bg-amber-100 text-amber-700",
+    "Pending": "bg-yellow-100 text-yellow-700",
+    "Cancelled": "bg-red-100 text-red-700",
     "New Requests": "bg-amber-50 text-amber-700",
-    Accepted: "bg-green-200 text-green-700",
-    Approved: "bg-green-100 text-green-700",
-    Rejected: "bg-red-100 text-red-700",
+    "Accepted": "bg-green-200 text-green-700",
+    "Approved": "bg-green-100 text-green-700",
+    "Rejected": "bg-red-100 text-red-700",
+    "Paid": "bg-emerald-100 text-emerald-700",
+    "Rescheduled": "bg-purple-100 text-purple-700",
   };
   return styles[status] || "bg-gray-100 text-gray-700";
 }
 
 function getStatusIcon(status) {
   const icons = {
-    Completed: CheckCircle,
+    "Completed": CheckCircle,
     "In Progress": Clock,
-    Scheduled: Calendar,
-    Pending: Clock,
-    Cancelled: XCircle,
+    "Scheduled": Calendar,
+    "Pending": Clock,
+    "Cancelled": XCircle,
     "New Requests": AlertTriangle,
-    Accepted: CheckCircle,
-    Approved: CheckCircle,
-    Rejected: XCircle,
+    "Accepted": CheckCircle,
+    "Approved": CheckCircle,
+    "Rejected": XCircle,
+    "Paid": CheckCircle,
+    "Rescheduled": Clock,
   };
   return icons[status] || Activity;
 }
@@ -124,7 +129,7 @@ function SkeletonQuickStats() {
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
       <div className="h-6 w-32 animate-pulse rounded bg-gray-200 mb-4" />
       <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-gray-200 animate-pulse">
@@ -216,7 +221,6 @@ function BookingChart({ data }) {
   const [chartReady, setChartReady] = useState(false);
 
   useEffect(() => {
-    // Small delay to ensure the DOM is ready
     const timer = setTimeout(() => {
       setChartReady(true);
     }, 100);
@@ -290,6 +294,7 @@ function AdminDashboard() {
     platformCommission: 0,
     totalRevenue: 0,
     pendingPayouts: 0,
+    totalPaid: 0,
   });
 
   const [bookingData, setBookingData] = useState([]);
@@ -305,6 +310,7 @@ function AdminDashboard() {
     setError(null);
 
     try {
+      // ── Fetch Users ──
       let totalUsers = 0;
       try {
         const resp = await fetch("/api/users");
@@ -317,6 +323,7 @@ function AdminDashboard() {
         console.info("Users endpoint not yet available");
       }
 
+      // ── Fetch Providers ──
       let totalProviders = 0;
       try {
         const resp = await fetch("/api/service-providers");
@@ -329,95 +336,139 @@ function AdminDashboard() {
         console.info("Service providers endpoint not yet available");
       }
 
-      let activeBookings = [];
-      let activeBookingsCount = 0;
+      // ── Fetch ALL Bookings from admin endpoint ──
+      let allBookings = [];
       try {
-        activeBookings = await bookingService.listActiveBookings();
-        if (Array.isArray(activeBookings)) {
-          activeBookingsCount = activeBookings.length;
+        const resp = await fetch("/api/bookings/admin/all");
+        if (resp.ok) {
+          const data = await resp.json();
+          allBookings = Array.isArray(data) ? data : [];
+          console.log("📊 All bookings from admin endpoint:", allBookings);
+        } else {
+          // Fallback: get active bookings
+          const active = await bookingService.listActiveBookings();
+          allBookings = active || [];
         }
       } catch (e) {
-        console.warn("Active bookings endpoint not available");
+        console.warn("Admin bookings endpoint not available, using fallback");
+        try {
+          const active = await bookingService.listActiveBookings();
+          allBookings = active || [];
+        } catch (e2) {
+          allBookings = [];
+        }
       }
 
-      const allBookings = activeBookings || [];
+      // ── Calculate stats from ALL bookings ──
+      const completedBookings = allBookings.filter(b => {
+        const status = b.status || "";
+        const completedStatuses = ["Completed", "COMPLETED", "Paid", "PAID", "completed", "paid"];
+        return completedStatuses.includes(status);
+      });
+      
+      const totalRevenue = completedBookings.reduce((sum, b) => {
+        let amount = b.amount || b.amountRaw || 0;
+        if (typeof amount === "string" && amount.includes("KES")) {
+          amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
+        }
+        return sum + Number(amount);
+      }, 0);
 
-      let payoutStats = { total_pending_amount: 0, total_completed_amount: 0 };
+      // ── Calculate Platform Commission (10% of revenue) ──
+      const platformCommission = totalRevenue * 0.1;
+
+      // ── Fetch Payout Stats from paymentsService ──
+      let pendingPayouts = 0;
+      let totalPaid = 0;
       try {
         const statsData = await paymentsService.getAdminStats();
-        payoutStats = statsData || { total_pending_amount: 0, total_completed_amount: 0 };
+        console.log("📊 Payout stats from paymentsService:", statsData);
+        pendingPayouts = statsData.total_pending_amount || 0;
+        totalPaid = statsData.total_completed_amount || 0;
       } catch (e) {
         console.warn("Payout stats endpoint not available");
-      }
-
-      let totalRevenue = 0;
-      let commission = 0;
-      (allBookings || []).forEach((b) => {
-        const status = b.status || "";
-        const isPaidStatus = status === "Completed" || status === "Approved" || 
-                            status === "completed" || status === "approved";
-        
-        if (isPaidStatus) {
-          let amount = b.amountRaw || b.amount || 0;
+        // Fallback: calculate from bookings
+        const paidBookings = allBookings.filter(b => {
+          const status = b.status || "";
+          return status === "Paid" || status === "PAID" || status === "paid";
+        });
+        totalPaid = paidBookings.reduce((sum, b) => {
+          let amount = b.amount || b.amountRaw || 0;
           if (typeof amount === "string" && amount.includes("KES")) {
             amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
           }
-          totalRevenue += Number(amount);
-          commission += Number(amount) * 0.1;
-        }
+          return sum + Number(amount);
+        }, 0);
+      }
+
+      // ── Calculate active bookings ──
+      const activeBookings = allBookings.filter(b => {
+        const status = b.status || "";
+        const activeStatuses = ["Pending", "pending", "Accepted", "accepted", "In Progress", "in progress", "New Requests", "new_requests"];
+        return activeStatuses.includes(status);
       });
 
+      // ── Prepare chart data (12 months) ──
       const months = Array.from({ length: 12 }, (_, i) => ({
         month: new Date(0, i).toLocaleString("default", { month: "short" }),
         bookings: 0,
       }));
 
-      (allBookings || []).forEach((b) => {
-        const dateStr = b.date || b.scheduled_date || null;
-        let d = dateStr ? new Date(dateStr) : null;
-        if (d && !isNaN(d.getTime())) {
-          const m = d.getMonth();
-          months[m].bookings += 1;
+      allBookings.forEach((b) => {
+        const dateStr = b.scheduled_date || b.date || b.raw?.scheduled_date || null;
+        if (dateStr) {
+          const d = new Date(dateStr);
+          if (!isNaN(d.getTime())) {
+            const m = d.getMonth();
+            months[m].bookings += 1;
+          }
         }
       });
 
       setBookingData(months);
 
-      const recent = ((allBookings || [])
+      // ── Recent Activities - Get names from API response ──
+      const recent = allBookings
         .slice(0, 10)
-        .filter((b) => b)
+        .filter(b => b)
         .map((b) => {
-          let amount = b.amountRaw || b.amount || 0;
+          let amount = b.amount || b.amountRaw || 0;
           if (typeof amount === "string" && amount.includes("KES")) {
             amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
           }
 
-          const clientName = b.client || b.clientName || `Client #${b.clientId}`;
-          const providerName = b.providerName || b.worker || `Provider #${b.serviceProviderId}`;
+          // ✅ Get names from the API response fields
+          const clientName = b.client_full_name || b.client || b.clientName || `Client #${b.client_id}`;
+          const providerName = b.provider_full_name || b.providerName || b.worker || `Provider #${b.service_provider_id}`;
+
+          const displayStatus = b.status || "Pending";
+          const displayStatusFormatted = displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1).toLowerCase();
 
           return {
             id: b.id,
             type: "Booking",
             worker: providerName,
             client: clientName,
-            service: b.service || "",
+            service: b.service_name || b.service || "",
             amount: Number(amount),
-            status: b.status || "Pending",
-            time: b.date || b.scheduled_date || "",
+            status: displayStatusFormatted,
+            time: b.scheduled_date || b.date || b.raw?.scheduled_date || "",
             formattedAmount: formatCurrency(Number(amount)),
           };
-        }));
+        });
 
       setRecentActivities(recent);
 
+      // ── Set Stats ──
       setStats({
         totalUsers: totalUsers || 0,
         totalProviders: totalProviders || 0,
-        activeBookings: activeBookingsCount || 0,
+        activeBookings: activeBookings.length || 0,
         totalBookings: allBookings.length || 0,
-        platformCommission: Math.round(commission) || 0,
+        platformCommission: Math.round(platformCommission) || 0,
         totalRevenue: Math.round(totalRevenue) || 0,
-        pendingPayouts: payoutStats.total_pending_amount || 0,
+        pendingPayouts: Math.round(pendingPayouts) || 0,
+        totalPaid: Math.round(totalPaid) || 0,
       });
 
     } catch (err) {
@@ -455,11 +506,13 @@ function AdminDashboard() {
     const statusMap = {
       "pending": "Pending",
       "accepted": "Accepted",
-      "in_progress": "In Progress",
+      "in progress": "In Progress",
       "completed": "Completed",
       "approved": "Approved",
       "rejected": "Rejected",
       "cancelled": "Cancelled",
+      "paid": "Paid",
+      "rescheduled": "Rescheduled",
       "Pending": "Pending",
       "Accepted": "Accepted",
       "In Progress": "In Progress",
@@ -467,6 +520,8 @@ function AdminDashboard() {
       "Approved": "Approved",
       "Rejected": "Rejected",
       "Cancelled": "Cancelled",
+      "Paid": "Paid",
+      "Rescheduled": "Rescheduled",
       "New Requests": "New Requests",
     };
     return statusMap[status] || status || "Pending";
@@ -552,6 +607,7 @@ function AdminDashboard() {
             </button>
           </div>
 
+          {/* ── Stats Cards ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard
               title="Total Users"
@@ -587,16 +643,17 @@ function AdminDashboard() {
               iconBg="bg-green-100 text-green-600"
               trend={stats.platformCommission > 0 ? "+18.7%" : "0%"}
               isLoading={loading}
-              onClick={() => navigateTo("/admin/payments/commission")}
+              onClick={() => navigateTo("/admin/bookings-payments")}
             />
           </div>
 
+          {/* ── Chart & Quick Stats ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                 <div>
                   <h2 className="font-bold text-xl text-gray-800">Bookings Over Time</h2>
-                  <p className="text-gray-600 text-sm">All bookings created</p>
+                  <p className="text-gray-600 text-sm">All bookings ever created</p>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -615,7 +672,6 @@ function AdminDashboard() {
                   </Link>
                 </div>
               </div>
-              {/* ✅ FIX: Use the BookingChart component with a delay */}
               <BookingChart data={bookingData} />
             </div>
 
@@ -625,7 +681,7 @@ function AdminDashboard() {
                 <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-100 rounded-lg">
-                      <CreditCard className="h-5 w-5 text-blue-600" />
+                      <Wallet className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Total Revenue</p>
@@ -633,6 +689,18 @@ function AdminDashboard() {
                     </div>
                   </div>
                   <TrendingUp className="h-5 w-5 text-green-500" />
+                </div>
+                <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-100 rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Total Paid Out</p>
+                      <p className="font-bold text-gray-800">{formatCurrency(stats.totalPaid)}</p>
+                    </div>
+                  </div>
+                  <TrendingUp className="h-5 w-5 text-emerald-500" />
                 </div>
                 <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                   <div className="flex items-center gap-3">
@@ -646,22 +714,6 @@ function AdminDashboard() {
                   </div>
                   <AlertTriangle className="h-5 w-5 text-yellow-500" />
                 </div>
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Completion Rate</p>
-                      <p className="font-bold text-gray-800">
-                        {stats.totalBookings > 0
-                          ? `${Math.round((stats.activeBookings / stats.totalBookings) * 100)}%`
-                          : "0%"}
-                      </p>
-                    </div>
-                  </div>
-                  <Activity className="h-5 w-5 text-green-500" />
-                </div>
                 <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-purple-100 rounded-lg">
@@ -669,15 +721,16 @@ function AdminDashboard() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Total Bookings</p>
-                      <p className="font-bold text-gray-800">{stats.totalBookings}</p>
+                      <p className="font-bold text-gray-800">{stats.totalBookings.toLocaleString()}</p>
                     </div>
                   </div>
-                  <TrendingUp className="h-5 w-5 text-purple-500" />
+                  <Activity className="h-5 w-5 text-purple-500" />
                 </div>
               </div>
             </div>
           </div>
 
+          {/* ── Recent Activity Table ── */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-6 pb-0 flex items-center justify-between flex-wrap gap-4">
               <div>

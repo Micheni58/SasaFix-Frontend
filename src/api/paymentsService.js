@@ -1,5 +1,3 @@
-// src/api/paymentsService.js - Fully Updated
-
 import axios from "axios";
 
 const API_URL = "/api";
@@ -18,6 +16,41 @@ client.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// ─────────────────────────────────────────────
+// PAYMENT PROCESSING
+// ─────────────────────────────────────────────
+
+/**
+ * Process payment for a completed booking
+ * This triggers the payment flow for a booking
+ */
+export async function processBookingPayment(bookingId) {
+  try {
+    const response = await client.post(`/payments/booking/${bookingId}/process`);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || "Payment processing failed");
+    }
+    throw error;
+  }
+}
+
+/**
+ * Check payment status for a booking
+ */
+export async function getBookingPaymentStatus(bookingId) {
+  try {
+    const response = await client.get(`/payments/booking/${bookingId}/status`);
+    return response.data;
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      return { status: "not_found", message: "No payment found for this booking" };
+    }
+    throw error;
+  }
+}
 
 // ─────────────────────────────────────────────
 // PAYOUT ENDPOINTS
@@ -204,7 +237,6 @@ export async function getEscrowTransactions(status = null) {
     const response = await client.get(url);
     const data = response.data || [];
     
-    // Transform data to ensure consistency
     return data.map(t => ({
       id: t.id,
       booking_id: t.booking_id,
@@ -283,6 +315,10 @@ export async function getEscrowSummary() {
 // ─────────────────────────────────────────────
 
 const paymentsService = {
+  // Payment Processing
+  processBookingPayment,
+  getBookingPaymentStatus,
+  
   // Payouts
   getPayoutRequests,
   getAdminStats,

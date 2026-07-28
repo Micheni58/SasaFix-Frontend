@@ -11,24 +11,25 @@ import {
   RefreshCw,
   Inbox,
   CheckCircle,
+  Clock,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
 
-const tabs = ["All Bookings", "Upcoming", "In Progress", "Completed", "Cancelled", "Rejected"];
+const tabs = ["All Bookings", "Upcoming", "In Progress", "Completed", "Rescheduled", "Cancelled"];
 
 // ── Updated Status Colors ──
 const statusStyles = {
   "New Requests": "bg-amber-100 text-amber-800",
   "Pending": "bg-amber-100 text-amber-800",
-  "Upcoming": "bg-sky-100 text-sky-800",
+  "Upcoming": "bg-amber-100 text-amber-800",
   "Accepted": "bg-sky-100 text-sky-800",
   "In Progress": "bg-indigo-100 text-indigo-800",
   "Completed": "bg-green-100 text-green-800",
-  "Approved": "bg-green-100 text-green-800",
-  "Rejected": "bg-red-100 text-red-800",
+  "Rescheduled": "bg-purple-100 text-purple-800",
+  "Paid": "bg-emerald-100 text-emerald-800",
   "Cancelled": "bg-red-100 text-red-800",
 };
 
@@ -61,17 +62,17 @@ const emptyStateConfigs = {
     color: "bg-green-50",
     iconColor: "text-green-500",
   },
+  "Rescheduled": {
+    icon: Clock,
+    title: "No Rescheduled Bookings",
+    description: "You don't have any rescheduled bookings. When a booking is rescheduled, it will appear here.",
+    color: "bg-purple-50",
+    iconColor: "text-purple-500",
+  },
   "Cancelled": {
     icon: XCircle,
     title: "No Cancelled Bookings",
     description: "You don't have any cancelled bookings.",
-    color: "bg-red-50",
-    iconColor: "text-red-500",
-  },
-  "Rejected": {
-    icon: XCircle,
-    title: "No Rejected Bookings",
-    description: "You don't have any rejected bookings.",
     color: "bg-red-50",
     iconColor: "text-red-500",
   },
@@ -225,8 +226,8 @@ function getBookingRoute(booking) {
     "New Requests": `/client/my-bookings/upcoming/${booking.id}`,
     "In Progress": `/client/my-bookings/in-progress/${booking.id}`,
     "Completed": `/client/my-bookings/completed/${booking.id}`,
-    "Approved": `/client/my-bookings/approved/${booking.id}`,
-    "Rejected": `/client/my-bookings/rejected/${booking.id}`,
+    "Rescheduled": `/client/my-bookings/rescheduled/${booking.id}`,
+    "Paid": `/client/my-bookings/paid/${booking.id}`,
     "Cancelled": `/client/my-bookings/cancelled/${booking.id}`,
   };
   
@@ -274,7 +275,7 @@ function MyBookings() {
     fetchBookings();
   }, []);
 
-  // ── Fix: Upcoming should include "New Requests", "Pending", "Accepted" ──
+  // ── Fix: Upcoming should include "Upcoming", "Pending", "Accepted" ──
   const filteredBookings =
     activeTab === "All Bookings"
       ? bookings
@@ -298,9 +299,8 @@ function MyBookings() {
     ).length,
     "In Progress": bookings.filter((booking) => booking.status === "In Progress").length,
     Completed: bookings.filter((booking) => booking.status === "Completed").length,
-    Approved: bookings.filter((booking) => booking.status === "Approved").length,
+    Rescheduled: bookings.filter((booking) => booking.status === "Rescheduled").length,
     Cancelled: bookings.filter((booking) => booking.status === "Cancelled").length,
-    Rejected: bookings.filter((booking) => booking.status === "Rejected").length,
   };
 
   const getEmptyState = (tab) => {
@@ -333,7 +333,6 @@ function MyBookings() {
           <section className="mb-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="flex min-w-max">
               {tabs.map((tab) => {
-                const displayTab = tab === "Approved" ? "Approved" : tab;
                 const count = tabCounts[tab] || 0;
                 
                 return (
@@ -347,7 +346,7 @@ function MyBookings() {
                         : "border-transparent text-gray-600 hover:bg-gray-50"
                     }`}
                   >
-                    <span>{displayTab}</span>
+                    <span>{tab}</span>
                     <span
                       className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-semibold ${
                         activeTab === tab
@@ -493,8 +492,8 @@ function MyBookings() {
                                   Message
                                 </Link>
                                 {booking.status !== "Completed" && 
-                                 booking.status !== "Approved" && 
-                                 booking.status !== "Rejected" && 
+                                 booking.status !== "Paid" && 
+                                 booking.status !== "Rescheduled" && 
                                  booking.status !== "Cancelled" && (
                                   <button
                                     onClick={async () => {

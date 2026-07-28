@@ -144,6 +144,22 @@ export async function deleteNotification(notificationId) {
     await client.delete(`/notifications/${notificationId}`);
 }
 
+export async function createSystemNotification(userId, title, body, type = "system", relatedBookingId = null) {
+    try {
+        const response = await client.post("/notifications/", {
+            user_id: userId,
+            type: type,
+            title: title,
+            body: body,
+            related_booking_id: relatedBookingId,
+            send_email: true, // Send email notification too
+        });
+        return normalizeNotification(response.data);
+    } catch (error) {
+        console.error("Failed to create system notification:", error);
+        throw error;
+    }
+}
 // ─────────────────────────────────────────────
 // EXPORT
 // ─────────────────────────────────────────────
@@ -158,4 +174,5 @@ export default {
     markNotificationAsRead,
     markAllNotificationsAsRead,
     deleteNotification,
+    createSystemNotification,
 };

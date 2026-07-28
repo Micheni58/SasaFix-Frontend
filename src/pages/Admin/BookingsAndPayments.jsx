@@ -1,4 +1,4 @@
-// src/pages/admin/BookingsAndPayments.jsx - Fully Updated
+// src/pages/admin/BookingsAndPayments.jsx - Fully Updated with All Fixes
 
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -33,29 +33,30 @@ import Navbar from "../../components/Navbar";
 // HELPERS
 // ─────────────────────────────────────────────
 
-const statusOptions = ["All Status", "Completed", "In Progress", "Scheduled", "Pending", "Cancelled", "New Requests", "Accepted", "Approved", "Rejected"];
+const statusOptions = ["All Status", "Pending", "Accepted", "In Progress", "Completed", "Approved", "Paid", "Rescheduled", "Cancelled"];
 const payoutStatusOptions = ["All Status", "Pending", "Approved", "Processing", "Completed", "Failed", "Held"];
 const timeOptions = ["All Time", "This Week", "This Month", "This Quarter"];
 
 const bookingStatusStyles = {
-  Completed: "bg-green-100 text-green-700",
-  "In Progress": "bg-blue-100 text-blue-700",
-  Scheduled: "bg-amber-100 text-amber-700",
-  Pending: "bg-yellow-100 text-yellow-700",
-  Cancelled: "bg-red-100 text-red-700",
+  "Pending": "bg-yellow-100 text-yellow-700",
+  "Accepted": "bg-blue-100 text-blue-700",
+  "InProgress": "bg-amber-100 text-amber-700",
+  "Completed": "bg-green-100 text-green-700",
+  "Approved": "bg-green-100 text-green-700",
+  "Paid": "bg-emerald-100 text-emerald-700",
+  "Rescheduled": "bg-purple-100 text-purple-700",
+  "Cancelled": "bg-red-100 text-red-700",
   "New Requests": "bg-purple-100 text-purple-700",
-  Accepted: "bg-blue-100 text-blue-700",
-  Approved: "bg-green-100 text-green-700",
-  Rejected: "bg-red-100 text-red-700",
+  "Rejected": "bg-red-100 text-red-700",
 };
 
 const payoutStatusStyles = {
-  Pending: "bg-yellow-100 text-yellow-700",
-  Approved: "bg-blue-100 text-blue-700",
-  Processing: "bg-purple-100 text-purple-700",
-  Completed: "bg-green-100 text-green-700",
-  Failed: "bg-red-100 text-red-700",
-  Held: "bg-gray-100 text-gray-700",
+  "Pending": "bg-yellow-100 text-yellow-700",
+  "Approved": "bg-blue-100 text-blue-700",
+  "Processing": "bg-purple-100 text-purple-700",
+  "Completed": "bg-green-100 text-green-700",
+  "Failed": "bg-red-100 text-red-700",
+  "Held": "bg-gray-100 text-gray-700",
 };
 
 function formatDate(date) {
@@ -460,76 +461,171 @@ function BookingsAndPayments() {
     setError(null);
 
     try {
-      // ── Fetch ALL bookings ──
+      // ── Fetch ALL bookings from admin endpoint ──
       let allBookings = [];
+      let totalRevenue = 0;
+      let totalCommission = 0;
+
       try {
-        // Use listActiveBookings which returns normalized bookings
-        const bookingsData = await bookingService.listActiveBookings();
-        allBookings = bookingsData || [];
+        const resp = await fetch("/api/bookings/admin/all");
+        if (resp.ok) {
+          const data = await resp.json();
+          allBookings = Array.isArray(data) ? data : [];
+          
+          // Calculate revenue and commission from ALL bookings
+          allBookings.forEach((b) => {
+            const status = b.status || "";
+            const completedStatuses = ["Completed", "COMPLETED", "Paid", "PAID", "Approved", "APPROVED", "completed", "paid", "approved"];
+            
+            if (completedStatuses.includes(status)) {
+              let amount = b.amount || b.amountRaw || 0;
+              if (typeof amount === "string" && amount.includes("KES")) {
+                amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
+              }
+              totalRevenue += Number(amount);
+              totalCommission += Number(amount) * 0.1;
+            }
+          });
+        } else {
+          // Fallback: use bookingService
+          const bookingsData = await bookingService.listActiveBookings();
+          allBookings = bookingsData || [];
+          
+          allBookings.forEach((b) => {
+            const status = b.status || "";
+            const completedStatuses = ["Completed", "COMPLETED", "Paid", "PAID", "Approved", "APPROVED", "completed", "paid", "approved"];
+            
+            if (completedStatuses.includes(status)) {
+              let amount = b.amountRaw || b.amount || 0;
+              if (typeof amount === "string" && amount.includes("KES")) {
+                amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
+              }
+              totalRevenue += Number(amount);
+              totalCommission += Number(amount) * 0.1;
+            }
+          });
+        }
       } catch (bookingErr) {
-        console.warn("Bookings endpoint not available");
-        allBookings = [];
+        console.warn("Bookings endpoint not available:", bookingErr);
+        // Try fallback
+        try {
+          const bookingsData = await bookingService.listActiveBookings();
+          allBookings = bookingsData || [];
+          
+          allBookings.forEach((b) => {
+            const status = b.status || "";
+            const completedStatuses = ["Completed", "COMPLETED", "Paid", "PAID", "Approved", "APPROVED", "completed", "paid", "approved"];
+            
+            if (completedStatuses.includes(status)) {
+              let amount = b.amountRaw || b.amount || 0;
+              if (typeof amount === "string" && amount.includes("KES")) {
+                amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
+              }
+              totalRevenue += Number(amount);
+              totalCommission += Number(amount) * 0.1;
+            }
+          });
+        } catch (e2) {
+          allBookings = [];
+        }
       }
 
       // ── Fetch payouts ──
-      const payoutsData = await paymentsService.getPayoutRequests();
+      let payoutsData = [];
+      let pendingPayoutsTotal = 0;
+      try {
+        const response = await fetch("/api/payouts/admin/all");
+        if (response.ok) {
+          const data = await response.json();
+          payoutsData = Array.isArray(data) ? data : [];
+          
+          // Calculate pending payouts
+          payoutsData.forEach((p) => {
+            if (p.status === "pending" || p.status === "Pending" || p.status === "PENDING") {
+              pendingPayoutsTotal += Number(p.amount) || 0;
+            }
+          });
+        } else {
+          // Fallback to paymentsService
+          const statsData = await paymentsService.getAdminStats();
+          pendingPayoutsTotal = statsData.total_pending_amount || 0;
+          
+          const payouts = await paymentsService.getPayoutRequests();
+          payoutsData = payouts || [];
+        }
+      } catch (payoutErr) {
+        console.warn("Payouts endpoint not available:", payoutErr);
+        try {
+          const statsData = await paymentsService.getAdminStats();
+          pendingPayoutsTotal = statsData.total_pending_amount || 0;
+        } catch (e2) {
+          pendingPayoutsTotal = 0;
+        }
+      }
 
-      // ── Fetch stats ──
-      const statsData = await paymentsService.getAdminStats();
-
-      // ── Transform bookings (ALL statuses will be shown) ──
-      const formattedBookings = (allBookings || []).map((b) => ({
-        id: b.id,
-        client: b.client || b.clientName || `Client #${b.clientId}` || "Unknown Client",
-        provider: b.providerName || b.worker || `Provider #${b.serviceProviderId}` || "Unknown Provider",
-        service: b.service || b.service_name || "Service Not Specified",
-        date: b.date || b.scheduledDate || b.scheduled_date || b.booking_date || null,
-        amount: b.amount || 0,
-        commission: b.commission || b.commission_amount || 0,
-        status: b.status || "Pending",
-        providerId: b.providerId || b.serviceProviderId,
-        clientId: b.clientId,
-        bookingDate: b.created_at || b.createdAt,
-        description: b.details || b.description || b.service_description || "",
-        location: b.location || b.service_location || "",
-        scheduledDate: b.scheduled_date || b.date,
-        lastUpdated: b.updated_at || b.updatedAt,
-        clientEmail: b.clientEmail || b.clientObj?.email || "",
-        clientPhone: b.clientPhone || b.clientObj?.phone || "",
-        providerEmail: b.providerEmail || "",
-        providerPhone: b.providerPhone || "",
-        providerCategory: b.providerCategory || "",
-        providerRating: b.providerRating || 0,
-        providerReviews: b.providerReviews || 0,
-        providerPayout: b.providerPayout || b.net_amount || (b.amount - b.commission),
-        mpesaRef: b.mpesaRef || b.mpesa_reference || "",
-        initials: b.initials || getInitials(b.providerName || b.worker),
-        clientInitials: b.clientInitials || getInitials(b.client || b.clientName),
-      }));
+      // ── Transform bookings ──
+      const formattedBookings = (allBookings || []).map((b) => {
+        const status = b.status || "Pending";
+        const statusDisplay = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+        
+        return {
+          id: b.id,
+          client: b.client_full_name || b.client || b.clientName || `Client #${b.client_id}`,
+          provider: b.provider_full_name || b.providerName || b.worker || `Provider #${b.service_provider_id}`,
+          service: b.service_name || b.service || "Service Not Specified",
+          date: b.scheduled_date || b.date || null,
+          amount: b.amount || b.amountRaw || 0,
+          commission: (b.amount || b.amountRaw || 0) * 0.1,
+          status: statusDisplay,
+          providerId: b.service_provider_id || b.serviceProviderId,
+          clientId: b.client_id || b.clientId,
+          bookingDate: b.created_at || b.createdAt,
+          description: b.description || b.details || "",
+          location: b.location || "",
+          scheduledDate: b.scheduled_date || b.date,
+          lastUpdated: b.updated_at || b.updatedAt,
+          clientEmail: b.client_email || "",
+          clientPhone: b.client_phone || "",
+          providerEmail: b.provider_email || "",
+          providerPhone: b.provider_phone || "",
+          providerCategory: b.provider_category || "",
+          providerRating: b.provider_rating || 0,
+          providerReviews: b.provider_reviews || 0,
+          providerPayout: (b.amount || b.amountRaw || 0) * 0.9,
+          mpesaRef: b.mpesa_reference || "",
+          initials: getInitials(b.provider_full_name || b.providerName || b.worker),
+          clientInitials: getInitials(b.client_full_name || b.client || b.clientName),
+        };
+      });
 
       // ── Transform payouts ──
-      const formattedPayouts = (payoutsData || []).map((p) => ({
-        id: p.id,
-        provider_id: p.provider_id,
-        provider: p.provider_name || `Provider #${p.provider_id}`,
-        amount: p.amount || 0,
-        jobsCompleted: p.jobs_completed || p.jobsCount || 0,
-        requestDate: p.requested_at || p.created_at || p.requestDate,
-        status: p.status || "Pending",
-        providerId: p.provider_id,
-        phone: p.phone || p.payout_destination,
-        method: p.payout_method || "mpesa",
-        admin_note: p.admin_note,
-        processed_at: p.processed_at,
-        formatted_amount: p.formatted_amount || formatCurrency(p.amount),
-      }));
+      const formattedPayouts = (payoutsData || []).map((p) => {
+        const status = p.status || "Pending";
+        const statusDisplay = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+        
+        return {
+          id: p.id,
+          provider_id: p.provider_id,
+          provider: p.provider_name || `Provider #${p.provider_id}`,
+          amount: p.amount || 0,
+          jobsCompleted: p.jobs_completed || p.jobsCount || 0,
+          requestDate: p.requested_at || p.created_at || p.requestDate,
+          status: statusDisplay,
+          providerId: p.provider_id,
+          phone: p.phone || p.payout_destination,
+          method: p.payout_method || "mpesa",
+          admin_note: p.admin_note,
+          processed_at: p.processed_at,
+          formatted_amount: p.formatted_amount || formatCurrency(p.amount),
+        };
+      });
 
       setBookings(formattedBookings);
       setPayouts(formattedPayouts);
       setStats({
-        totalRevenue: statsData.total_revenue || 0,
-        totalCommission: statsData.total_commission || 0,
-        pendingPayouts: statsData.pending_payouts || 0,
+        totalRevenue: Math.round(totalRevenue),
+        totalCommission: Math.round(totalCommission),
+        pendingPayouts: Math.round(pendingPayoutsTotal),
       });
 
     } catch (err) {
@@ -630,12 +726,12 @@ function BookingsAndPayments() {
         )
       );
       
+      // Refresh stats
       const statsData = await paymentsService.getAdminStats();
-      setStats({
-        totalRevenue: statsData.total_revenue || 0,
-        totalCommission: statsData.total_commission || 0,
-        pendingPayouts: statsData.pending_payouts || 0,
-      });
+      setStats((prev) => ({
+        ...prev,
+        pendingPayouts: statsData.total_pending_amount || 0,
+      }));
 
       setShowApproveModal(false);
       setSelectedPayout(null);
@@ -723,7 +819,6 @@ function BookingsAndPayments() {
         <div className="flex-1 ml-72 min-w-0">
           <Navbar />
           <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full overflow-x-hidden">
-            {/* Header Skeleton */}
             <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
               <div>
                 <div className="h-9 w-64 animate-pulse rounded bg-gray-200" />
@@ -731,26 +826,18 @@ function BookingsAndPayments() {
               </div>
               <div className="h-10 w-28 animate-pulse rounded-lg bg-gray-200" />
             </div>
-
-            {/* Stats Skeleton */}
             <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[...Array(3)].map((_, i) => (
                 <SkeletonStatCard key={i} />
               ))}
             </div>
-
-            {/* Tabs Skeleton */}
             <div className="mb-6 border-b border-gray-200">
               <div className="flex gap-6 md:gap-8">
                 <div className="h-10 w-32 animate-pulse rounded bg-gray-200" />
                 <div className="h-10 w-40 animate-pulse rounded bg-gray-200" />
               </div>
             </div>
-
-            {/* Filters Skeleton */}
             <SkeletonFilters />
-
-            {/* Table Skeleton */}
             <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
               <SkeletonTable />
             </div>
@@ -829,7 +916,7 @@ function BookingsAndPayments() {
               label="Commission This Month"
               value={formatCurrency(stats.totalCommission)}
               isLoading={loading}
-              sub="Platform earnings"
+              sub="Platform earnings (10%)"
               isEmpty={stats.totalCommission === 0}
             />
             <StatCard

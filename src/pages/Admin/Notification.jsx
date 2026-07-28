@@ -1,7 +1,7 @@
-// src/pages/Admin/Notification.jsx - With Skeleton Loaders
+// src/pages/Admin/Notification.jsx - Fully Functional with Real Data
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, DollarSign, MessageCircle, Bell, Trash2, Loader2, RefreshCw, Users, CheckCircle, Clock3 } from "lucide-react";
+import { AlertTriangle, DollarSign, MessageCircle, Bell, Trash2, Loader2, RefreshCw, Users, CheckCircle, Clock3, Package, TrendingUp, Wallet,Calendar} from "lucide-react";
 import {
     deleteNotification,
     fetchNotifications,
@@ -21,15 +21,34 @@ const tabs = ["All", "Unread", "Bookings", "Payments", "Messages", "Reports"];
 function IconFor({ type }) {
     switch (type) {
         case "booking":
-            return <AlertTriangle className="h-5 w-5 text-[#056db3]" />;
+            return <Calendar className="h-5 w-5 text-[#056db3]" />;
         case "payment":
-            return <DollarSign className="h-5 w-5 text-[#056db3]" />;
+            return <Wallet className="h-5 w-5 text-emerald-600" />;
         case "message":
-            return <MessageCircle className="h-5 w-5 text-[#056db3]" />;
+            return <MessageCircle className="h-5 w-5 text-purple-600" />;
         case "report":
-            return <Users className="h-5 w-5 text-[#056db3]" />;
+            return <AlertTriangle className="h-5 w-5 text-amber-600" />;
+        case "system":
+            return <Bell className="h-5 w-5 text-blue-600" />;
         default:
-            return <Bell className="h-5 w-5 text-[#056db3]" />;
+            return <Bell className="h-5 w-5 text-gray-500" />;
+    }
+}
+
+function getNotificationColor(type) {
+    switch (type) {
+        case "booking":
+            return "bg-blue-50 border-blue-100";
+        case "payment":
+            return "bg-emerald-50 border-emerald-100";
+        case "message":
+            return "bg-purple-50 border-purple-100";
+        case "report":
+            return "bg-amber-50 border-amber-100";
+        case "system":
+            return "bg-blue-50 border-blue-100";
+        default:
+            return "bg-gray-50 border-gray-100";
     }
 }
 
@@ -128,15 +147,30 @@ export default function AdminNotification() {
     const [error, setError] = useState(null);
     const [unreadCount, setUnreadCount] = useState(0);
 
+    // Get the logged-in user ID
+    const getUserId = () => {
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+        return storedUser.id || storedUser.user_id || null;
+    };
+
+    const userId = getUserId();
+
     const fetchData = async (showRefresh = false) => {
         if (showRefresh) setRefreshing(true);
         else setLoading(true);
         setError(null);
 
+        if (!userId) {
+            setError("User not logged in");
+            setLoading(false);
+            setRefreshing(false);
+            return;
+        }
+
         try {
             const [data, count] = await Promise.all([
-                fetchNotifications(),
-                fetchUnreadNotificationCount(),
+                fetchNotifications(userId),
+                fetchUnreadNotificationCount(userId),
             ]);
             setNotifications(data || []);
             setUnreadCount(count || 0);
@@ -152,7 +186,7 @@ export default function AdminNotification() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [userId]);
 
     const filtered = useMemo(() => {
         if (activeTab === "Unread") return notifications.filter((n) => !n.read);
@@ -189,18 +223,18 @@ export default function AdminNotification() {
     };
 
     const markAllRead = async () => {
-        if (unreadCount === 0) return;
+        if (unreadCount === 0 || !userId) return;
 
         const previousNotifications = notifications;
         setNotifications((s) => s.map((n) => ({ ...n, read: true })));
         setUnreadCount(0);
 
         try {
-            await markAllNotificationsAsRead();
+            await markAllNotificationsAsRead(userId);
         } catch (err) {
             console.error(err);
             setNotifications(previousNotifications);
-            const count = await fetchUnreadNotificationCount();
+            const count = await fetchUnreadNotificationCount(userId);
             setUnreadCount(count);
         }
     };
@@ -226,17 +260,12 @@ export default function AdminNotification() {
                     <Navbar />
                     <main className="pt-24 px-6 pb-6">
                         <div className="max-w-5xl mx-auto">
-                            {/* Header Skeleton */}
                             <section className="mb-6">
                                 <SkeletonHeader />
                             </section>
-
-                            {/* Tabs Skeleton */}
                             <section className="mb-6">
                                 <SkeletonTabs />
                             </section>
-
-                            {/* Notifications List Skeleton */}
                             <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                                 <SkeletonNotificationList />
                             </section>
@@ -307,7 +336,7 @@ export default function AdminNotification() {
                                         className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                                     >
                                         <CheckCircle className="h-4 w-4" />
-                                        Mark all read
+                                        Mark all read ({unreadCount})
                                     </button>
                                 )}
                                 <button
@@ -372,12 +401,14 @@ export default function AdminNotification() {
                                         <div
                                             key={n.id}
                                             onClick={() => markRead(n.id)}
-                                            className={`flex items-center gap-4 rounded-lg px-4 py-3 cursor-pointer transition-colors ${
-                                                n.read ? "bg-white hover:bg-gray-50" : "bg-blue-50 hover:bg-blue-100"
+                                            className={`flex items-center gap-4 rounded-lg px-4 py-3 cursor-pointer transition-colors border ${
+                                                n.read 
+                                                    ? `bg-white hover:bg-gray-50 border-gray-100` 
+                                                    : `bg-blue-50 hover:bg-blue-100 border-blue-200`
                                             }`}
                                         >
                                             <div className="shrink-0">
-                                                <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-white border border-gray-100">
+                                                <div className={`h-10 w-10 flex items-center justify-center rounded-lg ${getNotificationColor(n.type)}`}>
                                                     <IconFor type={n.type} />
                                                 </div>
                                             </div>
@@ -386,7 +417,7 @@ export default function AdminNotification() {
                                                 <p className={`text-sm ${n.read ? "font-medium" : "font-semibold"} text-gray-900`}>
                                                     {n.title}
                                                 </p>
-                                                <p className="mt-0.5 text-sm text-gray-600 truncate">{n.text}</p>
+                                                <p className="mt-0.5 text-sm text-gray-600 truncate">{n.body}</p>
                                                 {n.relatedBookingId && (
                                                     <p className="mt-0.5 text-xs text-[#056db3]">
                                                         Booking #{n.relatedBookingId}
@@ -421,3 +452,5 @@ export default function AdminNotification() {
         </div>
     );
 }
+
+// ── Missing import ──

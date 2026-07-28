@@ -40,6 +40,8 @@ import CompletedBookingDetails from "../pages/Client/bookings/CompletedBookingDe
 import ApprovedBookingDetails from "../pages/Client/bookings/ApprovedBookingDetails";
 import InProgressBookingDetails from "../pages/Client/bookings/InProgressBookingDetails";
 import RejectedBookingDetails from "../pages/Client/bookings/RejectedBookingDetails";
+import RescheduledJobDetails from "../pages/ServiceProvider/Jobs/RescheduledJobDetails";
+import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBookingDetails";
 
 export default function AppRouter() {
   return (
@@ -78,7 +80,8 @@ export default function AppRouter() {
         <Route path="/client/my-bookings/cancelled/:bookingId" element={<CancelledBookingDetails />} />
         <Route path="/client/my-bookings/upcoming/:bookingId" element={<UpcomingBookingDetails />} />
         <Route path="/client/my-bookings/rejected/:bookingId" element={<RejectedBookingDetails />} />
-        
+        <Route path="/client/my-bookings/rescheduled/:bookingId" element={<RescheduledBookingDetails />} />
+
         <Route path="/provider" element={<ProviderDashboard />} />
         <Route path="/provider/messages" element={<ClientMessages />} />
         <Route path="/provider/wallet" element={<ClientWallet />} />
@@ -86,7 +89,7 @@ export default function AppRouter() {
         <Route path="/provider/availability" element={<Availability />} />
         <Route path="/provider/notifications" element={<ProviderNotification />}/>
         <Route path="/provider/my-reviews" element={<Reviews />} />
-
+        <Route path="/provider/my-jobs/rescheduled/:id" element={<RescheduledJobDetails />}/>
         <Route path="/profile" element={<Profile />} />
 
         <Route path="/provider/my-jobs" element={<MyJobs />} />

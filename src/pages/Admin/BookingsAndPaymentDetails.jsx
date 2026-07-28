@@ -1,4 +1,4 @@
-// src/pages/admin/BookingsAndPaymentsDetails.jsx - Fully Updated with Release Funds
+// src/pages/admin/BookingsAndPaymentsDetails.jsx - Fixed Timeline (Removed Approve/Reject)
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -23,8 +23,6 @@ import {
   RefreshCw,
   AlertCircle,
   MessageSquare,
-  ThumbsUp,
-  ThumbsDown,
   AlertTriangle,
   History,
 } from "lucide-react";
@@ -43,11 +41,14 @@ import Navbar from "../../components/Navbar";
 const statusStyles = {
   "pending": "bg-yellow-100 text-yellow-700",
   "accepted": "bg-blue-100 text-blue-700",
-  "in_progress": "bg-amber-100 text-amber-700",
+  "in progress": "bg-amber-100 text-amber-700",
+  "in progress": "bg-amber-100 text-amber-700",
   "completed": "bg-green-100 text-green-700",
   "approved": "bg-green-100 text-green-700",
   "rejected": "bg-red-100 text-red-700",
   "cancelled": "bg-red-100 text-red-700",
+  "paid": "bg-emerald-100 text-emerald-700",
+  "rescheduled": "bg-purple-100 text-purple-700",
   "Pending": "bg-yellow-100 text-yellow-700",
   "Accepted": "bg-blue-100 text-blue-700",
   "In Progress": "bg-amber-100 text-amber-700",
@@ -56,17 +57,31 @@ const statusStyles = {
   "Rejected": "bg-red-100 text-red-700",
   "Cancelled": "bg-red-100 text-red-700",
   "New Requests": "bg-purple-100 text-purple-700",
+  "Paid": "bg-emerald-100 text-emerald-700",
+  "Rescheduled": "bg-purple-100 text-purple-700",
 };
 
 const statusDisplayMap = {
   "pending": "Pending",
   "accepted": "Accepted",
-  "in_progress": "In Progress",
+  "inprogress": "In Progress",
+  "in progress": "In Progress",
   "completed": "Completed",
   "approved": "Approved",
   "rejected": "Rejected",
   "cancelled": "Cancelled",
+  "paid": "Paid",
+  "rescheduled": "Rescheduled",
 };
+
+// Define the order of statuses for timeline progression
+const STATUS_ORDER = [
+  "pending",
+  "accepted",
+  "inprogress",
+  "completed",
+  "paid"
+];
 
 function formatDate(date) {
   if (!date) return "-";
@@ -107,7 +122,8 @@ function getInitials(name) {
 }
 
 function getStatusDisplay(status) {
-  return statusDisplayMap[status?.toLowerCase()] || status || "Pending";
+  const lowerStatus = status?.toLowerCase() || "pending";
+  return statusDisplayMap[lowerStatus] || status || "Pending";
 }
 
 // ─────────────────────────────────────────────
@@ -208,13 +224,15 @@ function SummaryCard({ icon: Icon, iconBg, iconColor, label, value, isLoading })
   );
 }
 
-function TimelineItem({ task, completed, isLast }) {
+function TimelineItem({ task, completed, isLast, timestamp }) {
   return (
     <div className={`relative flex gap-4 ${!isLast ? "pb-8" : ""}`}>
       {!isLast && (
         <div className="absolute left-5 top-10 h-full w-0.5 bg-gray-200" />
       )}
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white border-2 border-gray-200">
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 ${
+        completed ? "border-green-500 bg-green-50" : "border-gray-300 bg-gray-50"
+      }`}>
         {completed ? (
           <CheckCircle2 className="h-5 w-5 text-green-500" />
         ) : (
@@ -225,8 +243,8 @@ function TimelineItem({ task, completed, isLast }) {
         <p className={`text-sm font-medium ${completed ? "text-gray-900" : "text-gray-500"}`}>
           {task}
         </p>
-        {completed && (
-          <p className="text-xs text-gray-400">Completed</p>
+        {timestamp && completed && (
+          <p className="text-xs text-gray-400">{timestamp}</p>
         )}
       </div>
     </div>
@@ -261,7 +279,6 @@ function BookingsAndPaymentsDetails() {
   const [adminNote, setAdminNote] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [escrowTransaction, setEscrowTransaction] = useState(null);
-  const [showReleaseModal, setShowReleaseModal] = useState(false);
 
   // ── Fetch Booking Details ──
   const fetchBookingDetails = async (showRefresh = false) => {
@@ -300,19 +317,22 @@ function BookingsAndPaymentsDetails() {
 
       // Calculate duration from start and end time
       let duration = "Not specified";
-      if (data.startTime && data.endTime) {
-        try {
-          const start = new Date(`1970-01-01T${data.startTime}`);
-          const end = new Date(`1970-01-01T${data.endTime}`);
-          const diffMs = end - start;
-          const diffHours = diffMs / (1000 * 60 * 60);
-          if (diffHours > 0) {
-            const hrs = Math.floor(diffHours);
-            const mins = Math.round((diffHours - hrs) * 60);
-            duration = hrs > 0 ? `${hrs}h ${mins > 0 ? `${mins}m` : ""}` : `${mins}m`;
+      if (data.time) {
+        const parts = data.time.split(" - ");
+        if (parts.length === 2) {
+          try {
+            const start = new Date(`1970-01-01T${parts[0].trim()}`);
+            const end = new Date(`1970-01-01T${parts[1].trim()}`);
+            const diffMs = end - start;
+            const diffHours = diffMs / (1000 * 60 * 60);
+            if (diffHours > 0) {
+              const hrs = Math.floor(diffHours);
+              const mins = Math.round((diffHours - hrs) * 60);
+              duration = hrs > 0 ? `${hrs}h ${mins > 0 ? `${mins}m` : ""}` : `${mins}m`;
+            }
+          } catch (e) {
+            duration = "Not specified";
           }
-        } catch (e) {
-          duration = "Not specified";
         }
       }
 
@@ -324,14 +344,42 @@ function BookingsAndPaymentsDetails() {
 
       // Get provider name from raw data
       const providerName = data.providerName || data.worker || 
+        data.raw?.provider_full_name ||
         data.raw?.service_provider?.name || 
         data.raw?.provider_name ||
         `Provider #${data.serviceProviderId}`;
 
       // Get client name
       const clientName = data.client || data.clientName || 
+        data.raw?.client_full_name ||
         data.raw?.client?.full_name ||
         `Client #${data.clientId}`;
+
+      // ── FIXED: Build timeline based on status progression (no APPROVED) ──
+      const currentStatus = (data.status || "pending").toLowerCase();
+      
+      // Get the index of the current status in the progression
+      const statusIndex = STATUS_ORDER.indexOf(currentStatus);
+      
+      // Timeline tasks in order (removed "Client Approved")
+      const timelineTasks = [
+        { task: "Booking Created", key: "created" },
+        { task: "Provider Accepted", key: "accepted" },
+        { task: "Work In Progress", key: "in progress" },
+        { task: "Work Completed", key: "completed" },
+        { task: "Payment Processed", key: "paid" },
+      ];
+
+      // Determine which tasks are completed based on status index
+      const timelineItems = timelineTasks.map((item, index) => {
+        // Created is always completed
+        if (item.key === "created") {
+          return { ...item, completed: true, timestamp: data.created_at || data.createdAt || data.raw?.created_at };
+        }
+        // For other tasks, check if the status has reached that point
+        const isCompleted = statusIndex >= index;
+        return { ...item, completed: isCompleted, timestamp: null };
+      });
 
       const formattedBooking = {
         id: data.id || bookingId,
@@ -350,11 +398,11 @@ function BookingsAndPaymentsDetails() {
         duration: duration,
         createdOn: data.created_at || data.createdAt || data.raw?.created_at,
         lastUpdated: data.updated_at || data.updatedAt || data.raw?.updated_at,
-        clientEmail: data.clientEmail || data.raw?.client?.email || "No email",
-        clientPhone: data.clientPhone || data.raw?.client?.phone || "No phone",
-        providerEmail: data.providerEmail || data.raw?.service_provider?.contact_email || "No email",
-        providerPhone: data.providerPhone || data.raw?.service_provider?.contact_phone || "No phone",
-        providerCategory: data.raw?.service_provider?.service_category || "Service Provider",
+        clientEmail: data.clientEmail || data.raw?.client_email || data.raw?.client?.email || "No email",
+        clientPhone: data.clientPhone || data.raw?.client_phone || data.raw?.client?.phone || "No phone",
+        providerEmail: data.providerEmail || data.raw?.provider_email || data.raw?.service_provider?.contact_email || "No email",
+        providerPhone: data.providerPhone || data.raw?.provider_phone || data.raw?.service_provider?.contact_phone || "No phone",
+        providerCategory: data.raw?.service_provider?.service_type || data.raw?.service_provider?.category || "Service Provider",
         providerRating: providerRatings.averageScore || 0,
         providerReviews: providerRatings.totalRatings || 0,
         providerPayout: providerPayout,
@@ -364,6 +412,7 @@ function BookingsAndPaymentsDetails() {
         providerInitials: getInitials(providerName),
         clientId: data.clientId || data.raw?.client_id,
         providerId: data.serviceProviderId || data.raw?.service_provider_id,
+        timeline: timelineItems,
         raw: data,
         providerReviewsList: providerReviews,
       };
@@ -632,38 +681,30 @@ function BookingsAndPaymentsDetails() {
                 </div>
               </div>
 
-              {/* Timeline Card */}
+              {/* ── FIXED: Timeline Card (no Approve/Reject) ── */}
               <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="mb-5 flex items-center gap-2">
                   <History className="h-5 w-5 text-[#056db3]" />
                   <h2 className="text-lg font-bold text-gray-900">Booking Timeline</h2>
                 </div>
                 <div className="space-y-0">
-                  <TimelineItem 
-                    task="Booking Created" 
-                    completed={true} 
-                    isLast={false}
-                  />
-                  <TimelineItem 
-                    task="Provider Accepted" 
-                    completed={booking.status === "accepted" || booking.status === "in_progress" || booking.status === "completed" || booking.status === "approved"}
-                    isLast={false}
-                  />
-                  <TimelineItem 
-                    task="Work In Progress" 
-                    completed={booking.status === "in_progress" || booking.status === "completed" || booking.status === "approved"}
-                    isLast={false}
-                  />
-                  <TimelineItem 
-                    task="Work Completed" 
-                    completed={booking.status === "completed" || booking.status === "approved"}
-                    isLast={false}
-                  />
-                  <TimelineItem 
-                    task="Client Approved" 
-                    completed={booking.status === "approved"}
-                    isLast={true}
-                  />
+                  {booking.timeline && booking.timeline.length > 0 ? (
+                    booking.timeline.map((item, index) => (
+                      <TimelineItem 
+                        key={index}
+                        task={item.task}
+                        completed={item.completed}
+                        isLast={index === booking.timeline.length - 1}
+                        timestamp={item.timestamp}
+                      />
+                    ))
+                  ) : (
+                    <EmptyState
+                      icon={Clock3}
+                      title="No Timeline Data"
+                      description="Timeline information is not available for this booking."
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -873,7 +914,7 @@ function BookingsAndPaymentsDetails() {
                 <div>
                   <p className="text-sm font-medium text-gray-700">Payment Status</p>
                   <p className="text-xs text-gray-400">
-                    {booking.status === "approved" ? "Payment pending release" : "No payment recorded yet"}
+                    {booking.status === "completed" || booking.status === "paid" ? "Payment pending release" : "No payment recorded yet"}
                   </p>
                 </div>
               </div>
@@ -919,7 +960,7 @@ function BookingsAndPaymentsDetails() {
             </div>
 
             {/* ── RELEASE FUNDS BUTTON ── */}
-            {booking?.status === "approved" && escrowTransaction?.status === "COMPLETED" && (
+            {booking?.status === "completed" && escrowTransaction?.status === "COMPLETED" && (
               <button
                 onClick={handleReleaseFunds}
                 disabled={actionLoading}
@@ -931,10 +972,10 @@ function BookingsAndPaymentsDetails() {
             )}
 
             {/* ── RELEASE FUNDS INFO ── */}
-            {booking?.status === "approved" && escrowTransaction?.status === "COMPLETED" && (
+            {booking?.status === "completed" && escrowTransaction?.status === "COMPLETED" && (
               <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
                 <AlertCircle className="inline h-4 w-4 mr-1" />
-                This booking has been approved and payment is held in escrow. 
+                This booking has been completed and payment is held in escrow. 
                 Click the button above to release funds to the provider's wallet.
               </div>
             )}

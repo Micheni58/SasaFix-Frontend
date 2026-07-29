@@ -1,10 +1,10 @@
-// src/pages/Client/bookings/CompletedBookingDetails.jsx - WITH PAYMENT & REVIEWS
+// src/pages/Client/bookings/CompletedBookingDetails.jsx - WITH PAYMENT & REVIEWS (FIXED)
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   MessageSquare, Flag, Loader2, Wallet, CheckCircle2, 
-  XCircle, AlertCircle, CreditCard 
+  XCircle, AlertCircle, CreditCard, ArrowLeft
 } from "lucide-react";
 import bookingService from "../../../api/bookingService";
 import paymentsService from "../../../api/paymentsService";
@@ -243,14 +243,26 @@ function CompletedBookingDetails() {
                 if (!mounted) return;
                 setBooking(b);
 
+                // Check if already paid - redirect to paid page
+                if (b.status === "Paid" || b.status === "paid") {
+                    navigate(`/client/my-bookings/paid/${bookingId}`);
+                    return;
+                }
+
                 // Check transaction status
                 try {
                     const response = await fetch(`/api/transactions/booking/${bookingId}`);
                     const data = await response.json();
                     if (mounted && data && data.length > 0) {
-                        setTransactionStatus(data[0].status);
+                        const status = data[0].status;
+                        setTransactionStatus(status);
                         if (data[0].checkout_request_id) {
                             setCheckoutRequestId(data[0].checkout_request_id);
+                        }
+                        // If transaction is completed, redirect to paid page
+                        if (status === "COMPLETED" || status === "RELEASED") {
+                            navigate(`/client/my-bookings/paid/${bookingId}`);
+                            return;
                         }
                     }
                 } catch (e) {
@@ -265,7 +277,7 @@ function CompletedBookingDetails() {
 
         fetchBooking();
         return () => { mounted = false; };
-    }, [bookingId]);
+    }, [bookingId, navigate]);
 
     // ── Handle Payment ──
     const handlePayment = async () => {
@@ -345,16 +357,13 @@ function CompletedBookingDetails() {
 
                         console.log("✅ Transaction auto-completed successfully!");
 
-                        const updated = await bookingService.getBooking(Number(bookingId));
-                        setBooking(updated);
-
-                        const response = await fetch(`/api/transactions/booking/${bookingId}`);
-                        const data = await response.json();
-                        if (data && data.length > 0) {
-                            setTransactionStatus(data[0].status);
-                        }
-
+                        // Update booking status to PAID
+                        await bookingService.updateBookingStatus(bookingId, "paid");
+                        
                         alert("✅ Payment completed successfully! (Test Mode)");
+                        
+                        // Navigate to paid page
+                        navigate(`/client/my-bookings/paid/${bookingId}`);
 
                     } catch (callbackErr) {
                         console.error("❌ Auto-complete failed:", callbackErr);
@@ -387,18 +396,14 @@ function CompletedBookingDetails() {
                 0, // 0 = Success
                 amount
             );
+            
+            // Update booking status to PAID
+            await bookingService.updateBookingStatus(bookingId, "paid");
+            
             alert("✅ Transaction completed manually!");
-
-            const updated = await bookingService.getBooking(Number(bookingId));
-            setBooking(updated);
-
-            const response = await fetch(`/api/transactions/booking/${bookingId}`);
-            const data = await response.json();
-            if (data && data.length > 0) {
-                setTransactionStatus(data[0].status);
-            }
-
-            setCheckoutRequestId(null);
+            
+            // Navigate to paid page
+            navigate(`/client/my-bookings/paid/${bookingId}`);
 
         } catch (err) {
             alert("Failed to complete transaction: " + err.message);
@@ -421,6 +426,11 @@ function CompletedBookingDetails() {
         setReportText("");
         setReportOpen(false);
         window.alert("Report submitted. Our team will review it.");
+    };
+
+    // ── Handle Back ──
+    const handleBack = () => {
+        navigate("/client/my-bookings");
     };
 
     // ── Loading State with Skeletons ──
@@ -476,7 +486,6 @@ function CompletedBookingDetails() {
     }
 
     const isPaid = transactionStatus === "COMPLETED" || transactionStatus === "RELEASED";
-    const isPaymentPending = !isPaid;
 
     // ── Format date and time ──
     const formattedDate = formatDate(booking.date || booking.scheduled_date);
@@ -518,6 +527,15 @@ function CompletedBookingDetails() {
             <div className="flex-1 ml-72">
                 <Navbar />
                 <main className="pt-24 px-6 pb-6">
+                    {/* ── Back Button ── */}
+                    <button
+                        onClick={handleBack}
+                        className="mb-4 flex items-center gap-2 text-sm font-medium text-[#056db3] hover:underline"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to My Bookings
+                    </button>
+
                     <section className="mb-8">
                         <div className="flex justify-between items-start mb-6 flex-wrap gap-4">
                             <div>
@@ -544,7 +562,7 @@ function CompletedBookingDetails() {
                         <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 flex items-center gap-3">
                             <CheckCircle2 className="h-5 w-5 text-blue-600" />
                             <p className="text-sm text-blue-700">
-                                The provider has completed the work. Please complete payment to finalize the booking and leave a review.
+                                The provider has completed the work. Please complete payment to finalize the booking.
                             </p>
                         </div>
                     </section>
@@ -564,16 +582,6 @@ function CompletedBookingDetails() {
                                 isCompleted={true}
                                 isApproved={false}
                             />
-
-                            {/* ── Review section — only once payment is complete ── */}
-                            {isPaid && (
-                                <ReviewCard
-                                    bookingId={ui.id}
-                                    providerId={ui.worker.id}
-                                    providerName={ui.worker.name}
-                                    booking={booking}
-                                />
-                            )}
                         </div>
 
                         <div className="lg:col-span-1">
@@ -631,8 +639,8 @@ function CompletedBookingDetails() {
                                 {isPaid && (
                                     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
                                         <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                                        <p className="text-sm font-semibold text-emerald-700"> Payment Completed</p>
-                                        <p className="text-xs text-emerald-600 mt-1">Leave a review below</p>
+                                        <p className="text-sm font-semibold text-emerald-700">✅ Payment Completed</p>
+                                        <p className="text-xs text-emerald-600 mt-1">Redirecting to paid page...</p>
                                     </div>
                                 )}
 

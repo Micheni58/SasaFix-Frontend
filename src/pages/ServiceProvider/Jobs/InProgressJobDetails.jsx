@@ -1,4 +1,4 @@
-// src/pages/ServiceProvider/Jobs/InProgressJobDetails.jsx - Updated
+// src/pages/ServiceProvider/Jobs/InProgressJobDetails.jsx - Full Updated
 
 import { useState, useEffect } from "react";
 import { 
@@ -15,7 +15,6 @@ import Navbar from "../../../components/Navbar";
 // DATE / TIME FORMATTERS
 // ─────────────────────────────────────────────
 
-// Adds ordinal suffix: 1 -> 1st, 2 -> 2nd, 3 -> 3rd, 19 -> 19th, etc.
 function ordinalSuffix(day) {
   const d = Number(day);
   if (d % 10 === 1 && d % 100 !== 11) return `${d}st`;
@@ -24,7 +23,6 @@ function ordinalSuffix(day) {
   return `${d}th`;
 }
 
-// Formats a date string (e.g. "2026-08-19") into "19th August 2026"
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const parsed = new Date(dateStr);
@@ -37,7 +35,6 @@ function formatDate(dateStr) {
   return `${day} ${month} ${year}`;
 }
 
-// Formats a 24hr time string (e.g. "09:00" or "09:00:00") into "9:00 AM"
 function formatTime(timeStr) {
   if (!timeStr) return "";
   const parts = timeStr.split(":");
@@ -54,7 +51,6 @@ function formatTime(timeStr) {
   return `${hours}:${minutes} ${period}`;
 }
 
-// Formats a time range "start - end" (e.g. "09:00 - 10:00") into "9:00 AM - 10:00 AM"
 function formatTimeRange(timeStr) {
   if (!timeStr) return "";
   if (timeStr.includes(" - ")) {
@@ -202,9 +198,7 @@ function InProgressJobDetails() {
       .then((b) => {
         if (!mounted) return;
         
-        // ── Extract the raw amount from b.amountRaw ──
         let serviceFeeRaw = 0;
-        
         if (b.amountRaw !== undefined && b.amountRaw !== null) {
           serviceFeeRaw = typeof b.amountRaw === 'string' ? parseFloat(b.amountRaw) : b.amountRaw;
         } else if (b.raw?.amount !== undefined && b.raw?.amount !== null) {
@@ -220,14 +214,12 @@ function InProgressJobDetails() {
           serviceFeeRaw = 0;
         }
         
-        // ── Calculate commission and earnings ──
         const commissionRate = 10;
         const commissionRaw = serviceFeeRaw * (commissionRate / 100);
         const earningsRaw = serviceFeeRaw - commissionRaw;
         
         const clientName = b.client || b.clientName || b.client_full_name || b.raw?.client_full_name || `Client #${b.clientId}`;
         
-        // ── Format date and time ──
         const formattedDate = formatDate(b.date || b.scheduled_date || '');
         const formattedTime = formatTimeRange(b.time || (b.scheduled_start_time && `${b.scheduled_start_time} - ${b.scheduled_end_time}`) || '');
         
@@ -274,13 +266,27 @@ function InProgressJobDetails() {
   }, [bookingId]);
 
   const handleComplete = async () => {
+    // Check if already completed
+    if (job?.status === "Completed" || job?.status === "completed") {
+      alert("This job is already completed.");
+      navigate("/provider/my-jobs");
+      return;
+    }
+    
     setActionLoading(true);
     try {
       await bookingService.updateBookingStatus(bookingId, "completed");
       alert("✅ Job marked as completed!");
       navigate("/provider/my-jobs");
     } catch (err) {
-      alert("Failed to complete job: " + err.message);
+      console.error("Failed to complete job:", err);
+      // Check if the error is because it's already completed
+      if (err.response?.data?.detail?.includes("Cannot transition")) {
+        alert("This job has already been completed.");
+        navigate("/provider/my-jobs");
+      } else {
+        alert("Failed to complete job: " + (err.response?.data?.detail || err.message));
+      }
     } finally {
       setActionLoading(false);
       setModalType(null);
@@ -351,6 +357,9 @@ function InProgressJobDetails() {
     );
   }
 
+  // ── Check if already completed ──
+  const isCompleted = job.status === "Completed" || job.status === "completed";
+
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
@@ -364,11 +373,17 @@ function InProgressJobDetails() {
                 <h1 className="text-3xl font-bold text-gray-800">Job In Progress</h1>
                 <p className="text-gray-600 mt-2">Request ID #{job.id}</p>
               </div>
-              {/* ── Status color unchanged: yellow ── */}
-              <span className="px-4 py-2 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
-                {job.status}
+              <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                isCompleted ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+              }`}>
+                {isCompleted ? "Completed" : job.status}
               </span>
             </div>
+            {isCompleted && (
+              <div className="mt-2 rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700">
+                ✅ This job has already been marked as completed.
+              </div>
+            )}
           </section>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -388,7 +403,6 @@ function InProgressJobDetails() {
                         <Calendar className="h-4 w-4" />
                         <span>Date</span>
                       </div>
-                      {/* ── Formatted date ── */}
                       <p className="text-lg text-gray-800 mt-1">{job.date}</p>
                     </div>
                     <div>
@@ -396,7 +410,6 @@ function InProgressJobDetails() {
                         <Clock3 className="h-4 w-4" />
                         <span>Time</span>
                       </div>
-                      {/* ── Formatted time ── */}
                       <p className="text-lg text-gray-800 mt-1">{job.time}</p>
                     </div>
                   </div>
@@ -463,7 +476,7 @@ function InProgressJobDetails() {
                 </div>
               </section>
 
-              {/* ── Payment Breakdown (FIXED) ── */}
+              {/* ── Payment Breakdown ── */}
               <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Payment Breakdown</h2>
                 <div className="space-y-4">
@@ -497,11 +510,15 @@ function InProgressJobDetails() {
                 {/* ── Mark as Completed - Green with border ── */}
                 <button
                   onClick={() => setModalType("complete")}
-                  disabled={actionLoading}
-                  className="w-full flex items-center justify-center gap-2 bg-green-600 border-2 border-green-600 text-white font-semibold py-2 px-2 rounded-lg hover:bg-green-700 hover:border-green-700 transition-colors disabled:opacity-50"
+                  disabled={actionLoading || isCompleted}
+                  className={`w-full flex items-center justify-center gap-2 font-semibold py-2 px-2 rounded-lg transition-colors ${
+                    isCompleted
+                      ? "bg-gray-400 text-white cursor-not-allowed"
+                      : "bg-green-600 border-2 border-green-600 text-white hover:bg-green-700 hover:border-green-700"
+                  }`}
                 >
                   {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-                  Mark as Completed
+                  {isCompleted ? "Already Completed" : "Mark as Completed"}
                 </button>
 
                 {/* ── Message Client - Blue border ── */}
@@ -557,7 +574,7 @@ function InProgressJobDetails() {
           </div>
 
           {/* ── Confirm Modal ── */}
-          {modalType && (
+          {modalType === "complete" && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4">
               <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
                 <div className="border-b border-gray-200 px-6 py-4">
@@ -567,6 +584,11 @@ function InProgressJobDetails() {
                   <p className="text-sm text-gray-600 mb-4">
                     Are you sure you want to mark this job as completed? Please ensure all work has been finished and the client is satisfied.
                   </p>
+                  {isCompleted && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-yellow-700">⚠️ This job is already marked as completed.</p>
+                    </div>
+                  )}
                 </div>
                 <div className="border-t border-gray-200 px-6 py-4">
                   <div className="flex gap-3">
@@ -578,8 +600,12 @@ function InProgressJobDetails() {
                     </button>
                     <button
                       onClick={handleComplete}
-                      disabled={actionLoading}
-                      className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                      disabled={actionLoading || isCompleted}
+                      className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors ${
+                        isCompleted
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-green-600 hover:bg-green-700"
+                      } disabled:opacity-50`}
                     >
                       {actionLoading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Yes, Mark Completed"}
                     </button>

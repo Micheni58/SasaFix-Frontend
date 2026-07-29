@@ -18,7 +18,8 @@ import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
 
-const tabs = ["All Bookings", "Upcoming", "In Progress", "Completed", "Rescheduled", "Cancelled"];
+// ── Updated Tabs - Removed "All Bookings", Added "Paid" at the end ──
+const tabs = ["Upcoming", "In Progress", "Completed", "Rescheduled", "Cancelled", "Paid"];
 
 // ── Updated Status Colors ──
 const statusStyles = {
@@ -34,13 +35,6 @@ const statusStyles = {
 };
 
 const emptyStateConfigs = {
-  "All Bookings": {
-    icon: Inbox,
-    title: "No Bookings Yet",
-    description: "You haven't made any bookings yet. Find a service provider and book your first service!",
-    color: "bg-blue-50",
-    iconColor: "text-blue-500",
-  },
   "Upcoming": {
     icon: Calendar,
     title: "No Upcoming Bookings",
@@ -75,6 +69,13 @@ const emptyStateConfigs = {
     description: "You don't have any cancelled bookings.",
     color: "bg-red-50",
     iconColor: "text-red-500",
+  },
+  "Paid": {
+    icon: CheckCircle,
+    title: "No Paid Bookings",
+    description: "You don't have any paid bookings yet. Once you complete and pay for a service, it will appear here.",
+    color: "bg-emerald-50",
+    iconColor: "text-emerald-500",
   },
 };
 
@@ -239,7 +240,7 @@ function getBookingRoute(booking) {
 // ─────────────────────────────────────────────
 
 function MyBookings() {
-  const [activeTab, setActiveTab] = useState("All Bookings");
+  const [activeTab, setActiveTab] = useState("Upcoming");
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -275,22 +276,18 @@ function MyBookings() {
     fetchBookings();
   }, []);
 
-  // ── Fix: Upcoming should include "Upcoming", "Pending", "Accepted" ──
-  const filteredBookings =
-    activeTab === "All Bookings"
-      ? bookings
-      : bookings.filter((booking) => {
-          if (activeTab === "Upcoming") {
-            return booking.status === "Upcoming" || 
-                   booking.status === "Pending" || 
-                   booking.status === "Accepted" || 
-                   booking.status === "New Requests";
-          }
-          return booking.status === activeTab;
-        });
+  // ── Filter bookings based on active tab ──
+  const filteredBookings = bookings.filter((booking) => {
+    if (activeTab === "Upcoming") {
+      return booking.status === "Upcoming" || 
+             booking.status === "Pending" || 
+             booking.status === "Accepted" || 
+             booking.status === "New Requests";
+    }
+    return booking.status === activeTab;
+  });
 
   const tabCounts = {
-    "All Bookings": bookings.length,
     Upcoming: bookings.filter((booking) => 
       booking.status === "Upcoming" || 
       booking.status === "Pending" || 
@@ -301,10 +298,11 @@ function MyBookings() {
     Completed: bookings.filter((booking) => booking.status === "Completed").length,
     Rescheduled: bookings.filter((booking) => booking.status === "Rescheduled").length,
     Cancelled: bookings.filter((booking) => booking.status === "Cancelled").length,
+    Paid: bookings.filter((booking) => booking.status === "Paid").length,
   };
 
   const getEmptyState = (tab) => {
-    return emptyStateConfigs[tab] || emptyStateConfigs["All Bookings"];
+    return emptyStateConfigs[tab] || emptyStateConfigs["Upcoming"];
   };
 
   return (

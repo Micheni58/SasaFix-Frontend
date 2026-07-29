@@ -21,7 +21,8 @@ import { getWalletBalance } from "../../api/walletService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 
-const activeStatuses = ["New Requests", "Accepted", "Upcoming", "In Progress"];
+// ── Active statuses for the dashboard ──
+const activeStatuses = ["Upcoming", "Pending", "Accepted", "In Progress"];
 
 // ── Updated Status Colors to match the booking pages ──
 const STATUS_STYLES = {
@@ -29,13 +30,11 @@ const STATUS_STYLES = {
   "Pending": "bg-amber-100 text-amber-800",
   "Upcoming": "bg-sky-100 text-sky-800",
   "Accepted": "bg-blue-100 text-blue-800",
-  "In Progress": "bg-yellow-100 text-yellow-800",
+  "In Progress": "bg-indigo-100 text-indigo-800",
   "Completed": "bg-green-100 text-green-800",
-  "Approved": "bg-green-100 text-green-800",
-  "Rejected": "bg-red-100 text-red-800",
-  "Cancelled": "bg-red-100 text-red-800",
   "Rescheduled": "bg-purple-100 text-purple-800",
-  "Paid": "bg-teal-100 text-teal-800",
+  "Paid": "bg-emerald-100 text-emerald-800",
+  "Cancelled": "bg-red-100 text-red-800",
 };
 
 const TIER_COLORS = { gold: "#CA8A04", blue: "#056db3", gray: "#9CA3AF" };
@@ -54,10 +53,10 @@ function getStoredUser() {
 }
 
 function getBookingProgress(status) {
-  if (status === "Completed" || status === "Approved") return 100;
-  if (status === "In Progress") return 50;
-  if (status === "Accepted" || status === "Upcoming") return 25;
-  if (status === "New Requests" || status === "Pending") return 10;
+  if (status === "Completed" || status === "Paid") return 100;
+  if (status === "In Progress") return 75;
+  if (status === "Accepted") return 50;
+  if (status === "Upcoming" || status === "Pending") return 25;
   return 10;
 }
 
@@ -101,7 +100,6 @@ function getProviderRing(booking) {
   return { tier, pct, rating };
 }
 
-// ── NEW: Format date to words (e.g., "15 July 2024") ──
 function formatDateToWords(dateString) {
   if (!dateString) return "Date pending";
   
@@ -126,7 +124,6 @@ function formatDateToWords(dateString) {
 function getBookingRoute(booking) {
   const status = booking.status || "Pending";
   
-  // Map status to the correct route
   const routeMap = {
     "Upcoming": `/client/my-bookings/upcoming/${booking.id}`,
     "Pending": `/client/my-bookings/upcoming/${booking.id}`,
@@ -134,11 +131,9 @@ function getBookingRoute(booking) {
     "New Requests": `/client/my-bookings/upcoming/${booking.id}`,
     "In Progress": `/client/my-bookings/in-progress/${booking.id}`,
     "Completed": `/client/my-bookings/completed/${booking.id}`,
-    "Approved": `/client/my-bookings/approved/${booking.id}`,
-    "Rejected": `/client/my-bookings/rejected/${booking.id}`,
-    "Cancelled": `/client/my-bookings/cancelled/${booking.id}`,
     "Rescheduled": `/client/my-bookings/rescheduled/${booking.id}`,
     "Paid": `/client/my-bookings/paid/${booking.id}`,
+    "Cancelled": `/client/my-bookings/cancelled/${booking.id}`,
   };
   
   return routeMap[status] || `/client/my-bookings/${booking.id}`;
@@ -263,7 +258,12 @@ function ClientDashboard() {
   const activeCount = bookings.filter((booking) =>
     activeStatuses.includes(booking.status)
   ).length;
-  const completedCount = bookings.filter((booking) => booking.status === "Completed" || booking.status === "Approved").length;
+  
+  // ── FIX: Completed count should include both "Completed" and "Paid" ──
+  const completedCount = bookings.filter((booking) => 
+    booking.status === "Completed" || booking.status === "Paid"
+  ).length;
+  
   const loyalty = Math.min(
     100,
     Math.round((completedCount / Math.max(1, bookings.length)) * 100)
@@ -276,8 +276,10 @@ function ClientDashboard() {
     null;
   const activeProgress = activeBooking ? getBookingProgress(activeBooking.status) : 0;
 
-  // Most recent completed booking
-  const lastCompleted = bookings.find((booking) => booking.status === "Completed") || null;
+  // ── FIX: Most recent completed booking should include both "Completed" and "Paid" ──
+  const lastCompleted = bookings.find((booking) => 
+    booking.status === "Completed" || booking.status === "Paid"
+  ) || null;
 
   // ── Limit recent bookings to 5 ──
   const recentBookings = bookings.slice(0, 5);

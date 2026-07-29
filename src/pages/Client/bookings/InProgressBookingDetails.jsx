@@ -1,4 +1,4 @@
-// src/pages/Client/bookings/InProgressBookingDetails.jsx 
+// src/pages/Client/bookings/InProgressBookingDetails.jsx
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -10,6 +10,59 @@ import { ProviderInfoCard } from "../../../components/cards/ProviderInfoCard";
 import { PaymentDetailsCard } from "../../../components/cards/PaymentDetailsCard";
 import { Timeline } from "../../../components/cards/Timeline";
 import { BookingInfoCard } from "../../../components/cards/BookingInfoCard";
+
+// ─────────────────────────────────────────────
+// DATE / TIME FORMATTERS
+// ─────────────────────────────────────────────
+
+// Adds ordinal suffix: 1 -> 1st, 2 -> 2nd, 3 -> 3rd, 19 -> 19th, etc.
+function ordinalSuffix(day) {
+  const d = Number(day);
+  if (d % 10 === 1 && d % 100 !== 11) return `${d}st`;
+  if (d % 10 === 2 && d % 100 !== 12) return `${d}nd`;
+  if (d % 10 === 3 && d % 100 !== 13) return `${d}rd`;
+  return `${d}th`;
+}
+
+// Formats a date string (e.g. "2026-08-19") into "19th August 2026"
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const parsed = new Date(dateStr);
+  if (isNaN(parsed.getTime())) return dateStr;
+
+  const day = ordinalSuffix(parsed.getDate());
+  const month = parsed.toLocaleString("en-US", { month: "long" });
+  const year = parsed.getFullYear();
+
+  return `${day} ${month} ${year}`;
+}
+
+// Formats a 24hr time string (e.g. "09:00" or "09:00:00") into "9:00 AM"
+function formatTime(timeStr) {
+  if (!timeStr) return "";
+  const parts = timeStr.split(":");
+  if (parts.length < 2) return timeStr;
+
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts[1];
+  if (isNaN(hours)) return timeStr;
+
+  const period = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+
+  return `${hours}:${minutes} ${period}`;
+}
+
+// Formats a time range "start - end" (e.g. "09:00 - 10:00") into "9:00 AM - 10:00 AM"
+function formatTimeRange(timeStr) {
+  if (!timeStr) return "";
+  if (timeStr.includes(" - ")) {
+    const [start, end] = timeStr.split(" - ");
+    return `${formatTime(start.trim())} - ${formatTime(end.trim())}`;
+  }
+  return formatTime(timeStr);
+}
 
 // ─────────────────────────────────────────────
 // SKELETON LOADER COMPONENTS
@@ -235,12 +288,16 @@ function InProgressBookingDetails() {
         );
     }
 
+    // ── Format date and time ──
+    const formattedDate = formatDate(booking.date || booking.scheduled_date);
+    const formattedTime = formatTimeRange(booking.time || (booking.scheduled_start_time && `${booking.scheduled_start_time} - ${booking.scheduled_end_time}`));
+
     const ui = {
         id: booking.id,
         service: booking.service || booking.service_name,
         description: booking.details || booking.description,
-        date: booking.date || booking.scheduled_date,
-        time: booking.time || (booking.scheduled_start_time && `${booking.scheduled_start_time} - ${booking.scheduled_end_time}`),
+        date: formattedDate,
+        time: formattedTime,
         location: booking.location,
         status: booking.status,
         serviceFee: booking.amountRaw ? `KES ${booking.amountRaw.toLocaleString()}` : "KES 0",
@@ -257,11 +314,11 @@ function InProgressBookingDetails() {
             email: booking.raw?.service_provider?.contact_email || null,
         },
         timeline: [
-            { task: "Requested", completed: true },
-            { task: "Scheduled", completed: true },
-            { task: "In Progress", completed: true },
-            { task: "Completed", completed: false },
-            { task: "Approved", completed: false },
+            { task: "Booking Requested", completed: true },
+            { task: "Provider Accepted", completed: true },
+            { task: "Work In Progress", completed: true },
+            { task: "Work Completed", completed: false },
+            { task: "Payment Processed", completed: false },
         ],
     };
 
@@ -277,11 +334,8 @@ function InProgressBookingDetails() {
                                 <h1 className="text-3xl font-bold text-gray-800">Work In Progress</h1>
                                 <p className="text-gray-600 mt-2">Booking #{ui.id}</p>
                             </div>
-                            <div className="flex items-center gap-3 flex-wrap">
-                                <span className="px-4 py-2 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
-                                    {ui.status}
-                                </span>
-                                <span className="px-4 py-2 rounded-full text-sm font-semibold bg-yellow-50 text-yellow-700 flex items-center gap-2">
+                            <div className="flex items-center gap-3 flex-wrap">                                
+                                <span className="px-4 py-2 rounded-full text-sm font-semibold bg-indigo-50 text-indigo-700 flex items-center gap-2">
                                     <Clock3 className="w-4 h-4 animate-pulse" />
                                     In Progress
                                 </span>

@@ -37,11 +37,10 @@ import CancelledJobDetails from "../pages/ServiceProvider/Jobs/CancelledJobDetai
 import UpcomingBookingDetails from "../pages/Client/bookings/UpComingBookingDetails";
 import CancelledBookingDetails from "../pages/Client/bookings/CancelledBookingDetails";
 import CompletedBookingDetails from "../pages/Client/bookings/CompletedBookingDetails";
-import ApprovedBookingDetails from "../pages/Client/bookings/ApprovedBookingDetails";
 import InProgressBookingDetails from "../pages/Client/bookings/InProgressBookingDetails";
-import RejectedBookingDetails from "../pages/Client/bookings/RejectedBookingDetails";
 import RescheduledJobDetails from "../pages/ServiceProvider/Jobs/RescheduledJobDetails";
 import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBookingDetails";
+import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 
 export default function AppRouter() {
   return (
@@ -74,13 +73,12 @@ export default function AppRouter() {
         <Route path="/client/notifications" element={<ClientNotification />} />
         <Route path="/client/profile" element={<ClientProfile />} />
         <Route path="/client/my-bookings" element={<MyBookings />} />
-        <Route path="/client/my-bookings/approved/:bookingId" element={<ApprovedBookingDetails />} />
         <Route path="/client/my-bookings/in-progress/:bookingId" element={<InProgressBookingDetails />} />
         <Route path="/client/my-bookings/completed/:bookingId" element={<CompletedBookingDetails />} />
         <Route path="/client/my-bookings/cancelled/:bookingId" element={<CancelledBookingDetails />} />
         <Route path="/client/my-bookings/upcoming/:bookingId" element={<UpcomingBookingDetails />} />
-        <Route path="/client/my-bookings/rejected/:bookingId" element={<RejectedBookingDetails />} />
         <Route path="/client/my-bookings/rescheduled/:bookingId" element={<RescheduledBookingDetails />} />
+        <Route path="/client/my-bookings/paid/:bookingId" element={<PaidBookingDetails />} />
 
         <Route path="/provider" element={<ProviderDashboard />} />
         <Route path="/provider/messages" element={<ClientMessages />} />

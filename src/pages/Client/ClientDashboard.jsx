@@ -34,6 +34,8 @@ const STATUS_STYLES = {
   "Approved": "bg-green-100 text-green-800",
   "Rejected": "bg-red-100 text-red-800",
   "Cancelled": "bg-red-100 text-red-800",
+  "Rescheduled": "bg-purple-100 text-purple-800",
+  "Paid": "bg-teal-100 text-teal-800",
 };
 
 const TIER_COLORS = { gold: "#CA8A04", blue: "#056db3", gray: "#9CA3AF" };
@@ -135,6 +137,8 @@ function getBookingRoute(booking) {
     "Approved": `/client/my-bookings/approved/${booking.id}`,
     "Rejected": `/client/my-bookings/rejected/${booking.id}`,
     "Cancelled": `/client/my-bookings/cancelled/${booking.id}`,
+    "Rescheduled": `/client/my-bookings/rescheduled/${booking.id}`,
+    "Paid": `/client/my-bookings/paid/${booking.id}`,
   };
   
   return routeMap[status] || `/client/my-bookings/${booking.id}`;

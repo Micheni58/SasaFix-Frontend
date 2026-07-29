@@ -12,6 +12,59 @@ import { Timeline } from "../../../components/cards/Timeline";
 import { BookingInfoCard } from "../../../components/cards/BookingInfoCard";
 
 // ─────────────────────────────────────────────
+// DATE / TIME FORMATTERS
+// ─────────────────────────────────────────────
+
+// Adds ordinal suffix: 1 -> 1st, 2 -> 2nd, 3 -> 3rd, 19 -> 19th, etc.
+function ordinalSuffix(day) {
+  const d = Number(day);
+  if (d % 10 === 1 && d % 100 !== 11) return `${d}st`;
+  if (d % 10 === 2 && d % 100 !== 12) return `${d}nd`;
+  if (d % 10 === 3 && d % 100 !== 13) return `${d}rd`;
+  return `${d}th`;
+}
+
+// Formats a date string (e.g. "2026-08-19") into "19th August 2026"
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const parsed = new Date(dateStr);
+  if (isNaN(parsed.getTime())) return dateStr;
+
+  const day = ordinalSuffix(parsed.getDate());
+  const month = parsed.toLocaleString("en-US", { month: "long" });
+  const year = parsed.getFullYear();
+
+  return `${day} ${month} ${year}`;
+}
+
+// Formats a 24hr time string (e.g. "09:00" or "09:00:00") into "9:00 AM"
+function formatTime(timeStr) {
+  if (!timeStr) return "";
+  const parts = timeStr.split(":");
+  if (parts.length < 2) return timeStr;
+
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts[1];
+  if (isNaN(hours)) return timeStr;
+
+  const period = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+
+  return `${hours}:${minutes} ${period}`;
+}
+
+// Formats a time range "start - end" (e.g. "09:00 - 10:00") into "9:00 AM - 10:00 AM"
+function formatTimeRange(timeStr) {
+  if (!timeStr) return "";
+  if (timeStr.includes(" - ")) {
+    const [start, end] = timeStr.split(" - ");
+    return `${formatTime(start.trim())} - ${formatTime(end.trim())}`;
+  }
+  return formatTime(timeStr);
+}
+
+// ─────────────────────────────────────────────
 // SKELETON LOADER COMPONENTS
 // ─────────────────────────────────────────────
 
@@ -233,12 +286,16 @@ function CancelledBookingDetails() {
         );
     }
 
+    // ── Format date and time ──
+    const formattedDate = formatDate(booking.date || booking.scheduled_date);
+    const formattedTime = formatTimeRange(booking.time || (booking.scheduled_start_time && `${booking.scheduled_start_time} - ${booking.scheduled_end_time}`));
+
     const ui = {
         id: booking.id,
         service: booking.service || booking.service_name,
         description: booking.details || booking.description,
-        date: booking.date || booking.scheduled_date,
-        time: booking.time || (booking.scheduled_start_time && `${booking.scheduled_start_time} - ${booking.scheduled_end_time}`),
+        date: formattedDate,
+        time: formattedTime,
         location: booking.location,
         status: booking.status,
         serviceFee: booking.amountRaw ? `KES ${booking.amountRaw.toLocaleString()}` : "KES 0",
@@ -255,7 +312,7 @@ function CancelledBookingDetails() {
             email: booking.raw?.service_provider?.contact_email || null,
         },
         timeline: [
-            { task: "Cancelled", completed: true },
+            { task: "Booking Cancelled", completed: true },
         ],
     };
 

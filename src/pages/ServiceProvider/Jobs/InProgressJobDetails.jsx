@@ -12,6 +12,59 @@ import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
 
 // ─────────────────────────────────────────────
+// DATE / TIME FORMATTERS
+// ─────────────────────────────────────────────
+
+// Adds ordinal suffix: 1 -> 1st, 2 -> 2nd, 3 -> 3rd, 19 -> 19th, etc.
+function ordinalSuffix(day) {
+  const d = Number(day);
+  if (d % 10 === 1 && d % 100 !== 11) return `${d}st`;
+  if (d % 10 === 2 && d % 100 !== 12) return `${d}nd`;
+  if (d % 10 === 3 && d % 100 !== 13) return `${d}rd`;
+  return `${d}th`;
+}
+
+// Formats a date string (e.g. "2026-08-19") into "19th August 2026"
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const parsed = new Date(dateStr);
+  if (isNaN(parsed.getTime())) return dateStr;
+
+  const day = ordinalSuffix(parsed.getDate());
+  const month = parsed.toLocaleString("en-US", { month: "long" });
+  const year = parsed.getFullYear();
+
+  return `${day} ${month} ${year}`;
+}
+
+// Formats a 24hr time string (e.g. "09:00" or "09:00:00") into "9:00 AM"
+function formatTime(timeStr) {
+  if (!timeStr) return "";
+  const parts = timeStr.split(":");
+  if (parts.length < 2) return timeStr;
+
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts[1];
+  if (isNaN(hours)) return timeStr;
+
+  const period = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+
+  return `${hours}:${minutes} ${period}`;
+}
+
+// Formats a time range "start - end" (e.g. "09:00 - 10:00") into "9:00 AM - 10:00 AM"
+function formatTimeRange(timeStr) {
+  if (!timeStr) return "";
+  if (timeStr.includes(" - ")) {
+    const [start, end] = timeStr.split(" - ");
+    return `${formatTime(start.trim())} - ${formatTime(end.trim())}`;
+  }
+  return formatTime(timeStr);
+}
+
+// ─────────────────────────────────────────────
 // SKELETON LOADING COMPONENT
 // ─────────────────────────────────────────────
 
@@ -174,12 +227,16 @@ function InProgressJobDetails() {
         
         const clientName = b.client || b.clientName || b.client_full_name || b.raw?.client_full_name || `Client #${b.clientId}`;
         
+        // ── Format date and time ──
+        const formattedDate = formatDate(b.date || b.scheduled_date || '');
+        const formattedTime = formatTimeRange(b.time || (b.scheduled_start_time && `${b.scheduled_start_time} - ${b.scheduled_end_time}`) || '');
+        
         const mapped = {
           id: b.id || bookingId,
           service: b.service || b.service_name || '',
           description: b.details || b.description || '',
-          date: b.date || b.scheduled_date || '',
-          time: b.time || b.scheduled_start_time || '',
+          date: formattedDate,
+          time: formattedTime,
           location: b.location || '',
           status: b.status || 'In Progress',
           client: {
@@ -307,6 +364,7 @@ function InProgressJobDetails() {
                 <h1 className="text-3xl font-bold text-gray-800">Job In Progress</h1>
                 <p className="text-gray-600 mt-2">Request ID #{job.id}</p>
               </div>
+              {/* ── Status color unchanged: yellow ── */}
               <span className="px-4 py-2 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
                 {job.status}
               </span>
@@ -330,6 +388,7 @@ function InProgressJobDetails() {
                         <Calendar className="h-4 w-4" />
                         <span>Date</span>
                       </div>
+                      {/* ── Formatted date ── */}
                       <p className="text-lg text-gray-800 mt-1">{job.date}</p>
                     </div>
                     <div>
@@ -337,6 +396,7 @@ function InProgressJobDetails() {
                         <Clock3 className="h-4 w-4" />
                         <span>Time</span>
                       </div>
+                      {/* ── Formatted time ── */}
                       <p className="text-lg text-gray-800 mt-1">{job.time}</p>
                     </div>
                   </div>

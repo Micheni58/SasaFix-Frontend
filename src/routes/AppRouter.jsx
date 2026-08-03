@@ -33,6 +33,8 @@ import BookingsAndPaymentsDetails from "../pages/Admin/BookingsAndPaymentDetails
 import PayoutDetails from "../pages/Admin/PayoutDetails";
 import Users from "../pages/Admin/Users";
 import ServiceProviders from "../pages/Admin/ServiceProviders";
+import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
+import ProviderSubscription from "../pages/ServiceProvider/ProviderSubscription";
 
 export default function AppRouter() {
   return (
@@ -79,6 +81,10 @@ export default function AppRouter() {
           path="/provider/notifications"
           element={<ProviderNotification />}
         />
+        <Route
+          path="/provider/subscription"
+          element={<ProviderSubscription />}
+        />
 
         <Route path="/profile" element={<Profile />} />
 
@@ -99,6 +105,10 @@ export default function AppRouter() {
         <Route
           path="/provider/my-jobs/completed/:id"
           element={<CompletedJobDetails />}
+        />
+        <Route
+          path="/providers/:providerId"
+          element={<ProviderProfilePage />}
         />
         <Route
           path="/client/my-bookings/:bookingId"

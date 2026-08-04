@@ -459,8 +459,8 @@ function ProviderDashboard() {
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar role="provider" />
-      <div className="ml-72 min-w-0 flex-1">
+      <Sidebar role="provider"role="provider" />
+      <div className="flex-1 ml-72">
         <Navbar />
         <main className="px-6 pb-6 pt-24">
           {/* ── Header ── */}

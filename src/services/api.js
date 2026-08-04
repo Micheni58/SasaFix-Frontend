@@ -82,6 +82,42 @@ const authService = {
     const user = localStorage.getItem("user");
     return user ? JSON.parse(user) : null;
   },
+
+  getProviders: async () => {
+    return fetchWithAuth("/providers", {
+        method: "GET",
+    });
+  },
+
+    // Generic GET request
+  get: async (endpoint) => {
+    return fetchWithAuth(endpoint, {
+      method: "GET",
+    });
+  },
+
+  // Generic POST request
+  post: async (endpoint, body = {}) => {
+    return fetchWithAuth(endpoint, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
+
+  // Generic PUT request
+  put: async (endpoint, body = {}) => {
+    return fetchWithAuth(endpoint, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  },
+
+  // Generic DELETE request
+  delete: async (endpoint) => {
+    return fetchWithAuth(endpoint, {
+      method: "DELETE",
+    });
+  },
 };
 
-export default authService; // ← MAKE SURE THIS LINE EXISTS
+export default authService;

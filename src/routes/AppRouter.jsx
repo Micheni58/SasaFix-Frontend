@@ -41,6 +41,8 @@ import InProgressBookingDetails from "../pages/Client/bookings/InProgressBooking
 import RescheduledJobDetails from "../pages/ServiceProvider/Jobs/RescheduledJobDetails";
 import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBookingDetails";
 import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
+import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
+import ProviderSubscription from "../pages/ServiceProvider/ProviderSubscription";
 
 export default function AppRouter() {
   return (
@@ -88,6 +90,12 @@ export default function AppRouter() {
         <Route path="/provider/notifications" element={<ProviderNotification />}/>
         <Route path="/provider/my-reviews" element={<Reviews />} />
         <Route path="/provider/my-jobs/rescheduled/:id" element={<RescheduledJobDetails />}/>
+       
+        <Route
+          path="/provider/subscription"
+          element={<ProviderSubscription />}
+        />
+
         <Route path="/profile" element={<Profile />} />
 
         <Route path="/provider/my-jobs" element={<MyJobs />} />

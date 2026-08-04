@@ -14,6 +14,8 @@ import {
   BarChart3,
   Users,
   Store,
+  UserCog,
+  Star,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -86,6 +88,11 @@ function Sidebar({ role = "client" }) {
       icon: <CalendarDays size={20} />,
     },
     {
+      name: "My Reviews",
+      path: "/provider/my-reviews",
+      icon: <Star size={20} />,
+    },
+    {
       name: "Notifications",
       path: "/provider/notifications",
       icon: <Bell size={20} />,
@@ -140,6 +147,13 @@ function Sidebar({ role = "client" }) {
       icon: <CalendarDays size={20} />,
     },
     {
+    id: "admin-escrow",  // ← NEW
+    name: "Escrow Management",
+    icon: <Wallet className="h-5 w-5" />,
+    path: "/admin/escrow",
+    },
+    {
+      id: "admin-analytics",
       name: "Analytics & Reports",
       path: "/admin/reports",
       icon: <BarChart3 size={20} />,

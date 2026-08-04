@@ -1,3 +1,5 @@
+// src/api/notificationService.js - Updated with proper user ID handling
+
 import axios from "axios";
 
 const API_URL = "/api";
@@ -18,6 +20,7 @@ client.interceptors.request.use((config) => {
 });
 
 function getStoredUserId() {
+    // Try multiple sources for user ID
     const userId = localStorage.getItem("userId");
     if (userId) return userId;
 
@@ -66,7 +69,7 @@ function normalizeNotification(notification) {
         type: notification.type || "general",
         title: notification.title || "",
         body: notification.body || "",
-        text: notification.body || "",
+        text: notification.body || notification.title || "",
         read: Boolean(notification.is_read),
         isRead: Boolean(notification.is_read),
         relatedBookingId: notification.related_booking_id || null,
@@ -80,9 +83,15 @@ function normalizeNotifications(notifications) {
     return (notifications || []).map(normalizeNotification);
 }
 
-export async function fetchNotifications(userId) {
+// ─────────────────────────────────────────────
+// FETCH ENDPOINTS
+// ─────────────────────────────────────────────
+
+export async function fetchNotifications(userId, limit = 50, offset = 0) {
     const resolvedUserId = requireUserId(userId);
-    const response = await client.get(`/notifications/user/${resolvedUserId}`);
+    const response = await client.get(
+        `/notifications/user/${resolvedUserId}?limit=${limit}&offset=${offset}`
+    );
     return normalizeNotifications(response.data);
 }
 
@@ -111,6 +120,10 @@ export async function getNotification(notificationId) {
     return normalizeNotification(response.data);
 }
 
+// ─────────────────────────────────────────────
+// MUTATIONS
+// ─────────────────────────────────────────────
+
 export async function createNotification(notificationData) {
     const response = await client.post("/notifications/", notificationData);
     return normalizeNotification(response.data);
@@ -131,6 +144,26 @@ export async function deleteNotification(notificationId) {
     await client.delete(`/notifications/${notificationId}`);
 }
 
+export async function createSystemNotification(userId, title, body, type = "system", relatedBookingId = null) {
+    try {
+        const response = await client.post("/notifications/", {
+            user_id: userId,
+            type: type,
+            title: title,
+            body: body,
+            related_booking_id: relatedBookingId,
+            send_email: true, // Send email notification too
+        });
+        return normalizeNotification(response.data);
+    } catch (error) {
+        console.error("Failed to create system notification:", error);
+        throw error;
+    }
+}
+// ─────────────────────────────────────────────
+// EXPORT
+// ─────────────────────────────────────────────
+
 export default {
     fetchNotifications,
     fetchUnreadNotifications,
@@ -141,4 +174,5 @@ export default {
     markNotificationAsRead,
     markAllNotificationsAsRead,
     deleteNotification,
+    createSystemNotification,
 };

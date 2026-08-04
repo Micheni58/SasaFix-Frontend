@@ -1,5 +1,3 @@
-// src/api/bookingService.js - Silent 404 Handling
-
 import axios from "axios";
 
 const API_URL = "/api";
@@ -11,7 +9,6 @@ const client = axios.create({
     },
 });
 
-// Add auth token to every request
 client.interceptors.request.use((config) => {
     const token = localStorage.getItem("access_token");
     if (token) {
@@ -20,17 +17,36 @@ client.interceptors.request.use((config) => {
     return config;
 });
 
+// ─────────────────────────────────────────────
+// NORMALIZERS
+// ─────────────────────────────────────────────
+
 function normalizeBooking(apiBooking) {
+    // Handle both lowercase and uppercase statuses from API
+    const rawStatus = apiBooking.status || "";
+    const statusLower = rawStatus.toLowerCase();
+    
+    // Map backend enum values (lowercase) to frontend display names
     const statusMap = {
-        pending: "New Requests",
-        accepted: "Accepted",
-        in_progress: "In Progress",
-        completed: "Completed",
-        cancelled: "Cancelled",
+        "pending": "New Requests",
+        "accepted": "Accepted",
+        "in_progress": "In Progress",
+        "completed": "Completed",
+        "rescheduled": "Rescheduled",
+        "cancelled": "Cancelled",
+        "paid": "Paid",
+        // Handle old uppercase values just in case
+        "pending": "New Requests",
+        "accepted": "Accepted",
+        "in_progress": "In Progress",
+        "completed": "Completed",
+        "rescheduled": "Rescheduled",
+        "cancelled": "Cancelled",
+        "paid": "Paid",
     };
 
-    const providerName = apiBooking.provider_full_name || "Provider";
-    const clientName = apiBooking.client_full_name || "Client";
+    const providerName = apiBooking.provider_full_name || apiBooking.provider_name || "Provider";
+    const clientName = apiBooking.client_full_name || apiBooking.client_name || "Client";
 
     return {
         id: apiBooking.id,
@@ -58,17 +74,21 @@ function normalizeBooking(apiBooking) {
                 ? `${apiBooking.scheduled_start_time} - ${apiBooking.scheduled_end_time}`
                 : apiBooking.scheduled_start_time || "",
         location: apiBooking.location || "",
-        status: statusMap[apiBooking.status] || apiBooking.status || "New Requests",
+        status: statusMap[statusLower] || rawStatus || "New Requests",
         amount:
             typeof apiBooking.amount === "number"
                 ? `KES ${apiBooking.amount.toLocaleString()}`
                 : apiBooking.amount || "",
         amountRaw: apiBooking.amount,
+        paidAt: apiBooking.paid_at || null,
         raw: apiBooking,
     };
 }
 
-// simple in-memory cache for users to avoid repeated network calls
+// ─────────────────────────────────────────────
+// USER CACHE
+// ─────────────────────────────────────────────
+
 const userCache = new Map();
 
 async function fetchUserById(id) {
@@ -97,7 +117,9 @@ async function normalizeBookingAsync(apiBooking) {
     return normalized;
 }
 
-// src/api/bookingService.js - Fixed listClientBookings
+// ─────────────────────────────────────────────
+// BOOKING ENDPOINTS
+// ─────────────────────────────────────────────
 
 export async function listClientBookings(clientId) {
     try {
@@ -106,12 +128,10 @@ export async function listClientBookings(clientId) {
         const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
         return results;
     } catch (error) {
-        // If endpoint returns 404 or error, return empty array
         if (error.response && error.response.status === 404) {
             console.info("No bookings found for this client");
             return [];
         }
-        // Fallback: try to get all bookings and filter by client ID
         try {
             const allBookings = await listActiveBookings();
             return (allBookings || []).filter((b) => Number(b.clientId) === Number(clientId));
@@ -126,9 +146,13 @@ export async function listProviderBookings(providerId) {
         const resp = await client.get(`/bookings/provider/${providerId}`);
         const list = resp.data || [];
         const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
+        console.log("📊 Normalized bookings:", results.map(j => ({ 
+            id: j.id, 
+            status: j.status, 
+            rawStatus: j.raw?.status 
+        })));
         return results;
     } catch (error) {
-        // Silently fallback to active bookings filtered by provider id
         if (error.response && error.response.status === 404) {
             try {
                 const active = await listActiveBookings();
@@ -167,13 +191,51 @@ export async function listActiveBookings() {
     }
 }
 
+// ─────────────────────────────────────────────
+// STATUS UPDATE - FIXED FOR LOWERCASE ENUM VALUES
+// ─────────────────────────────────────────────
+
 export async function updateBookingStatus(bookingId, newStatus) {
     try {
+        // Map frontend display status to backend enum values (LOWERCASE)
+        const statusMap = {
+            // Frontend display names -> Backend enum values (lowercase)
+            "New Requests": "pending",
+            "Accepted": "accepted",
+            "In Progress": "in_progress",
+            "Completed": "completed",
+            "Rescheduled": "rescheduled",
+            "Cancelled": "cancelled",
+            "Paid": "paid",
+            // Handle if someone passes uppercase values
+            "PENDING": "pending",
+            "ACCEPTED": "accepted",
+            "IN_PROGRESS": "in_progress",
+            "COMPLETED": "completed",
+            "RESCHEDULED": "rescheduled",
+            "CANCELLED": "cancelled",
+            "PAID": "paid",
+        };
+        
+        // Get the backend status value (lowercase)
+        const backendStatus = statusMap[newStatus] || newStatus.toLowerCase();
+        
+        console.log(`🔄 Updating booking ${bookingId} status to:`, backendStatus);
+        
         const resp = await client.patch(`/bookings/${bookingId}/status`, {
-            status: newStatus,
+            status: backendStatus
         });
+        
+        console.log(`✅ Status updated successfully for booking ${bookingId}`);
         return normalizeBooking(resp.data);
     } catch (error) {
+        console.error(`❌ Failed to update booking ${bookingId} status:`, error.response?.data || error.message);
+        if (error.response) {
+            console.error('📋 Error details:', {
+                status: error.response.status,
+                data: error.response.data
+            });
+        }
         if (error.response && error.response.status === 404) {
             return null;
         }
@@ -186,6 +248,7 @@ export async function cancelBooking(bookingId) {
         const resp = await client.patch(`/bookings/${bookingId}/cancel`);
         return normalizeBooking(resp.data);
     } catch (error) {
+        console.error(`❌ Failed to cancel booking ${bookingId}:`, error.response?.data || error.message);
         if (error.response && error.response.status === 404) {
             return null;
         }
@@ -195,9 +258,12 @@ export async function cancelBooking(bookingId) {
 
 export async function rescheduleBooking(bookingId, data) {
     try {
+        console.log(`🔄 Rescheduling booking ${bookingId} with data:`, data);
         const resp = await client.patch(`/bookings/${bookingId}/reschedule`, data);
+        console.log(`✅ Booking ${bookingId} rescheduled successfully`);
         return normalizeBooking(resp.data);
     } catch (error) {
+        console.error(`❌ Failed to reschedule booking ${bookingId}:`, error.response?.data || error.message);
         if (error.response && error.response.status === 404) {
             return null;
         }

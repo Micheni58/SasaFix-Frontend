@@ -130,7 +130,7 @@ function ProviderDashboard() {
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar role="provider" />
+      <Sidebar role="provider"role="provider" />
       <div className="flex-1 ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">

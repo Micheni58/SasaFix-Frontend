@@ -1,3 +1,5 @@
+// src/api/reviewService.js
+
 import axios from "axios";
 
 const API_URL = "/api";
@@ -37,46 +39,70 @@ function normalizeReviews(reviews) {
   return (reviews || []).map(normalizeReview);
 }
 
-function normalizeRating(rating) {
-  return {
-    id: rating.id,
-    bookingId: rating.booking_id,
-    clientId: rating.client_id,
-    providerId: rating.provider_id,
-    score: Number(rating.score || 0),
-    createdAt: rating.created_at || null,
-    updatedAt: rating.updated_at || null,
-    raw: rating,
-  };
-}
-
-function normalizeRatings(ratings) {
-  return (ratings || []).map(normalizeRating);
-}
-
 export async function createReview(reviewData) {
-  const response = await client.post("/reviews/", reviewData);
+  // Validate required fields
+  if (!reviewData.booking_id) throw new Error("booking_id is required");
+  if (!reviewData.client_id) throw new Error("client_id is required");
+  if (!reviewData.provider_id) throw new Error("provider_id is required");
+  if (!reviewData.comment || !reviewData.comment.trim()) {
+    throw new Error("Comment is required");
+  }
+
+  const response = await client.post("/reviews/", {
+    booking_id: reviewData.booking_id,
+    client_id: reviewData.client_id,
+    provider_id: reviewData.provider_id,
+    comment: reviewData.comment.trim(),
+  });
   return normalizeReview(response.data);
 }
 
 export async function getProviderReviews(providerId) {
-  const response = await client.get(`/reviews/provider/${providerId}`);
-  return normalizeReviews(response.data);
+  try {
+    const response = await client.get(`/reviews/provider/${providerId}`);
+    return normalizeReviews(response.data);
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function getClientReviews(clientId) {
-  const response = await client.get(`/reviews/client/${clientId}`);
-  return normalizeReviews(response.data);
+  try {
+    const response = await client.get(`/reviews/client/${clientId}`);
+    return normalizeReviews(response.data);
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function getBookingReview(bookingId) {
-  const response = await client.get(`/reviews/booking/${bookingId}`);
-  return normalizeReview(response.data);
+  try {
+    const response = await client.get(`/reviews/booking/${bookingId}`);
+    return normalizeReview(response.data);
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return null; // No review found - that's fine
+    }
+    throw error;
+  }
 }
 
 export async function getFlaggedReviews() {
-  const response = await client.get("/reviews/flagged");
-  return normalizeReviews(response.data);
+  try {
+    const response = await client.get("/reviews/flagged");
+    return normalizeReviews(response.data);
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function getReviewById(reviewId) {
@@ -103,21 +129,6 @@ export async function flagReview(reviewId, isFlagged) {
   return normalizeReview(response.data);
 }
 
-export async function getProviderRatings(providerId) {
-  const response = await client.get(`/ratings/provider/${providerId}`);
-  return normalizeRatings(response.data);
-}
-
-export async function getProviderAverageRating(providerId) {
-    const response = await client.get(`/ratings/provider/${providerId}/average`);
-    return {
-        providerId: response.data.provider_id,
-        averageScore: Number(response.data.average_score || 0),
-        totalRatings: Number(response.data.total_ratings || 0),
-        raw: response.data,
-    };
-}
-
 const reviewService = {
   createReview,
   getProviderReviews,
@@ -128,8 +139,6 @@ const reviewService = {
   respondToReview,
   thankClientForReview,
   flagReview,
-  getProviderRatings,
-  getProviderAverageRating,
 };
 
 export default reviewService;

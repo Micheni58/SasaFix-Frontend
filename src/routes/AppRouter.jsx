@@ -43,6 +43,7 @@ import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBooki
 import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
 import ProviderSubscription from "../pages/ServiceProvider/ProviderSubscription";
+import ProviderWallet from "../pages/ServiceProvider/Wallet";
 
 export default function AppRouter() {
   return (
@@ -84,7 +85,7 @@ export default function AppRouter() {
 
         <Route path="/provider" element={<ProviderDashboard />} />
         <Route path="/provider/messages" element={<ClientMessages />} />
-        <Route path="/provider/wallet" element={<ClientWallet />} />
+        <Route path="/provider/wallet" element={<ProviderWallet />} />
         <Route path="/provider/profile" element={<Profile />} />
         <Route path="/provider/availability" element={<Availability />} />
         <Route path="/provider/notifications" element={<ProviderNotification />}/>

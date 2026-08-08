@@ -1,7 +1,7 @@
 // src/pages/ServiceProvider/Notification.jsx - Updated for Provider
 
 import { useEffect, useMemo, useState } from "react";
-import { Briefcase, DollarSign, MessageCircle, Bell, Trash2, Loader2, RefreshCw, Calendar, Clock } from "lucide-react";
+import { Briefcase, DollarSign, MessageCircle, Bell, Trash2, RefreshCw, Calendar, Clock } from "lucide-react";
 import {
     deleteNotification,
     fetchNotifications,
@@ -82,6 +82,42 @@ function EmptyState({ icon: Icon, title, description }) {
             </div>
             <h3 className="text-lg font-semibold text-gray-800 mb-1">{title}</h3>
             <p className="text-sm text-gray-500 max-w-sm">{description}</p>
+        </div>
+    );
+}
+
+function NotificationSkeleton() {
+    return (
+        <div className="animate-pulse" aria-label="Loading notifications" role="status">
+            <section className="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <div className="h-9 w-48 rounded bg-gray-200" />
+                    <div className="mt-3 h-5 w-72 max-w-full rounded bg-gray-200" />
+                </div>
+                <div className="h-10 w-24 rounded-lg bg-gray-200" />
+            </section>
+
+            <section className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="flex gap-6 px-6 py-3.5">
+                    {[72, 90, 70, 95, 100].map((width, index) => (
+                        <div key={index} className="h-6 rounded bg-gray-200" style={{ width }} />
+                    ))}
+                </div>
+            </section>
+
+            <section className="space-y-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                {Array.from({ length: 5 }, (_, index) => (
+                    <div key={index} className="flex items-center gap-4 rounded-lg px-4 py-3">
+                        <div className="h-10 w-10 shrink-0 rounded-lg bg-gray-200" />
+                        <div className="min-w-0 flex-1">
+                            <div className="h-4 w-2/5 rounded bg-gray-200" />
+                            <div className="mt-2 h-3 w-4/5 rounded bg-gray-200" />
+                        </div>
+                        <div className="h-3 w-16 shrink-0 rounded bg-gray-200" />
+                    </div>
+                ))}
+            </section>
+            <span className="sr-only">Loading notifications…</span>
         </div>
     );
 }
@@ -231,11 +267,8 @@ export default function ProviderNotification() {
                 <Sidebar role="provider" />
                 <div className="flex-1 ml-72">
                     <Navbar />
-                    <main className="pt-24 px-6 pb-6 flex items-center justify-center">
-                        <div className="flex flex-col items-center gap-4">
-                            <Loader2 className="h-12 w-12 animate-spin text-[#056db3]" />
-                            <p className="text-gray-500">Loading notifications...</p>
-                        </div>
+                    <main className="pt-24 px-6 pb-6">
+                        <NotificationSkeleton />
                     </main>
                 </div>
             </div>

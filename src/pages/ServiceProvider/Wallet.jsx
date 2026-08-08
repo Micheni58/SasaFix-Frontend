@@ -14,7 +14,7 @@ import {
     History,
     Eye,
     EyeOff,
-    Download,
+    RefreshCw,
     Filter,
     X,
     Loader2,
@@ -106,13 +106,25 @@ function ProviderWallet() {
     const [activeFilter, setActiveFilter] = useState("Month");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isBalanceVisible, setIsBalanceVisible] = useState(true);
+    const [isBalanceVisible, setIsBalanceVisible] = useState(
+        () => localStorage.getItem("provider-wallet-balance-visible") !== "false"
+    );
 
     // Data states
     const [balance, setBalance] = useState(0);
     const [transactions, setTransactions] = useState([]);
     const [paymentMethods, setPaymentMethods] = useState([]);
     const [user, setUser] = useState(null);
+    const [showMethodModal, setShowMethodModal] = useState(false);
+    const [editingMethod, setEditingMethod] = useState(null);
+    const [methodFormData, setMethodFormData] = useState({
+        type: "mpesa",
+        label: "",
+        detail: "",
+        primary: false,
+    });
+    const [methodModalLoading, setMethodModalLoading] = useState(false);
+    const [methodError, setMethodError] = useState(null);
 
     // ── Get user from localStorage ──
     useEffect(() => {
@@ -148,17 +160,6 @@ function ProviderWallet() {
                     ? txRes
                     : txRes?.transactions || txRes?.data?.transactions || [];
                 
-                // DEBUG: Log transaction data to see what's coming from API
-                console.log("📊 Transaction data from API:", txList);
-                console.log("📊 Transaction types:", txList.map(t => ({ 
-                    id: t.id, 
-                    type: t.type, 
-                    amount: t.amount,
-                    net_amount: t.net_amount,
-                    gross_amount: t.gross_amount,
-                    status: t.status 
-                })));
-                
                 setTransactions(txList);
 
                 // 3. Fetch payment methods
@@ -184,11 +185,8 @@ function ProviderWallet() {
         fetchWalletData();
     }, [user, activeFilter]);
 
-    // ── Robust Direction & Amount Resolver with Debugging ──
+    // ── Resolve the displayed sign from the wallet effect ──
     const resolveTx = (tx) => {
-        // DEBUG: Log each transaction to see its structure
-        console.log("🔍 Resolving transaction:", tx);
-        
         // Handle numeric amounts from both wallet_resource and escrow_resource schemas
         const net = tx.net_amount ?? tx.netAmount;
         const gross = tx.gross_amount ?? tx.grossAmount;
@@ -206,7 +204,8 @@ function ProviderWallet() {
         }
 
         const txType = (tx.type || "").toLowerCase();
-        // Check if this is a withdrawal/payout
+        // A negative amount always removes money. Positive provider payments
+        // are earnings; only explicit payout/debit types reduce this wallet.
         const isWithdrawal = ["payout", "withdrawal", "withdraw", "debit"].includes(txType) || numAmount < 0;
 
         // Provider receives positive value unless it's a withdrawal or negative debit
@@ -216,9 +215,6 @@ function ProviderWallet() {
         const rawStatus = (tx.status || "PENDING").toUpperCase();
         const dateVal = tx.paid_at || tx.paidAt || tx.created_at || tx.createdAt || tx.date;
         const description = tx.description || (isIncoming ? "Job Earnings" : "Withdrawal Payout");
-
-        // DEBUG: Log resolved values
-        console.log(`  ➜ Resolved: isIncoming=${isIncoming}, amount=${absoluteAmount}, type=${txType}`);
 
         return { absoluteAmount, isIncoming, rawStatus, dateVal, description, txType };
     };
@@ -238,12 +234,80 @@ function ProviderWallet() {
 
     // ── Toggle balance visibility ──
     const toggleBalanceVisibility = () => {
-        setIsBalanceVisible(!isBalanceVisible);
+        setIsBalanceVisible((visible) => {
+            const nextVisible = !visible;
+            localStorage.setItem("provider-wallet-balance-visible", String(nextVisible));
+            return nextVisible;
+        });
     };
 
     // ── Handle filter change ──
     const handleFilterChange = (event) => {
         setActiveFilter(event.target.value);
+    };
+
+    const openAddMethodModal = () => {
+        setEditingMethod(null);
+        setMethodFormData({ type: "mpesa", label: "", detail: "", primary: false });
+        setMethodError(null);
+        setShowMethodModal(true);
+    };
+
+    const openEditMethodModal = (method) => {
+        setEditingMethod(method);
+        setMethodFormData({
+            type: method.type,
+            label: method.label,
+            detail: method.detail,
+            primary: Boolean(method.primary),
+        });
+        setMethodError(null);
+        setShowMethodModal(true);
+    };
+
+    const handleSaveMethod = async () => {
+        const { type, label, detail, primary } = methodFormData;
+        if (!label.trim() || !detail.trim()) {
+            setMethodError("Please enter a label and account details.");
+            return;
+        }
+
+        setMethodModalLoading(true);
+        setMethodError(null);
+        try {
+            const methodData = { type, label: label.trim(), detail: detail.trim(), primary };
+            if (editingMethod) {
+                await walletService.updatePaymentMethod(user.id, editingMethod.id, methodData);
+            } else {
+                await walletService.addPaymentMethod(user.id, methodData);
+            }
+            setPaymentMethods(await walletService.getPaymentMethods(user.id));
+            setShowMethodModal(false);
+            setEditingMethod(null);
+        } catch (err) {
+            setMethodError(err.message || "Failed to add payment method.");
+        } finally {
+            setMethodModalLoading(false);
+        }
+    };
+
+    const handleSetPrimary = async (methodId) => {
+        try {
+            await walletService.setPrimaryPaymentMethod(user.id, methodId);
+            setPaymentMethods(await walletService.getPaymentMethods(user.id));
+        } catch (err) {
+            alert(`Failed to set primary payment method: ${err.message}`);
+        }
+    };
+
+    const handleDeleteMethod = async (methodId, label) => {
+        if (!window.confirm(`Delete "${label}"?`)) return;
+        try {
+            await walletService.deletePaymentMethod(user.id, methodId);
+            setPaymentMethods(await walletService.getPaymentMethods(user.id));
+        } catch (err) {
+            alert(`Failed to delete payment method: ${err.message}`);
+        }
     };
 
     // ── Loading state with skeleton ──
@@ -317,7 +381,7 @@ function ProviderWallet() {
                             onClick={() => window.location.reload()}
                             className="flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors w-full sm:w-auto"
                         >
-                            <Download className="h-4 w-4" />
+                            <RefreshCw className="h-4 w-4" />
                             Refresh
                         </button>
                     </div>
@@ -331,19 +395,18 @@ function ProviderWallet() {
                             <div>
                                 <p className="text-xs sm:text-sm font-medium text-blue-100">Available Earnings</p>
                                 <div className="mt-2 flex items-center gap-3">
-                                    <span 
-                                        className={`inline-block text-2xl sm:text-4xl font-bold tracking-tight transition-all duration-200 select-none ${
-                                            !isBalanceVisible ? "blur-md opacity-60" : ""
-                                        }`}
-                                    >
-                                        KES {balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    <span className="inline-block text-2xl sm:text-4xl font-bold tracking-tight" aria-live="polite">
+                                        {isBalanceVisible
+                                            ? `KES ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                            : "KES ••••••"}
                                     </span>
                                     
                                     <button
                                         type="button"
                                         onClick={toggleBalanceVisibility}
                                         className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer shrink-0"
-                                        aria-label="Toggle balance visibility"
+                                        aria-label={isBalanceVisible ? "Hide balance" : "Show balance"}
+                                        aria-pressed={!isBalanceVisible}
                                     >
                                         {isBalanceVisible ? <Eye className="h-4 w-4 sm:h-5 sm:w-5" /> : <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />}
                                     </button>
@@ -428,11 +491,41 @@ function ProviderWallet() {
                                                         <p className="text-xs text-gray-500 truncate">{method.detail}</p>
                                                     </div>
                                                 </div>
-                                                {method.primary && (
-                                                    <span className="rounded-full bg-[#056db3] px-2 py-0.5 text-xs font-semibold text-white shrink-0">
-                                                        Primary
-                                                    </span>
-                                                )}
+                                                <div className="flex shrink-0 items-center gap-1">
+                                                    {method.primary ? (
+                                                        <span className="rounded-full bg-[#056db3] px-2 py-0.5 text-xs font-semibold text-white">
+                                                            Primary
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSetPrimary(method.id)}
+                                                            className="rounded p-1.5 text-gray-400 hover:bg-blue-50 hover:text-[#056db3]"
+                                                            aria-label={`Set ${method.label} as primary`}
+                                                            title="Set as primary"
+                                                        >
+                                                            <Check className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEditMethodModal(method)}
+                                                        className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                                                        aria-label={`Edit ${method.label}`}
+                                                        title="Edit"
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteMethod(method.id, method.label)}
+                                                        className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                                                        aria-label={`Delete ${method.label}`}
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         );
                                     })
@@ -440,6 +533,7 @@ function ProviderWallet() {
 
                                 <button
                                     type="button"
+                                    onClick={openAddMethodModal}
                                     className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#056db3] py-2.5 text-sm font-bold text-[#056db3] hover:bg-blue-50 transition-colors mt-3"
                                 >
                                     <Plus className="h-4 w-4" /> Add Payment Method
@@ -567,6 +661,43 @@ function ProviderWallet() {
 
                 </main>
             </div>
+
+            {showMethodModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-gray-800">{editingMethod ? "Edit Payment Method" : "Add Payment Method"}</h2>
+                            <button type="button" onClick={() => { setShowMethodModal(false); setEditingMethod(null); }} className="rounded p-1 hover:bg-gray-100" aria-label="Close">
+                                <X className="h-5 w-5 text-gray-500" />
+                            </button>
+                        </div>
+                        <p className="mt-1 text-sm text-gray-500">{editingMethod ? "Update your payout account details." : "Add an account for receiving payouts."}</p>
+                        {methodError && <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">{methodError}</p>}
+                        <div className="mt-4 space-y-4">
+                            <label className="block text-sm font-medium text-gray-700">Payment type
+                                <select value={methodFormData.type} onChange={(event) => setMethodFormData({ ...methodFormData, type: event.target.value })} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
+                                    <option value="mpesa">M-Pesa</option><option value="visa">Visa Card</option><option value="mastercard">Mastercard</option><option value="bank">Bank Account</option>
+                                </select>
+                            </label>
+                            <label className="block text-sm font-medium text-gray-700">Label
+                                <input value={methodFormData.label} onChange={(event) => setMethodFormData({ ...methodFormData, label: event.target.value })} placeholder="e.g., My M-Pesa" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+                            </label>
+                            <label className="block text-sm font-medium text-gray-700">Account details
+                                <input value={methodFormData.detail} onChange={(event) => setMethodFormData({ ...methodFormData, detail: event.target.value })} placeholder="e.g., +2547XXXXXXXX" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-gray-700">
+                                <input type="checkbox" checked={methodFormData.primary} onChange={(event) => setMethodFormData({ ...methodFormData, primary: event.target.checked })} /> Set as primary
+                            </label>
+                        </div>
+                        <div className="mt-6 flex gap-3">
+                            <button type="button" onClick={() => { setShowMethodModal(false); setEditingMethod(null); }} className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-gray-700">Cancel</button>
+                            <button type="button" onClick={handleSaveMethod} disabled={methodModalLoading} className="flex flex-1 items-center justify-center rounded-lg bg-[#056db3] px-4 py-2 text-white disabled:opacity-50">
+                                {methodModalLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : editingMethod ? "Save Changes" : "Add Method"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

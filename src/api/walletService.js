@@ -256,6 +256,26 @@ export async function addPaymentMethod(userId, methodData) {
 }
 
 /**
+ * Update an existing payment method
+ */
+export async function updatePaymentMethod(userId, methodId, methodData) {
+  try {
+    const response = await client.patch(
+      `/wallets/user/${userId}/payment-methods/${methodId}`,
+      {
+        type: methodData.type,
+        label: methodData.label,
+        detail: methodData.detail,
+        primary: methodData.primary || false,
+      }
+    );
+    return normalizePaymentMethod(response.data);
+  } catch (error) {
+    throw handleError(error);
+  }
+}
+
+/**
  * Set primary payment method
  */
 export async function setPrimaryPaymentMethod(userId, methodId) {
@@ -416,6 +436,7 @@ const walletService = {
   // Payment methods
   getPaymentMethods,
   addPaymentMethod,
+  updatePaymentMethod,
   setPrimaryPaymentMethod,
   deletePaymentMethod,
 

@@ -19,6 +19,8 @@ import {
     Edit2,
     ShoppingBag,
     History,
+    Eye,
+    EyeOff,
 } from "lucide-react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
@@ -59,9 +61,26 @@ const paymentMethodColors = {
     bank: "bg-gray-100 text-gray-600",
 };
 
-function formatAmount(amount) {
-    const abs = Math.abs(amount).toLocaleString();
-    return amount < 0 ? `- KES ${abs}` : `+ KES ${abs}`;
+function getTransactionDirection(transaction) {
+    const amount = transaction.amount;
+    const numericAmount = Number(
+        amount ?? transaction.netAmount ?? transaction.net_amount ?? transaction.grossAmount ?? transaction.gross_amount ?? 0
+    );
+    const type = (transaction.type || "").toLowerCase();
+
+    // A signed amount from the API is authoritative. Some API responses only
+    // provide a positive amount, so use the transaction type in that case.
+    const isIncoming = numericAmount < 0
+        ? false
+        : numericAmount > 0 && amount != null
+            ? true
+            : ["topup", "top_up", "deposit", "credit", "refund", "release"].includes(type);
+
+    return { amount: Math.abs(Number.isFinite(numericAmount) ? numericAmount : 0), isIncoming, type };
+}
+
+function formatAmount(amount, isIncoming) {
+    return `${isIncoming ? "+" : "-"} KES ${amount.toLocaleString()}`;
 }
 
 function formatDate(dateString) {
@@ -168,6 +187,9 @@ function ClientWallet() {
     const [activeFilter, setActiveFilter] = useState("Month");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isBalanceVisible, setIsBalanceVisible] = useState(
+        () => localStorage.getItem("client-wallet-balance-visible") !== "false"
+    );
 
     // Data states
     const [balance, setBalance] = useState(0);
@@ -428,12 +450,14 @@ function ClientWallet() {
 
     // ── Calculate totals ──
     const totalSpent = transactions
-        .filter((t) => t.amount < 0 || t.type === "payment")
-        .reduce((sum, t) => sum + Math.abs(t.amount || t.grossAmount || 0), 0);
+        .map(getTransactionDirection)
+        .filter((transaction) => !transaction.isIncoming)
+        .reduce((sum, transaction) => sum + transaction.amount, 0);
 
     const totalAdded = transactions
-        .filter((t) => t.amount > 0 || t.type === "topup" || t.type === "refund")
-        .reduce((sum, t) => sum + (t.amount || t.grossAmount || 0), 0);
+        .map(getTransactionDirection)
+        .filter((transaction) => transaction.isIncoming)
+        .reduce((sum, transaction) => sum + transaction.amount, 0);
 
     const hasTransactions = transactions.length > 0;
     const hasPaymentMethods = paymentMethods.length > 0;
@@ -593,9 +617,24 @@ function ClientWallet() {
                                 <p className="text-sm font-medium text-blue-100">
                                     Available Balance
                                 </p>
-                                <p className="mt-2 text-5xl font-bold tracking-tight">
-                                    KES {balance.toLocaleString()}
-                                </p>
+                                <div className="mt-2 flex items-center gap-3">
+                                    <p className="text-5xl font-bold tracking-tight" aria-live="polite">
+                                        {isBalanceVisible ? `KES ${balance.toLocaleString()}` : "KES ••••••"}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsBalanceVisible((visible) => {
+                                            const nextVisible = !visible;
+                                            localStorage.setItem("client-wallet-balance-visible", String(nextVisible));
+                                            return nextVisible;
+                                        })}
+                                        className="rounded-full bg-white/20 p-2 text-white transition-colors hover:bg-white/30"
+                                        aria-label={isBalanceVisible ? "Hide balance" : "Show balance"}
+                                        aria-pressed={!isBalanceVisible}
+                                    >
+                                        {isBalanceVisible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                                    </button>
+                                </div>
                                 <p className="mt-2 text-sm text-blue-200">
                                     {balance === 0 ? "Add money to start booking services" : "Ready to book your next service"}
                                 </p>
@@ -792,17 +831,20 @@ function ClientWallet() {
                                 </div>
                             ) : (
                                 <div className="space-y-3">
-                                    {transactions.slice(0, 5).map((tx) => (
+                                    {transactions.slice(0, 5).map((tx) => {
+                                        const { amount, isIncoming } = getTransactionDirection(tx);
+                                        return (
                                         <div key={tx.id} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0">
                                             <div>
                                                 <p className="text-sm font-medium text-gray-800">{tx.description}</p>
                                                 <p className="text-xs text-gray-400">{tx.date}</p>
                                             </div>
-                                            <span className={`text-sm font-bold ${tx.amount > 0 ? "text-green-600" : "text-red-500"}`}>
-                                                {formatAmount(tx.amount)}
+                                            <span className={`text-sm font-bold ${isIncoming ? "text-green-600" : "text-red-500"}`}>
+                                                {formatAmount(amount, isIncoming)}
                                             </span>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                     {transactions.length > 5 && (
                                         <p className="text-xs text-center text-gray-400 mt-2">
                                             + {transactions.length - 5} more transactions
@@ -887,14 +929,16 @@ function ClientWallet() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200">
-                                        {transactions.map((tx) => (
+                                        {transactions.map((tx) => {
+                                            const { amount, isIncoming, type } = getTransactionDirection(tx);
+                                            return (
                                             <tr
                                                 key={tx.id}
                                                 className="transition-colors hover:bg-gray-50"
                                             >
                                                 <td className="px-6 py-4">
                                                     <span
-                                                        className={`inline-flex rounded-lg px-3 py-1 text-xs font-semibold capitalize ${typeStyles[tx.type] || "bg-gray-50 text-gray-500"}`}
+                                                        className={`inline-flex rounded-lg px-3 py-1 text-xs font-semibold capitalize ${typeStyles[type] || "bg-gray-50 text-gray-500"}`}
                                                     >
                                                         {tx.type || "unknown"}
                                                     </span>
@@ -914,17 +958,14 @@ function ClientWallet() {
                                                 </td>
                                                 <td className="px-4 py-4 text-right">
                                                     <span
-                                                        className={`text-sm font-bold ${
-                                                            tx.amount < 0 || tx.type === "payment"
-                                                                ? "text-red-500"
-                                                                : "text-green-600"
-                                                        }`}
+                                                        className={`text-sm font-bold ${isIncoming ? "text-green-600" : "text-red-500"}`}
                                                     >
-                                                        {formatAmount(tx.amount || tx.grossAmount || 0)}
+                                                        {formatAmount(amount, isIncoming)}
                                                     </span>
                                                 </td>
                                             </tr>
-                                        ))}
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>

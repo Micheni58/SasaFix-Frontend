@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 import { useLocation } from "react-router-dom";
@@ -91,6 +91,45 @@ const NAV = [
   { id: "security", label: "Security", icon: <LockIcon /> },
   { id: "help", label: "Help & Support", icon: <HelpIcon /> },
 ];
+
+// Memoized PwField component to prevent re-renders
+const PwField = memo(
+  ({
+    label,
+    vk,
+    fk,
+    placeholder,
+    value,
+    type,
+    onChange,
+    onToggle,
+    isVisible,
+  }) => (
+    <div className="mb-4">
+      <Label>{label}</Label>
+      <div className="relative">
+        <input
+          className={inputCls + " pr-10"}
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          onChange={onChange}
+          autoComplete={
+            fk === "current_password" ? "current-password" : "new-password"
+          }
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          tabIndex="-1"
+        >
+          {isVisible ? <EyeOpen /> : <EyeClosed />}
+        </button>
+      </div>
+    </div>
+  ),
+);
 
 const PersonalInfo = ({ user, onSaved }) => {
   const [form, setForm] = useState({
@@ -441,14 +480,16 @@ const Security = () => {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3000);
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.new_password !== form.confirm_password) {
       showToast("New passwords don't match.", false);
       return;
     }
-    if (form.new_password.length < 6) {
-      showToast("Password must be at least 6 characters.", false);
+    // Allow passwords of any length (1 character minimum)
+    if (form.new_password.length === 0) {
+      showToast("Password cannot be empty.", false);
       return;
     }
     setSaving(true);
@@ -476,27 +517,22 @@ const Security = () => {
       setSaving(false);
     }
   };
-  const PwField = ({ label, vk, fk, placeholder }) => (
-    <div className="mb-4">
-      <Label>{label}</Label>
-      <div className="relative">
-        <input
-          className={inputCls + " pr-10"}
-          type={vis[vk] ? "text" : "password"}
-          value={form[fk]}
-          placeholder={placeholder}
-          onChange={(e) => setForm((p) => ({ ...p, [fk]: e.target.value }))}
-        />
-        <button
-          type="button"
-          onClick={() => setVis((p) => ({ ...p, [vk]: !p[vk] }))}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-        >
-          {vis[vk] ? <EyeOpen /> : <EyeClosed />}
-        </button>
-      </div>
-    </div>
+
+  // Memoized change handlers
+  const handleChange = useCallback(
+    (field) => (e) => {
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    },
+    [],
   );
+
+  const handleToggle = useCallback(
+    (vk) => () => {
+      setVis((prev) => ({ ...prev, [vk]: !prev[vk] }));
+    },
+    [],
+  );
+
   return (
     <div>
       {toast && <Toast msg={toast.msg} ok={toast.ok} />}
@@ -510,18 +546,33 @@ const Security = () => {
           vk="cur"
           fk="current_password"
           placeholder="Enter current password"
+          value={form.current_password}
+          type={vis.cur ? "text" : "password"}
+          onChange={handleChange("current_password")}
+          onToggle={handleToggle("cur")}
+          isVisible={vis.cur}
         />
         <PwField
           label="New Password"
           vk="nw"
           fk="new_password"
           placeholder="Create new password"
+          value={form.new_password}
+          type={vis.nw ? "text" : "password"}
+          onChange={handleChange("new_password")}
+          onToggle={handleToggle("nw")}
+          isVisible={vis.nw}
         />
         <PwField
           label="Confirm Password"
           vk="cf"
           fk="confirm_password"
           placeholder="Repeat new password"
+          value={form.confirm_password}
+          type={vis.cf ? "text" : "password"}
+          onChange={handleChange("confirm_password")}
+          onToggle={handleToggle("cf")}
+          isVisible={vis.cf}
         />
         <button
           type="submit"

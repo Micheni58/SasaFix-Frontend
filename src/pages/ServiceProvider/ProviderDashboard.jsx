@@ -1,4 +1,4 @@
-// src/pages/ServiceProvider/ProviderDashboard.jsx - FINAL FIXED
+// src/pages/ServiceProvider/ProviderDashboard.jsx - With AI Integration
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -18,12 +18,15 @@ import {
   RotateCcw,
   TrendingUp,
   DollarSign,
+  Sparkles,
+  BarChart3,
 } from "lucide-react";
 import bookingService from "../../api/bookingService";
 import { getWalletBalance } from "../../api/walletService";
 import ratingService from "../../api/ratingService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
+import aiService from "../../api/aiService";
 
 // ── Status Colors ──
 const STATUS_STYLES = {
@@ -180,6 +183,70 @@ function StatCard({ label, value, icon: Icon, iconBg, isLoading }) {
   );
 }
 
+// ── AI Insight Card ──
+function AIInsightCard({ onGenerate, isLoading, insight }) {
+  return (
+    <div className="rounded-xl border border-blue-200 bg-linear-to-r from-blue-50/80 to-indigo-50/80 p-6 transition-all hover:shadow-md">
+      <div className="flex items-start gap-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: '#056db3' }}>
+          <Sparkles className="h-5 w-5 text-white" />
+        </div>
+        <div className="flex-1">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h4 className="font-semibold text-gray-800" style={{ color: '#056db3' }}>
+              AI Provider Co-Pilot
+            </h4>
+            <button
+              onClick={onGenerate}
+              disabled={isLoading}
+              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#045a94] disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#056db3' }}
+            >
+              {isLoading ? (
+                <>
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Get Insights
+                </>
+              )}
+            </button>
+          </div>
+          <div className="mt-3">
+            {isLoading ? (
+              <div className="flex items-center gap-3">
+                <div className="h-3 w-3 animate-pulse rounded-full" style={{ backgroundColor: '#056db3' }} />
+                <span className="text-sm text-gray-500">AI is analyzing your profile...</span>
+              </div>
+            ) : insight ? (
+              <div className="space-y-2 text-sm text-gray-700">
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5 text-green-500">✅</span>
+                  <span>{insight}</span>
+                </div>
+                <Link
+                  to="/provider/ai-assistant"
+                  className="inline-flex items-center gap-1 text-xs font-medium transition-colors hover:underline"
+                  style={{ color: '#056db3' }}
+                >
+                  Open AI Assistant
+                  <ChevronRight className="h-3 w-3" />
+                </Link>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Click <strong>"Get Insights"</strong> to get AI-powered suggestions for your profile and pricing.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 // ── Availability Card ──
 function AvailabilityCard({ bookings }) {
   const tomorrow = new Date();
@@ -283,6 +350,8 @@ function ProviderDashboard() {
   const [providerSpecialty, setProviderSpecialty] = useState("Service Provider");
   const [providerLocation, setProviderLocation] = useState("Nairobi, Kenya");
   const [monthlyEarnings, setMonthlyEarnings] = useState(0);
+  const [aiInsight, setAiInsight] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const storedUser = getStoredUser();
   const displayName = storedUser
@@ -306,12 +375,10 @@ function ProviderDashboard() {
 
     const fetchData = async () => {
       try {
-        // Fetch bookings
         const data = await bookingService.listProviderBookings(providerId);
         if (!mounted) return;
         setBookings(data || []);
 
-        // Get provider details from first booking
         if (data && data.length > 0) {
           const firstBooking = data[0];
           const provider = firstBooking.raw?.service_provider;
@@ -323,7 +390,6 @@ function ProviderDashboard() {
           }
         }
 
-        // Fetch average rating from rating service
         try {
           const ratingData = await ratingService.getProviderAverageRating(providerId);
           if (mounted && ratingData) {
@@ -334,7 +400,6 @@ function ProviderDashboard() {
           console.warn("Could not fetch rating:", ratingErr);
         }
 
-        // Calculate monthly earnings
         const today = new Date();
         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
         const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -379,10 +444,28 @@ function ProviderDashboard() {
     return () => { mounted = false; };
   }, [storedUser?.id]);
 
+  // ── AI Insight Generation ──
+  const generateAIInsight = async () => {
+    setAiLoading(true);
+    try {
+      const analysis = await aiService.getReviewAnalysis(providerId);
+      if (analysis && analysis.analysis) {
+        // Extract first insight or use the analysis text
+        const lines = analysis.analysis.split('\n').filter(line => line.trim());
+        const firstInsight = lines.find(line => line.match(/^\d\./)) || lines[0];
+        setAiInsight(firstInsight || "Your profile is looking great! Keep up the good work.");
+      }
+    } catch (error) {
+      console.error("AI insight generation failed:", error);
+      setAiInsight("We couldn't generate insights right now. Check back later.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   // ── Derived stats ──
   const today = new Date();
   
-  // TODAY'S JOBS: Show ALL new requests + bookings scheduled for today
   const todaysBookings = bookings.filter((b) => {
     if (b.status === "New Requests" || b.status === "Pending") {
       return true;
@@ -403,12 +486,10 @@ function ProviderDashboard() {
   const todaysJobsCount = todaysBookings.length;
   const displayedJobs = todaysBookings.slice(0, 5);
 
-  // ACTIVE JOBS: ACCEPTED and IN_PROGRESS
   const activeStatuses = ["Accepted", "In Progress"];
   const activeJobs = bookings.filter((b) => activeStatuses.includes(b.status));
   const activeCount = activeJobs.length;
 
-  // Completed bookings for completion rate
   const completedCount = bookings.filter(
     (b) => b.status === "Completed" || b.status === "Approved"
   ).length;
@@ -455,11 +536,12 @@ function ProviderDashboard() {
     { label: "Wallet", to: "/provider/wallet", icon: Wallet },
     { label: "Messages", to: "/provider/messages", icon: MessageCircle },
     { label: "Availability", to: "/provider/availability", icon: Calendar },
+    { label: "AI Assistant", to: "/provider/ai-assistant", icon: Sparkles },
   ];
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar role="provider"role="provider" />
+      <Sidebar role="provider" />
       <div className="flex-1 ml-72">
         <Navbar />
         <main className="px-6 pb-6 pt-24">
@@ -508,6 +590,15 @@ function ProviderDashboard() {
                 </Link>
               ))}
             </div>
+          </section>
+
+          {/* ── AI Insight Card ── */}
+          <section className="mb-8">
+            <AIInsightCard
+              onGenerate={generateAIInsight}
+              isLoading={aiLoading}
+              insight={aiInsight}
+            />
           </section>
 
           {/* ── Stat cards ── */}

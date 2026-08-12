@@ -1,3 +1,5 @@
+// src/api/paymentsService.js
+
 import axios from "axios";
 
 const API_URL = "/api";
@@ -42,8 +44,21 @@ export async function processBookingPayment(bookingId) {
  */
 export async function getBookingPaymentStatus(bookingId) {
   try {
-    const response = await client.get(`/payments/booking/${bookingId}/status`);
-    return response.data;
+    const response = await client.get(`/transactions/booking/${bookingId}`);
+    const transaction = response.data;
+    if (!transaction) {
+      return { status: "not_found", message: "No payment found for this booking" };
+    }
+    return {
+      status: transaction.status || "PENDING",
+      transaction_id: transaction.id,
+      checkout_request_id: transaction.checkout_request_id,
+      mpesa_reference: transaction.mpesa_reference,
+      paid_at: transaction.paid_at,
+      gross_amount: transaction.gross_amount,
+      net_amount: transaction.net_amount,
+      raw: transaction,
+    };
   } catch (error) {
     if (error.response && error.response.status === 404) {
       return { status: "not_found", message: "No payment found for this booking" };
@@ -53,33 +68,16 @@ export async function getBookingPaymentStatus(bookingId) {
 }
 
 // ─────────────────────────────────────────────
-// PAYOUT ENDPOINTS
+// ADMIN & TRANSACTION SUMMARY
 // ─────────────────────────────────────────────
-
-export async function getPayoutRequests(params = {}) {
-  try {
-    const queryParams = new URLSearchParams();
-    if (params.status) queryParams.append("payout_status", params.status);
-    
-    const url = `/payouts/admin/all${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    const response = await client.get(url);
-    return response.data || [];
-  } catch (error) {
-    if (error.response && error.response.status === 404) {
-      console.warn("Payouts endpoint not available yet - returning empty array");
-      return [];
-    }
-    throw error;
-  }
-}
 
 export async function getAdminStats() {
   try {
-    const response = await client.get("/payouts/admin/summary");
+    const response = await client.get("/transactions/admin/summary");
     return {
-      total_revenue: response.data.total_completed_amount || 0,
-      total_commission: response.data.total_completed_amount * 0.15 || 0,
-      pending_payouts: response.data.total_pending_amount || 0,
+      total_revenue: response.data.total_revenue || 0,
+      total_commission: response.data.total_commission || 0,
+      pending_payouts: response.data.pending_payouts || 0,
       total_pending: response.data.total_pending || 0,
       total_completed: response.data.total_completed || 0,
       total_pending_amount: response.data.total_pending_amount || 0,
@@ -87,7 +85,7 @@ export async function getAdminStats() {
     };
   } catch (error) {
     if (error.response && error.response.status === 404) {
-      console.warn("Stats endpoint not available yet - returning default stats");
+      console.warn("Admin stats endpoint not available yet - returning default stats");
       return {
         total_revenue: 0,
         total_commission: 0,
@@ -102,85 +100,13 @@ export async function getAdminStats() {
   }
 }
 
-export async function getProviderPayouts(providerId) {
-  try {
-    const response = await client.get(`/payouts/provider/${providerId}`);
-    return response.data || [];
-  } catch (error) {
-    if (error.response && error.response.status === 404) {
-      console.warn("Provider payouts endpoint not available yet");
-      return [];
-    }
-    throw error;
-  }
-}
-
-export async function getProviderPendingPayouts(providerId) {
-  try {
-    const response = await client.get(`/payouts/provider/${providerId}/pending`);
-    return response.data || [];
-  } catch (error) {
-    if (error.response && error.response.status === 404) {
-      console.warn("Provider pending payouts endpoint not available yet");
-      return [];
-    }
-    throw error;
-  }
-}
-
-export async function createPayoutRequest(data) {
-  try {
-    const response = await client.post("/payouts", data);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-}
-
-export async function updatePayoutStatus(payoutId, status, adminNote = null) {
-  try {
-    const response = await client.patch(`/payouts/${payoutId}/admin-action`, {
-      status: status,
-      admin_note: adminNote,
-    });
-    return response.data;
-  } catch (error) {
-    if (error.response && error.response.status === 404) {
-      console.warn(`Cannot update - payout ${payoutId} not found`);
-      return { success: true, message: "Payout updated (simulated)" };
-    }
-    throw error;
-  }
-}
-
-export async function approvePayout(payoutId) {
-  return updatePayoutStatus(payoutId, "approved");
-}
-
-export async function holdPayout(payoutId, reason) {
-  return updatePayoutStatus(payoutId, "held", reason);
-}
-
-export async function cancelPayoutRequest(payoutId) {
-  try {
-    const response = await client.patch(`/payouts/${payoutId}/cancel`);
-    return response.data;
-  } catch (error) {
-    if (error.response && error.response.status === 404) {
-      console.warn(`Cannot cancel - payout ${payoutId} not found`);
-      return { success: true, message: "Payout cancelled (simulated)" };
-    }
-    throw error;
-  }
-}
-
 // ─────────────────────────────────────────────
 // STK PUSH ENDPOINTS
 // ─────────────────────────────────────────────
 
 export async function initiateSTKPush(data) {
   try {
-    const response = await client.post("/transactions/stk-push", {
+    const response = await client.post("/mpesa/stk-push", {
       phone_number: data.phone_number,
       amount: data.amount,
       booking_id: data.booking_id,
@@ -197,9 +123,9 @@ export async function initiateSTKPush(data) {
   }
 }
 
-export async function checkTransactionStatus(checkoutRequestId) {
+export async function checkTransactionStatus(transactionId) {
   try {
-    const response = await client.get(`/transactions/status/${checkoutRequestId}`);
+    const response = await client.get(`/mpesa/transaction/${transactionId}`);
     return response.data;
   } catch (error) {
     if (error.response) {
@@ -211,7 +137,7 @@ export async function checkTransactionStatus(checkoutRequestId) {
 
 export async function triggerManualCallback(checkoutRequestId, resultCode = 0, amount = null) {
   try {
-    const response = await client.post("/transactions/mpesa/manual-callback", {
+    const response = await client.post("/mpesa/callback", {
       checkout_request_id: checkoutRequestId,
       result_code: resultCode,
       result_desc: resultCode === 0 ? "Success" : "Failed",
@@ -228,89 +154,6 @@ export async function triggerManualCallback(checkoutRequestId, resultCode = 0, a
 }
 
 // ─────────────────────────────────────────────
-// ESCROW ENDPOINTS
-// ─────────────────────────────────────────────
-
-export async function getEscrowTransactions(status = null) {
-  try {
-    const url = status ? `/transactions/escrow/all?status=${status}` : "/transactions/escrow/all";
-    const response = await client.get(url);
-    const data = response.data || [];
-    
-    return data.map(t => ({
-      id: t.id,
-      booking_id: t.booking_id,
-      client_id: t.client_id,
-      provider_id: t.provider_id,
-      provider_name: t.provider_name || `Provider #${t.provider_id}`,
-      gross_amount: t.gross_amount || 0,
-      net_amount: t.net_amount || 0,
-      commission_amount: t.commission_amount || 0,
-      commission_rate: t.commission_rate || 10,
-      status: t.status || "PENDING",
-      mpesa_reference: t.mpesa_reference || null,
-      checkout_request_id: t.checkout_request_id || null,
-      payer_phone: t.payer_phone || null,
-      created_at: t.created_at || null,
-      released_at: t.released_at || null,
-      released_by: t.released_by || null,
-    }));
-  } catch (error) {
-    if (error.response && error.response.status === 404) {
-      console.warn("Escrow endpoint not available yet");
-      return [];
-    }
-    throw error;
-  }
-}
-
-export async function getBookingEscrowTransaction(bookingId) {
-  try {
-    const response = await client.get(`/transactions/booking/${bookingId}`);
-    return response.data || [];
-  } catch (error) {
-    if (error.response && error.response.status === 404) {
-      return [];
-    }
-    throw error;
-  }
-}
-
-export async function releaseEscrowFunds(transactionId, adminId) {
-  try {
-    const response = await client.patch(`/transactions/escrow/${transactionId}/release`, {
-      admin_id: adminId,
-    });
-    return response.data;
-  } catch (error) {
-    if (error.response) {
-      throw new Error(error.response.data.detail || "Failed to release funds");
-    }
-    throw error;
-  }
-}
-
-export async function getEscrowSummary() {
-  try {
-    const response = await client.get("/transactions/admin/escrow/summary");
-    return response.data;
-  } catch (error) {
-    if (error.response && error.response.status === 404) {
-      return {
-        total_in_escrow: 0,
-        total_released: 0,
-        pending_count: 0,
-        completed_count: 0,
-        released_count: 0,
-        formatted_escrow: "KES 0.00",
-        formatted_released: "KES 0.00",
-      };
-    }
-    throw error;
-  }
-}
-
-// ─────────────────────────────────────────────
 // EXPORT
 // ─────────────────────────────────────────────
 
@@ -319,27 +162,13 @@ const paymentsService = {
   processBookingPayment,
   getBookingPaymentStatus,
   
-  // Payouts
-  getPayoutRequests,
+  // Admin & Stats
   getAdminStats,
-  getProviderPayouts,
-  getProviderPendingPayouts,
-  createPayoutRequest,
-  updatePayoutStatus,
-  approvePayout,
-  holdPayout,
-  cancelPayoutRequest,
   
   // STK Push
   initiateSTKPush,
   checkTransactionStatus,
   triggerManualCallback,
-  
-  // Escrow
-  getEscrowTransactions,
-  getBookingEscrowTransaction,
-  releaseEscrowFunds,
-  getEscrowSummary,
 };
 
 export default paymentsService;

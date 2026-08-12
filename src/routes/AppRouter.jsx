@@ -11,7 +11,7 @@ import AdminSettings from "../pages/Admin/Settings";
 import ClientDashboard from "../pages/Client/ClientDashboard";
 import ClientNotification from "../pages/Client/Notification";
 import ClientMessages from "../pages/Client/Messages";
-import ClientWallet from "../pages/Client/Wallet";
+import ClientTransactions from "../pages/Client/Transactions";
 import Profile from "../pages/Profile";
 import FindServices from "../pages/ServiceDiscovery/FindServices";
 import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
@@ -43,7 +43,7 @@ import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBooki
 import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
 import ProviderSubscription from "../pages/ServiceProvider/ProviderSubscription";
-import ProviderWallet from "../pages/ServiceProvider/Wallet";
+import ProviderEarnings from "../pages/ServiceProvider/Earnings";
 import AIAssistant from "../pages/ServiceProvider/AIAssistant";
 
 export default function AppRouter() {
@@ -73,7 +73,7 @@ export default function AppRouter() {
         <Route path="/client" element={<ClientDashboard />} />
         <Route path="/client/find-services" element={<FindServices />} />
         <Route path="/client/messages" element={<ClientMessages />} />
-        <Route path="/client/wallet" element={<ClientWallet />} />
+        <Route path="/client/transactions" element={<ClientTransactions />} />
         <Route path="/client/notifications" element={<ClientNotification />} />
         <Route path="/client/profile" element={<ClientProfile />} />
         <Route path="/client/my-bookings" element={<MyBookings />} />
@@ -86,7 +86,7 @@ export default function AppRouter() {
 
         <Route path="/provider" element={<ProviderDashboard />} />
         <Route path="/provider/messages" element={<ClientMessages />} />
-        <Route path="/provider/wallet" element={<ProviderWallet />} />
+        <Route path="/provider/earnings" element={<ProviderEarnings />} />
         <Route path="/provider/profile" element={<Profile />} />
         <Route path="/provider/availability" element={<Availability />} />
         <Route path="/provider/notifications" element={<ProviderNotification />}/>

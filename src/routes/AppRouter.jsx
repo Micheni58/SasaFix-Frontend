@@ -43,6 +43,8 @@ import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBooki
 import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
 import ProviderSubscription from "../pages/ServiceProvider/ProviderSubscription";
+import VerifyEmail from "../pages/VerifyEmail";
+import EmailVerificationSent from "../pages/EmailVerificationSent";
 
 export default function AppRouter() {
   return (
@@ -51,17 +53,28 @@ export default function AppRouter() {
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/signup" element={<RoleSelection />} />
         <Route path="/signup/details" element={<SignUp />} />
         <Route path="/about" element={<About />} />
+        <Route
+          path="/email-verification-sent"
+          element={<EmailVerificationSent />}
+        />
 
         {/* Protected/Dashboard Routes */}
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/admin/notifications" element={<AdminNotification />} />
         <Route path="/admin/reports" element={<ReportAndAnalytics />} />
-        <Route path="/admin/bookings-payments" element={<BookingsAndPayments />} />
-        <Route path="/admin/bookings-payments/:bookingId" element={<BookingsAndPaymentsDetails />}/>
+        <Route
+          path="/admin/bookings-payments"
+          element={<BookingsAndPayments />}
+        />
+        <Route
+          path="/admin/bookings-payments/:bookingId"
+          element={<BookingsAndPaymentsDetails />}
+        />
         <Route path="/admin/payouts/:payoutId" element={<PayoutDetails />} />
         <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/service-providers" element={<ServiceProviders />} />
@@ -75,22 +88,46 @@ export default function AppRouter() {
         <Route path="/client/notifications" element={<ClientNotification />} />
         <Route path="/client/profile" element={<ClientProfile />} />
         <Route path="/client/my-bookings" element={<MyBookings />} />
-        <Route path="/client/my-bookings/in-progress/:bookingId" element={<InProgressBookingDetails />} />
-        <Route path="/client/my-bookings/completed/:bookingId" element={<CompletedBookingDetails />} />
-        <Route path="/client/my-bookings/cancelled/:bookingId" element={<CancelledBookingDetails />} />
-        <Route path="/client/my-bookings/upcoming/:bookingId" element={<UpcomingBookingDetails />} />
-        <Route path="/client/my-bookings/rescheduled/:bookingId" element={<RescheduledBookingDetails />} />
-        <Route path="/client/my-bookings/paid/:bookingId" element={<PaidBookingDetails />} />
+        <Route
+          path="/client/my-bookings/in-progress/:bookingId"
+          element={<InProgressBookingDetails />}
+        />
+        <Route
+          path="/client/my-bookings/completed/:bookingId"
+          element={<CompletedBookingDetails />}
+        />
+        <Route
+          path="/client/my-bookings/cancelled/:bookingId"
+          element={<CancelledBookingDetails />}
+        />
+        <Route
+          path="/client/my-bookings/upcoming/:bookingId"
+          element={<UpcomingBookingDetails />}
+        />
+        <Route
+          path="/client/my-bookings/rescheduled/:bookingId"
+          element={<RescheduledBookingDetails />}
+        />
+        <Route
+          path="/client/my-bookings/paid/:bookingId"
+          element={<PaidBookingDetails />}
+        />
 
         <Route path="/provider" element={<ProviderDashboard />} />
         <Route path="/provider/messages" element={<ClientMessages />} />
         <Route path="/provider/wallet" element={<ClientWallet />} />
         <Route path="/provider/profile" element={<Profile />} />
         <Route path="/provider/availability" element={<Availability />} />
-        <Route path="/provider/notifications" element={<ProviderNotification />}/>
+        <Route
+          path="/provider/notifications"
+          element={<ProviderNotification />}
+        />
         <Route path="/provider/my-reviews" element={<Reviews />} />
-        <Route path="/provider/my-jobs/rescheduled/:id" element={<RescheduledJobDetails />}/>
-       
+        <Route
+          path="/provider/my-jobs/rescheduled/:id"
+          element={<RescheduledJobDetails />}
+        />
+
         <Route
           path="/provider/subscription"
           element={<ProviderSubscription />}
@@ -99,11 +136,26 @@ export default function AppRouter() {
         <Route path="/profile" element={<Profile />} />
 
         <Route path="/provider/my-jobs" element={<MyJobs />} />
-        <Route path="/provider/my-jobs/new/:id" element={<NewJobRequestDetails />}/>
-        <Route path="/provider/my-jobs/accepted/:id"element={<AcceptedJobDetails />}/>
-        <Route path="/provider/my-jobs/in-progress/:id" element={<InProgressJobDetails />}/>
-        <Route path="/provider/my-jobs/completed/:id" element={<CompletedJobDetails />}/>
-        <Route path="/provider/my-jobs/cancelled/:id" element={<CancelledJobDetails />}/>
+        <Route
+          path="/provider/my-jobs/new/:id"
+          element={<NewJobRequestDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/accepted/:id"
+          element={<AcceptedJobDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/in-progress/:id"
+          element={<InProgressJobDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/completed/:id"
+          element={<CompletedJobDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/cancelled/:id"
+          element={<CancelledJobDetails />}
+        />
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />

@@ -147,10 +147,10 @@ function Sidebar({ role = "client" }) {
       icon: <CalendarDays size={20} />,
     },
     {
-    id: "admin-escrow",  // ← NEW
-    name: "Escrow Management",
+    id: "Transactions",  // ← NEW
+    name: "Transactions Management",
     icon: <Wallet className="h-5 w-5" />,
-    path: "/admin/escrow",
+    path: "/admin/transactions",
     },
     {
       id: "admin-analytics",

@@ -29,6 +29,8 @@ function normalizeTransaction(transaction) {
     bookingId: transaction.booking_id,
     clientId: transaction.client_id,
     providerId: transaction.provider_id,
+    clientName: transaction.client_name || null,
+    providerName: transaction.provider_name || null,
     type: transaction.type || "payment",
     status: transaction.status || "pending",
     grossAmount: Number(transaction.gross_amount || 0),
@@ -41,8 +43,6 @@ function normalizeTransaction(transaction) {
     payerPhone: transaction.payer_phone || null,
     paidAt: transaction.paid_at || null,
     createdAt: transaction.created_at || null,
-    clientName: transaction.client_name || null,
-    providerName: transaction.provider_name || null,
     raw: transaction,
   };
 }
@@ -188,11 +188,16 @@ export async function getAllTransactions(status = null, limit = 50, offset = 0) 
     
     const url = `/transactions/admin/all${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
     const response = await client.get(url);
+    
+    // ✅ Normalize the transactions to camelCase
+    const transactions = normalizeTransactions(response.data.transactions || []);
+    
     return {
-      transactions: normalizeTransactions(response.data.transactions || []),
+      transactions: transactions,
       total: response.data.total || 0,
       limit: response.data.limit || limit,
       offset: response.data.offset || offset,
+      raw: response.data,
     };
   } catch (error) {
     if (error.response && error.response.status === 404) {
@@ -202,6 +207,7 @@ export async function getAllTransactions(status = null, limit = 50, offset = 0) 
         total: 0,
         limit: limit,
         offset: offset,
+        raw: {},
       };
     }
     throw handleError(error);
@@ -214,12 +220,24 @@ export async function getAllTransactions(status = null, limit = 50, offset = 0) 
 export async function getTransactionSummary() {
   try {
     const response = await client.get("/transactions/admin/summary");
-    return response.data;
+    return {
+      counts: {
+        pending: response.data.counts?.pending || 0,
+        completed: response.data.counts?.completed || 0,
+        failed: response.data.counts?.failed || 0,
+        total: response.data.counts?.total || 0,
+      },
+      totals: {
+        total_gross: response.data.totals?.total_gross || 0,
+        total_commission: response.data.totals?.total_commission || 0,
+        total_net: response.data.totals?.total_net || 0,
+      },
+    };
   } catch (error) {
     if (error.response && error.response.status === 404) {
       console.warn("Transaction summary endpoint not available yet");
       return {
-        counts: { pending: 0, success: 0, failed: 0, total: 0 },
+        counts: { pending: 0, completed: 0, failed: 0, total: 0 },
         totals: { total_gross: 0, total_commission: 0, total_net: 0 },
       };
     }
@@ -272,6 +290,30 @@ function handleError(error) {
     };
   }
 }
+export async function retryPayout(transactionId) {
+  try {
+    const response = await client.post(`/transactions/${transactionId}/retry-payout`);
+    return normalizeTransaction(response.data);
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || "Failed to retry payout");
+    }
+    throw error;
+  }
+}
+
+export async function resolveTransaction(transactionId, note) {
+  try {
+    const response = await client.post(`/transactions/${transactionId}/resolve`, { note });
+    return normalizeTransaction(response.data);
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || "Failed to mark as resolved");
+    }
+    throw error;
+  }
+}
+
 
 // ─────────────────────────────────────────────
 // EXPORT
@@ -284,6 +326,8 @@ const transactionService = {
   getClientTransactions,
   getTransaction,
   getTransactionStatus,
+  resolveTransaction,
+  retryPayout,
   
   // Earnings
   getProviderEarnings,

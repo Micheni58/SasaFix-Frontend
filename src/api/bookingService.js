@@ -129,7 +129,6 @@ export async function listClientBookings(clientId) {
         return results;
     } catch (error) {
         if (error.response && error.response.status === 404) {
-            console.info("No bookings found for this client");
             return [];
         }
         try {
@@ -146,11 +145,6 @@ export async function listProviderBookings(providerId) {
         const resp = await client.get(`/bookings/provider/${providerId}`);
         const list = resp.data || [];
         const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
-        console.log("📊 Normalized bookings:", results.map(j => ({ 
-            id: j.id, 
-            status: j.status, 
-            rawStatus: j.raw?.status 
-        })));
         return results;
     } catch (error) {
         if (error.response && error.response.status === 404) {
@@ -220,22 +214,11 @@ export async function updateBookingStatus(bookingId, newStatus) {
         // Get the backend status value (lowercase)
         const backendStatus = statusMap[newStatus] || newStatus.toLowerCase();
         
-        console.log(`🔄 Updating booking ${bookingId} status to:`, backendStatus);
-        
         const resp = await client.patch(`/bookings/${bookingId}/status`, {
             status: backendStatus
         });
-        
-        console.log(`✅ Status updated successfully for booking ${bookingId}`);
         return normalizeBooking(resp.data);
     } catch (error) {
-        console.error(`❌ Failed to update booking ${bookingId} status:`, error.response?.data || error.message);
-        if (error.response) {
-            console.error('📋 Error details:', {
-                status: error.response.status,
-                data: error.response.data
-            });
-        }
         if (error.response && error.response.status === 404) {
             return null;
         }
@@ -258,12 +241,9 @@ export async function cancelBooking(bookingId) {
 
 export async function rescheduleBooking(bookingId, data) {
     try {
-        console.log(`🔄 Rescheduling booking ${bookingId} with data:`, data);
         const resp = await client.patch(`/bookings/${bookingId}/reschedule`, data);
-        console.log(`✅ Booking ${bookingId} rescheduled successfully`);
         return normalizeBooking(resp.data);
     } catch (error) {
-        console.error(`❌ Failed to reschedule booking ${bookingId}:`, error.response?.data || error.message);
         if (error.response && error.response.status === 404) {
             return null;
         }

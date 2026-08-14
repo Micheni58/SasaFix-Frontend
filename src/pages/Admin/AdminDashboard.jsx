@@ -1,4 +1,4 @@
-// src/pages/Admin/AdminDashboard.jsx - Updated Payout Integration
+// src/pages/Admin/AdminDashboard.jsx - Fixed chart with scheduled_date
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -31,7 +31,7 @@ import {
   Legend,
 } from "recharts";
 import bookingService from "../../api/bookingService";
-import paymentsService from "../../api/paymentsService";
+import transactionService from "../../api/transactionService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 
@@ -293,8 +293,6 @@ function AdminDashboard() {
     totalBookings: 0,
     platformCommission: 0,
     totalRevenue: 0,
-    pendingPayouts: 0,
-    totalPaid: 0,
   });
 
   const [bookingData, setBookingData] = useState([]);
@@ -343,9 +341,7 @@ function AdminDashboard() {
         if (resp.ok) {
           const data = await resp.json();
           allBookings = Array.isArray(data) ? data : [];
-          console.log("📊 All bookings from admin endpoint:", allBookings);
         } else {
-          // Fallback: get active bookings
           const active = await bookingService.listActiveBookings();
           allBookings = active || [];
         }
@@ -359,63 +355,48 @@ function AdminDashboard() {
         }
       }
 
-      // ── Calculate stats from ALL bookings ──
-      const completedBookings = allBookings.filter(b => {
-        const status = b.status || "";
-        const completedStatuses = ["Completed", "COMPLETED", "Paid", "PAID", "completed", "paid"];
-        return completedStatuses.includes(status);
-      });
-      
-      const totalRevenue = completedBookings.reduce((sum, b) => {
-        let amount = b.amount || b.amountRaw || 0;
-        if (typeof amount === "string" && amount.includes("KES")) {
-          amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
-        }
-        return sum + Number(amount);
-      }, 0);
+      // ── Calculate stats from transaction summary ──
+      let totalRevenue = 0;
+      let platformCommission = 0;
 
-      // ── Calculate Platform Commission (10% of revenue) ──
-      const platformCommission = totalRevenue * 0.1;
-
-      // ── Fetch Payout Stats from paymentsService ──
-      let pendingPayouts = 0;
-      let totalPaid = 0;
       try {
-        const statsData = await paymentsService.getAdminStats();
-        console.log("📊 Payout stats from paymentsService:", statsData);
-        pendingPayouts = statsData.total_pending_amount || 0;
-        totalPaid = statsData.total_completed_amount || 0;
-      } catch (e) {
-        console.warn("Payout stats endpoint not available");
-        // Fallback: calculate from bookings
-        const paidBookings = allBookings.filter(b => {
+        const summaryData = await transactionService.getTransactionSummary();
+        if (summaryData && summaryData.totals) {
+          totalRevenue = summaryData.totals.total_gross || 0;
+          platformCommission = summaryData.totals.total_commission || 0;
+        }
+      } catch (txErr) {
+        console.warn("Transaction summary not available, calculating from bookings:", txErr);
+        const completedStatuses = ["Completed", "COMPLETED", "Paid", "PAID", "completed", "paid"];
+        allBookings.forEach((b) => {
           const status = b.status || "";
-          return status === "Paid" || status === "PAID" || status === "paid";
-        });
-        totalPaid = paidBookings.reduce((sum, b) => {
-          let amount = b.amount || b.amountRaw || 0;
-          if (typeof amount === "string" && amount.includes("KES")) {
-            amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
+          if (completedStatuses.includes(status)) {
+            let amount = b.amount || b.amountRaw || 0;
+            if (typeof amount === "string" && amount.includes("KES")) {
+              amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
+            }
+            totalRevenue += Number(amount);
+            platformCommission += Number(amount) * 0.1;
           }
-          return sum + Number(amount);
-        }, 0);
+        });
       }
 
       // ── Calculate active bookings ──
+      const activeStatuses = ["Pending", "pending", "Accepted", "accepted", "In Progress", "in progress", "New Requests", "new_requests"];
       const activeBookings = allBookings.filter(b => {
         const status = b.status || "";
-        const activeStatuses = ["Pending", "pending", "Accepted", "accepted", "In Progress", "in progress", "New Requests", "new_requests"];
         return activeStatuses.includes(status);
       });
 
-      // ── Prepare chart data (12 months) ──
+      // ── Prepare chart data (12 months) using scheduled_date ──
       const months = Array.from({ length: 12 }, (_, i) => ({
         month: new Date(0, i).toLocaleString("default", { month: "short" }),
         bookings: 0,
       }));
 
       allBookings.forEach((b) => {
-        const dateStr = b.scheduled_date || b.date || b.raw?.scheduled_date || null;
+        // ✅ Use scheduled_date for the chart (original working version)
+        const dateStr = b.scheduled_date || b.date || null;
         if (dateStr) {
           const d = new Date(dateStr);
           if (!isNaN(d.getTime())) {
@@ -427,8 +408,14 @@ function AdminDashboard() {
 
       setBookingData(months);
 
-      // ── Recent Activities - Get names from API response ──
-      const recent = allBookings
+      // ── Recent Activities - Get latest 10 bookings ──
+      const sortedBookings = [...allBookings].sort((a, b) => {
+        const dateA = new Date(a.created_at || a.createdAt || 0);
+        const dateB = new Date(b.created_at || b.createdAt || 0);
+        return dateB - dateA;
+      });
+
+      const recent = sortedBookings
         .slice(0, 10)
         .filter(b => b)
         .map((b) => {
@@ -437,7 +424,6 @@ function AdminDashboard() {
             amount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
           }
 
-          // ✅ Get names from the API response fields
           const clientName = b.client_full_name || b.client || b.clientName || `Client #${b.client_id}`;
           const providerName = b.provider_full_name || b.providerName || b.worker || `Provider #${b.service_provider_id}`;
 
@@ -452,7 +438,7 @@ function AdminDashboard() {
             service: b.service_name || b.service || "",
             amount: Number(amount),
             status: displayStatusFormatted,
-            time: b.scheduled_date || b.date || b.raw?.scheduled_date || "",
+            time: b.scheduled_date || b.date || null,
             formattedAmount: formatCurrency(Number(amount)),
           };
         });
@@ -467,8 +453,6 @@ function AdminDashboard() {
         totalBookings: allBookings.length || 0,
         platformCommission: Math.round(platformCommission) || 0,
         totalRevenue: Math.round(totalRevenue) || 0,
-        pendingPayouts: Math.round(pendingPayouts) || 0,
-        totalPaid: Math.round(totalPaid) || 0,
       });
 
     } catch (err) {
@@ -690,30 +674,6 @@ function AdminDashboard() {
                   </div>
                   <TrendingUp className="h-5 w-5 text-green-500" />
                 </div>
-                <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-100 rounded-lg">
-                      <CheckCircle className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Total Paid Out</p>
-                      <p className="font-bold text-gray-800">{formatCurrency(stats.totalPaid)}</p>
-                    </div>
-                  </div>
-                  <TrendingUp className="h-5 w-5 text-emerald-500" />
-                </div>
-                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-yellow-100 rounded-lg">
-                      <Clock className="h-5 w-5 text-yellow-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Pending Payouts</p>
-                      <p className="font-bold text-gray-800">{formatCurrency(stats.pendingPayouts)}</p>
-                    </div>
-                  </div>
-                  <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                </div>
                 <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-purple-100 rounded-lg">
@@ -725,6 +685,30 @@ function AdminDashboard() {
                     </div>
                   </div>
                   <Activity className="h-5 w-5 text-purple-500" />
+                </div>
+                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <DollarSign className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Commission Earned</p>
+                      <p className="font-bold text-gray-800">{formatCurrency(stats.platformCommission)}</p>
+                    </div>
+                  </div>
+                  <TrendingUp className="h-5 w-5 text-green-500" />
+                </div>
+                <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                      <Users className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Active Providers</p>
+                      <p className="font-bold text-gray-800">{stats.totalProviders.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <Activity className="h-5 w-5 text-orange-500" />
                 </div>
               </div>
             </div>

@@ -334,22 +334,16 @@ function MyJobs() {
         const userData = JSON.parse(localStorage.getItem("user") || "{}");
         const providerId = userData.provider_id;
 
-        console.log("👤 User data:", userData);
-        console.log("🔑 Provider ID:", providerId);
-
         if (!providerId) {
-            console.warn("⚠️ No provider_id found in user data");
+            setError("Your provider account could not be identified. Please sign in again.");
             setLoading(false);
             return;
         }
 
         try {
             const data = await bookingService.listProviderBookings(providerId);
-            console.log("📊 Fetched jobs:", data);
-            console.log("📊 Job statuses:", data.map(j => ({ id: j.id, status: j.status })));
             setJobs(data || []);
         } catch (err) {
-            console.error("❌ Error fetching jobs:", err);
             setError(err.message || "Failed to fetch jobs");
             setJobs([]);
         } finally {
@@ -363,7 +357,6 @@ function MyJobs() {
     }, []);
 
     const filteredJobs = jobs.filter((job) => job.status === activeTab);
-    console.log(`📊 Filtered jobs for ${activeTab}:`, filteredJobs);
 
     const tabCounts = tabs.reduce((acc, tab) => {
         acc[tab] = jobs.filter((job) => job.status === tab).length;

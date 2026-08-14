@@ -1,4 +1,4 @@
-// src/pages/ServiceProvider/ProviderDashboard.jsx - FINAL FIXED
+// src/pages/ServiceProvider/ProviderDashboard.jsx - With consistent earnings logic
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -6,24 +6,24 @@ import {
   MapPin,
   Briefcase,
   CheckCircle,
-  Wallet,
   Star,
   Clock,
   MessageCircle,
   Eye,
-  Search,
   Calendar,
   ChevronRight,
   ShieldCheck,
-  RotateCcw,
   TrendingUp,
   DollarSign,
+  Sparkles,
+  Receipt,
 } from "lucide-react";
 import bookingService from "../../api/bookingService";
-import { getWalletBalance } from "../../api/walletService";
+import { getProviderTransactions } from "../../api/transactionService";
 import ratingService from "../../api/ratingService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
+import aiService from "../../api/aiService";
 
 // ── Status Colors ──
 const STATUS_STYLES = {
@@ -160,7 +160,7 @@ function StatCardSkeleton() {
   );
 }
 
-function StatCard({ label, value, icon: Icon, iconBg, isLoading }) {
+function StatCard({ label, value, icon: Icon, iconBg, isLoading, subText }) {
   return (
     <div className="min-h-28 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex h-full items-center justify-between gap-4">
@@ -169,11 +169,79 @@ function StatCard({ label, value, icon: Icon, iconBg, isLoading }) {
           {isLoading ? (
             <div className="mt-2 h-6 w-20 animate-pulse rounded bg-gray-200" />
           ) : (
-            <p className="mt-2 font-mono text-xl font-bold text-gray-800">{value}</p>
+            <>
+              <p className="mt-2 font-mono text-xl font-bold text-gray-800">{value}</p>
+              {subText && <p className="text-xs text-gray-400">{subText}</p>}
+            </>
           )}
         </div>
         <div className={`shrink-0 rounded-lg p-2 ${iconBg}`}>
           <Icon className="h-6 w-6" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── AI Insight Card ──
+function AIInsightCard({ onGenerate, isLoading, insight }) {
+  return (
+    <div className="rounded-xl border border-blue-200 bg-linear-to-r from-blue-50/80 to-indigo-50/80 p-6 transition-all hover:shadow-md">
+      <div className="flex items-start gap-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: '#056db3' }}>
+          <Sparkles className="h-5 w-5 text-white" />
+        </div>
+        <div className="flex-1">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h4 className="font-semibold text-gray-800" style={{ color: '#056db3' }}>
+              AI Provider Co-Pilot
+            </h4>
+            <button
+              onClick={onGenerate}
+              disabled={isLoading}
+              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#045a94] disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#056db3' }}
+            >
+              {isLoading ? (
+                <>
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Get Insights
+                </>
+              )}
+            </button>
+          </div>
+          <div className="mt-3">
+            {isLoading ? (
+              <div className="flex items-center gap-3">
+                <div className="h-3 w-3 animate-pulse rounded-full" style={{ backgroundColor: '#056db3' }} />
+                <span className="text-sm text-gray-500">AI is analyzing your profile...</span>
+              </div>
+            ) : insight ? (
+              <div className="space-y-2 text-sm text-gray-700">
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5 text-green-500">✅</span>
+                  <span>{insight}</span>
+                </div>
+                <Link
+                  to="/provider/ai-assistant"
+                  className="inline-flex items-center gap-1 text-xs font-medium transition-colors hover:underline"
+                  style={{ color: '#056db3' }}
+                >
+                  Open AI Assistant
+                  <ChevronRight className="h-3 w-3" />
+                </Link>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Click <strong>"Get Insights"</strong> to get AI-powered suggestions for your profile and pricing.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -276,13 +344,15 @@ function ProviderDashboard() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [walletLoading, setWalletLoading] = useState(true);
+  const [earningsLoading, setEarningsLoading] = useState(true);
+  const [monthEarnings, setMonthEarnings] = useState(0);
+  const [monthPaidJobs, setMonthPaidJobs] = useState(0);
   const [providerRating, setProviderRating] = useState(null);
   const [totalRatings, setTotalRatings] = useState(0);
   const [providerSpecialty, setProviderSpecialty] = useState("Service Provider");
   const [providerLocation, setProviderLocation] = useState("Nairobi, Kenya");
-  const [monthlyEarnings, setMonthlyEarnings] = useState(0);
+  const [aiInsight, setAiInsight] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const storedUser = getStoredUser();
   const displayName = storedUser
@@ -293,6 +363,7 @@ function ProviderDashboard() {
       "Provider"
     : "Provider";
 
+  const userId = Number(storedUser?.id || localStorage.getItem("userId") || 0);
   const providerId = Number(
     storedUser?.provider_id || storedUser?.service_provider_id || 
     storedUser?.id || localStorage.getItem("userId") || 1
@@ -306,12 +377,10 @@ function ProviderDashboard() {
 
     const fetchData = async () => {
       try {
-        // Fetch bookings
         const data = await bookingService.listProviderBookings(providerId);
         if (!mounted) return;
         setBookings(data || []);
 
-        // Get provider details from first booking
         if (data && data.length > 0) {
           const firstBooking = data[0];
           const provider = firstBooking.raw?.service_provider;
@@ -323,7 +392,6 @@ function ProviderDashboard() {
           }
         }
 
-        // Fetch average rating from rating service
         try {
           const ratingData = await ratingService.getProviderAverageRating(providerId);
           if (mounted && ratingData) {
@@ -332,24 +400,6 @@ function ProviderDashboard() {
           }
         } catch (ratingErr) {
           console.warn("Could not fetch rating:", ratingErr);
-        }
-
-        // Calculate monthly earnings
-        const today = new Date();
-        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        
-        const earnings = (data || []).filter(b => {
-          const date = b.date || b.scheduled_date;
-          if (!date) return false;
-          const d = new Date(date);
-          if (isNaN(d.getTime())) return false;
-          return d >= monthStart && d <= monthEnd &&
-                 (b.status === "Completed" || b.status === "Approved");
-        }).reduce((sum, b) => sum + (b.amountRaw || 0), 0);
-        
-        if (mounted) {
-          setMonthlyEarnings(earnings);
         }
 
       } catch (err) {
@@ -367,22 +417,84 @@ function ProviderDashboard() {
     return () => { mounted = false; };
   }, [providerId]);
 
-  // ── Fetch wallet balance ──
+  // ── Fetch month-to-date earnings from transaction history ──
   useEffect(() => {
     let mounted = true;
-    const userId = Number(storedUser?.id || localStorage.getItem("userId") || 0);
-    if (!userId) { setWalletLoading(false); return; }
-    getWalletBalance(userId)
-      .then((data) => { if (mounted) setWalletBalance(data.balance || 0); })
-      .catch(() => {})
-      .finally(() => { if (mounted) setWalletLoading(false); });
+    if (!userId) { setEarningsLoading(false); return; }
+
+    const fetchMonthEarnings = async () => {
+      try {
+        // Fetch all transactions and filter locally
+        const txRes = await getProviderTransactions(userId);
+        const txList = Array.isArray(txRes)
+          ? txRes
+          : txRes?.transactions || txRes?.data?.transactions || [];
+        
+        if (!mounted) return;
+
+        // Get current month date range
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        // Filter transactions to current month only
+        const monthTransactions = txList.filter(tx => {
+          const txDate = new Date(tx.paid_at || tx.paidAt || tx.created_at || tx.createdAt || tx.date);
+          if (isNaN(txDate.getTime())) return false;
+          return txDate >= monthStart && txDate <= monthEnd;
+        });
+
+        // Calculate total for this month (using net_amount for provider earnings)
+        const total = monthTransactions
+          .filter(tx => {
+            const status = (tx.status || "").toUpperCase();
+            // Only include successful/completed transactions
+            return status === "COMPLETED" || status === "SUCCESS" || status === "PAID";
+          })
+          .reduce((sum, tx) => {
+            const amount = tx.net_amount ?? tx.netAmount ?? tx.amount ?? 0;
+            return sum + Number(amount);
+          }, 0);
+
+        const count = monthTransactions.filter(tx => {
+          const status = (tx.status || "").toUpperCase();
+          return status === "COMPLETED" || status === "SUCCESS" || status === "PAID";
+        }).length;
+
+        setMonthEarnings(total);
+        setMonthPaidJobs(count);
+      } catch (err) {
+        console.warn("Could not fetch month earnings:", err);
+      } finally {
+        if (mounted) setEarningsLoading(false);
+      }
+    };
+
+    fetchMonthEarnings();
     return () => { mounted = false; };
-  }, [storedUser?.id]);
+  }, [userId]);
+
+  // ── AI Insight Generation ──
+  const generateAIInsight = async () => {
+    setAiLoading(true);
+    try {
+      const analysis = await aiService.getReviewAnalysis(providerId);
+      if (analysis && analysis.analysis) {
+        const lines = analysis.analysis.split('\n').filter(line => line.trim());
+        const firstInsight = lines.find(line => line.match(/^\d\./)) || lines[0];
+        setAiInsight(firstInsight || "Your profile is looking great! Keep up the good work.");
+      }
+    } catch (error) {
+      console.error("AI insight generation failed:", error);
+      setAiInsight("We couldn't generate insights right now. Check back later.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   // ── Derived stats ──
   const today = new Date();
   
-  // TODAY'S JOBS: Show ALL new requests + bookings scheduled for today
   const todaysBookings = bookings.filter((b) => {
     if (b.status === "New Requests" || b.status === "Pending") {
       return true;
@@ -400,15 +512,12 @@ function ProviderDashboard() {
     }
   });
   
-  const todaysJobsCount = todaysBookings.length;
   const displayedJobs = todaysBookings.slice(0, 5);
 
-  // ACTIVE JOBS: ACCEPTED and IN_PROGRESS
   const activeStatuses = ["Accepted", "In Progress"];
   const activeJobs = bookings.filter((b) => activeStatuses.includes(b.status));
   const activeCount = activeJobs.length;
 
-  // Completed bookings for completion rate
   const completedCount = bookings.filter(
     (b) => b.status === "Completed" || b.status === "Approved"
   ).length;
@@ -442,24 +551,26 @@ function ProviderDashboard() {
       isLoading: false,
     },
     {
-      label: "Wallet Balance",
-      value: formatAmount(walletBalance),
-      icon: Wallet,
+      label: "This Month's Earnings",
+      value: formatAmount(monthEarnings),
+      icon: Receipt,
       iconBg: "bg-green-100 text-green-600",
-      isLoading: walletLoading,
+      isLoading: earningsLoading,
+      subText: `${monthPaidJobs} jobs paid this month`,
     },
   ];
 
   const quickActions = [
     { label: "My Jobs", to: "/provider/my-jobs", icon: Briefcase },
-    { label: "Wallet", to: "/provider/wallet", icon: Wallet },
+    { label: "Earnings", to: "/provider/earnings", icon: Receipt },
     { label: "Messages", to: "/provider/messages", icon: MessageCircle },
     { label: "Availability", to: "/provider/availability", icon: Calendar },
+    { label: "AI Assistant", to: "/provider/ai-assistant", icon: Sparkles },
   ];
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar role="provider"role="provider" />
+      <Sidebar role="provider" />
       <div className="flex-1 ml-72">
         <Navbar />
         <main className="px-6 pb-6 pt-24">
@@ -510,9 +621,18 @@ function ProviderDashboard() {
             </div>
           </section>
 
+          {/* ── AI Insight Card ── */}
+          <section className="mb-8">
+            <AIInsightCard
+              onGenerate={generateAIInsight}
+              isLoading={aiLoading}
+              insight={aiInsight}
+            />
+          </section>
+
           {/* ── Stat cards ── */}
           <section className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {loading
+            {loading || earningsLoading
               ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
               : statCards.map((card) => (
                   <StatCard
@@ -522,12 +642,13 @@ function ProviderDashboard() {
                     icon={card.icon}
                     iconBg={card.iconBg}
                     isLoading={card.isLoading}
+                    subText={card.subText}
                   />
                 ))}
           </section>
 
-          {/* ── Monthly Earnings ── */}
-          {!loading && monthlyEarnings > 0 && (
+          {/* ── Monthly Earnings Section ── */}
+          {!earningsLoading && monthEarnings > 0 && (
             <section className="mb-8 flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
@@ -535,12 +656,13 @@ function ProviderDashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">This month's earnings</p>
-                  <p className="font-semibold text-gray-800">{formatAmount(monthlyEarnings)}</p>
+                  <p className="font-semibold text-gray-800">{formatAmount(monthEarnings)}</p>
+                  <p className="text-xs text-gray-400">{monthPaidJobs} jobs paid this month</p>
                 </div>
               </div>
-              <Link to="/provider/wallet" className="flex items-center justify-center gap-1 rounded-lg border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
-                <Wallet className="h-4 w-4" />
-                View wallet
+              <Link to="/provider/earnings" className="flex items-center justify-center gap-1 rounded-lg border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
+                <Receipt className="h-4 w-4" />
+                View earnings
               </Link>
             </section>
           )}

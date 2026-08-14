@@ -4,14 +4,14 @@ import Home from "../pages/Home";
 import Login from "../pages/Login";
 import SignUp from "../pages/SignUp";
 import About from "../pages/About";
-import AdminEscrow from "../pages/Admin/AdminEscrow";
+import AdminTransactions from "../pages/Admin/AdminTransactions";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import AdminNotification from "../pages/Admin/Notification";
 import AdminSettings from "../pages/Admin/Settings";
 import ClientDashboard from "../pages/Client/ClientDashboard";
 import ClientNotification from "../pages/Client/Notification";
 import ClientMessages from "../pages/Client/Messages";
-import ClientWallet from "../pages/Client/Wallet";
+import ClientTransactions from "../pages/Client/Transactions";
 import Profile from "../pages/Profile";
 import FindServices from "../pages/ServiceDiscovery/FindServices";
 import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
@@ -43,8 +43,13 @@ import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBooki
 import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
 import ProviderSubscription from "../pages/ServiceProvider/ProviderSubscription";
+<<<<<<< HEAD
 import VerifyEmail from "../pages/VerifyEmail";
 import EmailVerificationSent from "../pages/EmailVerificationSent";
+=======
+import ProviderEarnings from "../pages/ServiceProvider/Earnings";
+import AIAssistant from "../pages/ServiceProvider/AIAssistant";
+>>>>>>> origin/development
 
 export default function AppRouter() {
   return (
@@ -78,13 +83,13 @@ export default function AppRouter() {
         <Route path="/admin/payouts/:payoutId" element={<PayoutDetails />} />
         <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/service-providers" element={<ServiceProviders />} />
-        <Route path="/admin/escrow" element={<AdminEscrow />} />
+        <Route path="/admin/transactions" element ={<AdminTransactions />} />
         {/* Client Routes */}
 
         <Route path="/client" element={<ClientDashboard />} />
         <Route path="/client/find-services" element={<FindServices />} />
         <Route path="/client/messages" element={<ClientMessages />} />
-        <Route path="/client/wallet" element={<ClientWallet />} />
+        <Route path="/client/transactions" element={<ClientTransactions />} />
         <Route path="/client/notifications" element={<ClientNotification />} />
         <Route path="/client/profile" element={<ClientProfile />} />
         <Route path="/client/my-bookings" element={<MyBookings />} />
@@ -115,7 +120,7 @@ export default function AppRouter() {
 
         <Route path="/provider" element={<ProviderDashboard />} />
         <Route path="/provider/messages" element={<ClientMessages />} />
-        <Route path="/provider/wallet" element={<ClientWallet />} />
+        <Route path="/provider/earnings" element={<ProviderEarnings />} />
         <Route path="/provider/profile" element={<Profile />} />
         <Route path="/provider/availability" element={<Availability />} />
         <Route
@@ -123,11 +128,18 @@ export default function AppRouter() {
           element={<ProviderNotification />}
         />
         <Route path="/provider/my-reviews" element={<Reviews />} />
+<<<<<<< HEAD
         <Route
           path="/provider/my-jobs/rescheduled/:id"
           element={<RescheduledJobDetails />}
         />
 
+=======
+        <Route path="/provider/my-jobs/rescheduled/:id" element={<RescheduledJobDetails />}/>
+        <Route path="/provider/ai-assistant" element={<AIAssistant />} />
+       
+       
+>>>>>>> origin/development
         <Route
           path="/provider/subscription"
           element={<ProviderSubscription />}

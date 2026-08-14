@@ -243,12 +243,14 @@ const SignUpForm = () => {
 
     try {
       const { confirm_password, ...payload } = formData;
-      const response = await authService.register(payload);
-      const user = response.user;
 
-      if (user.role === "admin") navigate("/admin");
-      else if (user.role === "service_provider") navigate("/provider");
-      else navigate("/client");
+      await authService.register(payload);
+
+      navigate("/email-verification-sent", {
+        state: {
+          email: formData.email,
+        },
+      });
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {

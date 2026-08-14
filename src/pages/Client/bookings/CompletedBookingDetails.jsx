@@ -228,10 +228,8 @@ function CompletedBookingDetails() {
     });
     const [paymentLoading, setPaymentLoading] = useState(false);
     const [paymentError, setPaymentError] = useState(null);
-
-    // ── Manual Callback States ──
     const [checkoutRequestId, setCheckoutRequestId] = useState(null);
-    const [testMode, setTestMode] = useState(true);
+    const [transactionId, setTransactionId] = useState(null);
 
     useEffect(() => {
         let mounted = true;
@@ -254,13 +252,16 @@ function CompletedBookingDetails() {
                     const response = await fetch(`/api/transactions/booking/${bookingId}`);
                     const data = await response.json();
                     if (mounted && data && data.length > 0) {
-                        const status = data[0].status;
+                        const transaction = data[0];
+                        const status = transaction.status;
                         setTransactionStatus(status);
-                        if (data[0].checkout_request_id) {
-                            setCheckoutRequestId(data[0].checkout_request_id);
+                        if (transaction.checkout_request_id) {
+                            setCheckoutRequestId(transaction.checkout_request_id);
                         }
-                        // If transaction is completed, redirect to paid page
-                        if (status === "COMPLETED" || status === "RELEASED") {
+                        if (transaction.id) {
+                            setTransactionId(transaction.id);
+                        }
+                        if (status === "SUCCESS") {
                             navigate(`/client/my-bookings/paid/${bookingId}`);
                             return;
                         }
@@ -278,40 +279,75 @@ function CompletedBookingDetails() {
         fetchBooking();
         return () => { mounted = false; };
     }, [bookingId, navigate]);
-
+ 
+    useEffect(() => {
+        if (!transactionId || transactionStatus !== "PENDING") return;
+ 
+        let isMounted = true;
+ 
+        const pollStatus = async () => {
+            try {
+                const result = await paymentsService.checkTransactionStatus(transactionId);
+                if (!isMounted) return;
+                setTransactionStatus(result.status);
+                if (result.status === "PENDING") {
+                    setTimeout(pollStatus, 3000);
+                    return;
+                }
+                if (result.status === "SUCCESS") {
+                    await bookingService.updateBookingStatus(bookingId, "paid");
+                    navigate(`/client/my-bookings/paid/${bookingId}`);
+                    return;
+                }
+                if (result.status === "FAILED") {
+                    setPaymentError("Payment failed. Please try again or retry the STK push.");
+                }
+            } catch (err) {
+                if (!isMounted) return;
+                setPaymentError(err.message || "Failed to update payment status.");
+            }
+        };
+ 
+        pollStatus();
+ 
+        return () => {
+            isMounted = false;
+        };
+    }, [transactionId, transactionStatus, bookingId, navigate]);
+ 
     // ── Handle Payment ──
     const handlePayment = async () => {
         const phone = paymentData.phone_number.trim();
         const amount = parseFloat(paymentData.amount);
-
+ 
         if (!phone) {
             setPaymentError("Please enter your M-Pesa phone number");
             return;
         }
-
+ 
         const cleanPhone = phone.replace(/\s/g, '');
         if (!cleanPhone.match(/^254[0-9]{9}$/)) {
             setPaymentError("Phone number must be in format: 2547XXXXXXXX");
             return;
         }
-
+ 
         if (!amount || amount <= 0) {
             setPaymentError("Please enter a valid amount");
             return;
         }
-
+ 
         const clientId = booking?.client_id || booking?.raw?.client_id;
         const providerId = booking?.serviceProviderId || booking?.raw?.service_provider_id;
-        const bookingIdNum = parseInt(bookingId);
-
+        const bookingIdNum = parseInt(bookingId, 10);
+ 
         if (!clientId || !providerId) {
             setPaymentError("Missing required information. Please refresh.");
             return;
         }
-
+ 
         setPaymentLoading(true);
         setPaymentError(null);
-
+ 
         try {
             const payload = {
                 phone_number: cleanPhone,
@@ -321,92 +357,33 @@ function CompletedBookingDetails() {
                 provider_id: providerId,
                 commission_rate: 10,
             };
-
-            console.log("📤 Sending payment payload:", payload);
-
+ 
             const result = await paymentsService.initiateSTKPush(payload);
-
             const checkoutId = result.checkout_request_id;
             setCheckoutRequestId(checkoutId);
-
-            console.log("✅ STK Push result:", result);
-
+            setTransactionId(result.transaction_id);
+            setTransactionStatus(result.status || "PENDING");
+ 
+            setShowPaymentModal(false);
+            setPaymentData({ phone_number: "", amount: "" });
+ 
+            if (result.status === "SUCCESS") {
+                await bookingService.updateBookingStatus(bookingId, "paid");
+                alert("✅ Payment completed successfully.");
+                navigate(`/client/my-bookings/paid/${bookingId}`);
+                return;
+            }
+ 
             alert(
                 `✅ STK Push sent!\n\n` +
                 `Checkout ID: ${checkoutId}\n` +
                 `Amount: KES ${amount.toLocaleString()}\n\n` +
-                `📱 In TEST MODE, the transaction will auto-complete in 3 seconds.`
+                `Please complete the payment by entering your M-Pesa PIN on your phone.`
             );
-
-            setShowPaymentModal(false);
-            setPaymentData({ phone_number: "", amount: "" });
-
-            // 🔥 AUTO-COMPLETE TRANSACTION (TEST MODE ONLY)
-            if (testMode && checkoutId) {
-                console.log("⏳ Auto-completing transaction in 3 seconds...");
-
-                setTimeout(async () => {
-                    try {
-                        console.log("🔄 Triggering manual callback for:", checkoutId);
-
-                        await paymentsService.triggerManualCallback(
-                            checkoutId,
-                            0, // 0 = Success
-                            amount
-                        );
-
-                        console.log("✅ Transaction auto-completed successfully!");
-
-                        // Update booking status to PAID
-                        await bookingService.updateBookingStatus(bookingId, "paid");
-                        
-                        alert("✅ Payment completed successfully! (Test Mode)");
-                        
-                        // Navigate to paid page
-                        navigate(`/client/my-bookings/paid/${bookingId}`);
-
-                    } catch (callbackErr) {
-                        console.error("❌ Auto-complete failed:", callbackErr);
-                        alert("⚠️ Auto-complete failed. Please click 'Complete Payment (Manual)' button below.");
-                    }
-                }, 3000);
-            }
-
+ 
         } catch (err) {
             console.error("❌ Payment error:", err);
             setPaymentError(err.message || "Payment failed. Please try again.");
-        } finally {
-            setPaymentLoading(false);
-        }
-    };
-
-    // ── Handle Manual Callback ──
-    const handleManualComplete = async () => {
-        if (!checkoutRequestId) {
-            alert("No checkout request ID found. Please initiate a payment first.");
-            return;
-        }
-
-        try {
-            setPaymentLoading(true);
-            const amount = parseFloat(paymentData.amount) || booking?.amountRaw || 100;
-
-            await paymentsService.triggerManualCallback(
-                checkoutRequestId,
-                0, // 0 = Success
-                amount
-            );
-            
-            // Update booking status to PAID
-            await bookingService.updateBookingStatus(bookingId, "paid");
-            
-            alert("✅ Transaction completed manually!");
-            
-            // Navigate to paid page
-            navigate(`/client/my-bookings/paid/${bookingId}`);
-
-        } catch (err) {
-            alert("Failed to complete transaction: " + err.message);
         } finally {
             setPaymentLoading(false);
         }
@@ -485,7 +462,7 @@ function CompletedBookingDetails() {
         );
     }
 
-    const isPaid = transactionStatus === "COMPLETED" || transactionStatus === "RELEASED";
+    const isPaid = transactionStatus === "SUCCESS" || booking.status === "Paid" || booking.status === "paid";
 
     // ── Format date and time ──
     const formattedDate = formatDate(booking.date || booking.scheduled_date);
@@ -607,30 +584,18 @@ function CompletedBookingDetails() {
                                             Pay Now
                                         </button>
 
-                                        {/* ── Manual Complete Button (appears after payment initiated) ── */}
                                         {checkoutRequestId && (
-                                            <button
-                                                onClick={handleManualComplete}
-                                                disabled={paymentLoading}
-                                                className="w-full flex items-center justify-center gap-2 bg-purple-600 text-white py-2 px-2 rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50"
-                                            >
-                                                {paymentLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-                                                Complete Payment (Manual)
-                                            </button>
-                                        )}
-
-                                        {checkoutRequestId && (
-                                            <p className="text-xs text-gray-500 text-center">
+                                            <p className="text-sm text-gray-700 text-center">
                                                 Checkout ID: {checkoutRequestId.substring(0, 15)}...
                                             </p>
                                         )}
-
+ 
                                         <div className="text-xs text-gray-400 bg-gray-50 p-3 rounded-xl">
-                                            <p className="font-medium">📱 Test Instructions:</p>
+                                            <p className="font-medium">📱 Payment Instructions:</p>
                                             <ul className="list-disc pl-4 mt-1 space-y-1">
-                                                <li>Use test number: <strong>254708374149</strong></li>
-                                                <li>Transaction auto-completes in 3 seconds</li>
-                                                <li>Or click "Complete Payment (Manual)"</li>
+                                                <li>Enter your M-Pesa PIN on your phone when prompted.</li>
+                                                <li>Payment status will update automatically.</li>
+                                                <li>If the payment fails, retry the STK push.</li>
                                             </ul>
                                         </div>
                                     </>
@@ -670,18 +635,18 @@ function CompletedBookingDetails() {
                                             </li>
                                             <li className="flex gap-2">
                                                 <span className="text-emerald-600 font-bold">•</span>
-                                                <span>Funds held in escrow</span>
+                                                <span>Provider paid instantly via M-Pesa</span>
                                             </li>
                                         </ul>
                                     ) : (
                                         <ul className="space-y-2 text-sm text-gray-700">
                                             <li className="flex gap-2">
                                                 <span className="text-amber-600 font-bold">•</span>
-                                                <span>Payment pending - Please complete payment</span>
+                                                <span>Payment pending - Please complete payment on your phone</span>
                                             </li>
                                             <li className="flex gap-2">
                                                 <span className="text-amber-600 font-bold">•</span>
-                                                <span>Funds will be held in escrow until completion</span>
+                                                <span>Payment is processed instantly via M-Pesa</span>
                                             </li>
                                         </ul>
                                     )}

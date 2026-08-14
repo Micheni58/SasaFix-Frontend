@@ -40,11 +40,6 @@ const authService = {
       body: JSON.stringify(userData),
     });
 
-    if (data.access_token) {
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-    }
-
     return data;
   },
 
@@ -54,14 +49,20 @@ const authService = {
       body: JSON.stringify(credentials),
     });
 
+    console.log("LOGIN RESPONSE:", JSON.stringify(data, null, 2));
+    console.log("ACCESS TOKEN:", data.access_token);
+
     if (data.access_token) {
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
+    } else {
+      console.error("NO ACCESS TOKEN RECEIVED!");
     }
+
+    console.log("STORED TOKEN:", localStorage.getItem("access_token"));
 
     return data;
   },
-
   getCurrentUser: async () => {
     return fetchWithAuth("/users/me", {
       method: "GET",
@@ -82,6 +83,42 @@ const authService = {
     const user = localStorage.getItem("user");
     return user ? JSON.parse(user) : null;
   },
+
+  getProviders: async () => {
+    return fetchWithAuth("/providers", {
+      method: "GET",
+    });
+  },
+
+  // Generic GET request
+  get: async (endpoint) => {
+    return fetchWithAuth(endpoint, {
+      method: "GET",
+    });
+  },
+
+  // Generic POST request
+  post: async (endpoint, body = {}) => {
+    return fetchWithAuth(endpoint, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
+
+  // Generic PUT request
+  put: async (endpoint, body = {}) => {
+    return fetchWithAuth(endpoint, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  },
+
+  // Generic DELETE request
+  delete: async (endpoint) => {
+    return fetchWithAuth(endpoint, {
+      method: "DELETE",
+    });
+  },
 };
 
-export default authService; // ← MAKE SURE THIS LINE EXISTS
+export default authService;

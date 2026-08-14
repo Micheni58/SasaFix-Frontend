@@ -1,171 +1,456 @@
-import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, DollarSign, MessageCircle, Bell, Trash2 } from "lucide-react";
-import {
-  deleteNotification,
-  fetchNotifications,
-  markNotificationAsRead,
-} from "../../api/notificationService";
+// src/pages/Admin/Notification.jsx - Fully Functional with Real Data
 
-const tabs = ["All", "Unread", "Reports", "Payments", "Messages"];
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, DollarSign, MessageCircle, Bell, Trash2, Loader2, RefreshCw, Users, CheckCircle, Clock3, Package, TrendingUp, Wallet,Calendar} from "lucide-react";
+import {
+    deleteNotification,
+    fetchNotifications,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    fetchUnreadNotificationCount,
+} from "../../api/notificationService";
+import Sidebar from "../../layout/Sidebar";
+import Navbar from "../../components/Navbar";
+
+const tabs = ["All", "Unread", "Bookings", "Payments", "Messages", "Reports"];
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
 
 function IconFor({ type }) {
-  switch (type) {
-    case "report":
-      return <AlertTriangle className="h-5 w-5 text-[#056db3]" />;
-    case "payment":
-      return <DollarSign className="h-5 w-5 text-[#056db3]" />;
-    case "message":
-      return <MessageCircle className="h-5 w-5 text-[#056db3]" />;
-    default:
-      return <Bell className="h-5 w-5 text-[#056db3]" />;
-  }
+    switch (type) {
+        case "booking":
+            return <Calendar className="h-5 w-5 text-[#056db3]" />;
+        case "payment":
+            return <Wallet className="h-5 w-5 text-emerald-600" />;
+        case "message":
+            return <MessageCircle className="h-5 w-5 text-purple-600" />;
+        case "report":
+            return <AlertTriangle className="h-5 w-5 text-amber-600" />;
+        case "system":
+            return <Bell className="h-5 w-5 text-blue-600" />;
+        default:
+            return <Bell className="h-5 w-5 text-gray-500" />;
+    }
 }
+
+function getNotificationColor(type) {
+    switch (type) {
+        case "booking":
+            return "bg-blue-50 border-blue-100";
+        case "payment":
+            return "bg-emerald-50 border-emerald-100";
+        case "message":
+            return "bg-purple-50 border-purple-100";
+        case "report":
+            return "bg-amber-50 border-amber-100";
+        case "system":
+            return "bg-blue-50 border-blue-100";
+        default:
+            return "bg-gray-50 border-gray-100";
+    }
+}
+
+// ─────────────────────────────────────────────
+// SKELETON LOADER COMPONENTS
+// ─────────────────────────────────────────────
+
+function SkeletonNotificationItem() {
+    return (
+        <div className="flex items-center gap-4 rounded-lg px-4 py-3 bg-white">
+            <div className="shrink-0">
+                <div className="h-10 w-10 rounded-lg bg-gray-200 animate-pulse" />
+            </div>
+            <div className="flex-1 min-w-0 space-y-2">
+                <div className="h-4 w-48 animate-pulse rounded bg-gray-200" />
+                <div className="h-3 w-64 animate-pulse rounded bg-gray-200" />
+                <div className="h-3 w-24 animate-pulse rounded bg-gray-200" />
+            </div>
+            <div className="flex items-center gap-4 shrink-0">
+                <div className="h-3 w-16 animate-pulse rounded bg-gray-200" />
+                <div className="h-2 w-2 rounded-full bg-gray-200" />
+                <div className="h-4 w-4 animate-pulse rounded bg-gray-200" />
+            </div>
+        </div>
+    );
+}
+
+function SkeletonTab() {
+    return (
+        <div className="h-10 w-24 animate-pulse rounded bg-gray-200" />
+    );
+}
+
+function SkeletonNotificationList() {
+    return (
+        <div className="space-y-2">
+            {[...Array(6)].map((_, i) => (
+                <SkeletonNotificationItem key={i} />
+            ))}
+        </div>
+    );
+}
+
+function SkeletonHeader() {
+    return (
+        <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+                <div className="h-9 w-56 animate-pulse rounded bg-gray-200" />
+                <div className="mt-2 h-5 w-72 animate-pulse rounded bg-gray-200" />
+            </div>
+            <div className="flex gap-3">
+                <div className="h-10 w-32 animate-pulse rounded-lg bg-gray-200" />
+                <div className="h-10 w-24 animate-pulse rounded-lg bg-gray-200" />
+            </div>
+        </div>
+    );
+}
+
+function SkeletonTabs() {
+    return (
+        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex min-w-max gap-2 px-4 py-3">
+                {[...Array(6)].map((_, i) => (
+                    <SkeletonTab key={i} />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
+// COMPONENTS
+// ─────────────────────────────────────────────
+
+function EmptyState({ icon: Icon, title, description }) {
+    return (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="rounded-full bg-gray-100 p-4 mb-4">
+                <Icon className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-1">{title}</h3>
+            <p className="text-sm text-gray-500 max-w-sm">{description}</p>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────
 
 export default function AdminNotification() {
-  const [activeTab, setActiveTab] = useState("All");
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+    const [activeTab, setActiveTab] = useState("All");
+    const [notifications, setNotifications] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState(null);
+    const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    let mounted = true;
-
-    fetchNotifications()
-      .then((data) => {
-        if (!mounted) return;
-        setNotifications(data || []);
-        setError(null);
-      })
-      .catch((err) => {
-        console.error(err);
-        if (!mounted) return;
-        setError(err);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
+    // Get the logged-in user ID
+    const getUserId = () => {
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+        return storedUser.id || storedUser.user_id || null;
     };
-  }, []);
 
-  const filtered = useMemo(() => {
-    if (activeTab === "Unread") return notifications.filter((n) => !n.read);
-    if (activeTab === "Reports") return notifications.filter((n) => n.type === "report");
-    if (activeTab === "Payments") return notifications.filter((n) => n.type === "payment");
-    if (activeTab === "Messages") return notifications.filter((n) => n.type === "message");
-    return notifications;
-  }, [activeTab, notifications]);
+    const userId = getUserId();
 
-  const counts = useMemo(() => ({
-    All: notifications.length,
-    Unread: notifications.filter((n) => !n.read).length,
-    Reports: notifications.filter((n) => n.type === "report").length,
-    Payments: notifications.filter((n) => n.type === "payment").length,
-    Messages: notifications.filter((n) => n.type === "message").length,
-  }), [notifications]);
+    const fetchData = async (showRefresh = false) => {
+        if (showRefresh) setRefreshing(true);
+        else setLoading(true);
+        setError(null);
 
-  const markRead = async (id) => {
-    const notification = notifications.find((n) => n.id === id);
-    if (!notification || notification.read) return;
+        if (!userId) {
+            setError("User not logged in");
+            setLoading(false);
+            setRefreshing(false);
+            return;
+        }
 
-    setNotifications((s) => s.map((n) => (n.id === id ? { ...n, read: true } : n)));
+        try {
+            const [data, count] = await Promise.all([
+                fetchNotifications(userId),
+                fetchUnreadNotificationCount(userId),
+            ]);
+            setNotifications(data || []);
+            setUnreadCount(count || 0);
+        } catch (err) {
+            console.error(err);
+            setError(err.message || "Failed to load notifications");
+            setNotifications([]);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
 
-    try {
-      const updated = await markNotificationAsRead(id);
-      setNotifications((s) => s.map((n) => (n.id === id ? updated : n)));
-    } catch (err) {
-      console.error(err);
-      setNotifications((s) => s.map((n) => (n.id === id ? { ...n, read: false } : n)));
-    }
-  };
+    useEffect(() => {
+        fetchData();
+    }, [userId]);
 
-  const remove = async (id) => {
-    const previousNotifications = notifications;
-    setNotifications((s) => s.filter((n) => n.id !== id));
+    const filtered = useMemo(() => {
+        if (activeTab === "Unread") return notifications.filter((n) => !n.read);
+        if (activeTab === "Bookings") return notifications.filter((n) => n.type === "booking");
+        if (activeTab === "Payments") return notifications.filter((n) => n.type === "payment");
+        if (activeTab === "Messages") return notifications.filter((n) => n.type === "message");
+        if (activeTab === "Reports") return notifications.filter((n) => n.type === "report");
+        return notifications;
+    }, [activeTab, notifications]);
 
-    try {
-      await deleteNotification(id);
-    } catch (err) {
-      console.error(err);
-      setNotifications(previousNotifications);
-    }
-  };
+    const counts = useMemo(() => ({
+        All: notifications.length,
+        Unread: notifications.filter((n) => !n.read).length,
+        Bookings: notifications.filter((n) => n.type === "booking").length,
+        Payments: notifications.filter((n) => n.type === "payment").length,
+        Messages: notifications.filter((n) => n.type === "message").length,
+        Reports: notifications.filter((n) => n.type === "report").length,
+    }), [notifications]);
 
-  return (
-    <div className="min-h-screen bg-[#f8fafc] ml-64 p-6">
-      <section className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
-        <p className="mt-2 text-gray-600 max-w-2xl">Platform activity, reports, and important alerts</p>
-      </section>
+    const markRead = async (id) => {
+        const notification = notifications.find((n) => n.id === id);
+        if (!notification || notification.read) return;
 
-      <section className="mb-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="flex min-w-max">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`flex items-center gap-2 border-b-[3px] px-6 py-3.5 text-base font-semibold transition-colors ${
-                activeTab === tab
-                  ? "border-[#056db3] bg-blue-50 text-[#056db3]"
-                  : "border-transparent text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              <span>{tab}</span>
-              <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-semibold ${
-                activeTab === tab ? "bg-[#056db3] text-white" : "bg-gray-100 text-gray-600"
-              }`}>
-                {counts[tab]}
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
+        setNotifications((s) => s.map((n) => (n.id === id ? { ...n, read: true } : n)));
+        setUnreadCount((prev) => Math.max(0, prev - 1));
 
-      <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="space-y-3">
-          {(loading || error || filtered.length === 0) && (
-            <div className="py-8 text-center text-sm text-gray-500">
-              {loading ? "Loading notifications..." : error ? "Unable to load notifications" : "No notifications"}
-            </div>
-          )}
+        try {
+            await markNotificationAsRead(id);
+        } catch (err) {
+            console.error(err);
+            setNotifications((s) => s.map((n) => (n.id === id ? { ...n, read: false } : n)));
+            setUnreadCount((prev) => prev + 1);
+        }
+    };
 
-          {filtered.map((n) => (
-            <div
-              key={n.id}
-              onClick={() => markRead(n.id)}
-              className={`flex items-center gap-4 rounded-lg px-4 py-3 ${n.read ? "bg-white" : "bg-blue-50"}`}
-            >
-              <div className="shrink-0">
-                <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-white border border-gray-100">
-                  <IconFor type={n.type} />
+    const markAllRead = async () => {
+        if (unreadCount === 0 || !userId) return;
+
+        const previousNotifications = notifications;
+        setNotifications((s) => s.map((n) => ({ ...n, read: true })));
+        setUnreadCount(0);
+
+        try {
+            await markAllNotificationsAsRead(userId);
+        } catch (err) {
+            console.error(err);
+            setNotifications(previousNotifications);
+            const count = await fetchUnreadNotificationCount(userId);
+            setUnreadCount(count);
+        }
+    };
+
+    const remove = async (id) => {
+        const previousNotifications = notifications;
+        setNotifications((s) => s.filter((n) => n.id !== id));
+
+        try {
+            await deleteNotification(id);
+        } catch (err) {
+            console.error(err);
+            setNotifications(previousNotifications);
+        }
+    };
+
+    // ── Loading state with skeletons ──
+    if (loading) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="admin" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6">
+                        <div className="max-w-5xl mx-auto">
+                            <section className="mb-6">
+                                <SkeletonHeader />
+                            </section>
+                            <section className="mb-6">
+                                <SkeletonTabs />
+                            </section>
+                            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                                <SkeletonNotificationList />
+                            </section>
+                        </div>
+                    </main>
                 </div>
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900">{n.title}</p>
-                <p className="mt-1 text-sm text-gray-600 truncate">{n.text}</p>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="text-sm text-gray-500">{n.timeAgo}</div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    remove(n.id);
-                  }}
-                  className="text-gray-400 hover:text-red-600"
-                  aria-label="Delete notification"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
             </div>
-          ))}
+        );
+    }
+
+    // ── Error state ──
+    if (error) {
+        return (
+            <div className="flex min-h-screen bg-[#f8fafc]">
+                <Sidebar role="admin" />
+                <div className="flex-1 ml-72">
+                    <Navbar />
+                    <main className="pt-24 px-6 pb-6">
+                        <div className="max-w-5xl mx-auto">
+                            <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
+                                <div>
+                                    <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
+                                    <p className="mt-2 text-gray-600 max-w-2xl">Platform activity, reports, and important alerts</p>
+                                </div>
+                            </section>
+
+                            <section className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+                                <div className="flex flex-col items-center justify-center py-8 text-center">
+                                    <div className="rounded-full bg-red-50 p-4 mb-4">
+                                        <AlertTriangle className="h-8 w-8 text-red-500" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Unable to Load Notifications</h3>
+                                    <p className="text-sm text-gray-500 max-w-sm mb-6">{error}</p>
+                                    <button
+                                        onClick={() => fetchData()}
+                                        className="flex items-center gap-2 rounded-lg bg-[#056db3] px-4 py-2 text-sm font-medium text-white hover:bg-[#045a94] transition-colors"
+                                    >
+                                        <RefreshCw className="h-4 w-4" />
+                                        Try Again
+                                    </button>
+                                </div>
+                            </section>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
+    // ── Main view ──
+    return (
+        <div className="flex min-h-screen bg-[#f8fafc]">
+            <Sidebar role="admin" />
+            <div className="flex-1 ml-72">
+                <Navbar />
+                <main className="pt-24 px-6 pb-6">
+                    <div className="max-w-5xl mx-auto">
+                        {/* ── Page Header ── */}
+                        <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
+                            <div>
+                                <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
+                                <p className="mt-2 text-gray-600 max-w-2xl">Platform activity, reports, and important alerts</p>
+                            </div>
+                            <div className="flex gap-3">
+                                {unreadCount > 0 && (
+                                    <button
+                                        onClick={markAllRead}
+                                        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                                    >
+                                        <CheckCircle className="h-4 w-4" />
+                                        Mark all read ({unreadCount})
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => fetchData(true)}
+                                    disabled={refreshing}
+                                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                >
+                                    <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                                    {refreshing ? "Refreshing..." : "Refresh"}
+                                </button>
+                            </div>
+                        </section>
+
+                        {/* ── Tabs ── */}
+                        <section className="mb-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+                            <div className="flex min-w-max">
+                                {tabs.map((tab) => (
+                                    <button
+                                        key={tab}
+                                        type="button"
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`flex items-center gap-2 border-b-[3px] px-6 py-3.5 text-base font-semibold transition-colors ${
+                                            activeTab === tab
+                                                ? "border-[#056db3] bg-blue-50 text-[#056db3]"
+                                                : "border-transparent text-gray-600 hover:bg-gray-50"
+                                        }`}
+                                    >
+                                        <span>{tab}</span>
+                                        <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-semibold ${
+                                            activeTab === tab ? "bg-[#056db3] text-white" : "bg-gray-100 text-gray-600"
+                                        }`}>
+                                            {counts[tab] || 0}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* ── Notifications List ── */}
+                        <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                            {filtered.length === 0 ? (
+                                <EmptyState
+                                    icon={Bell}
+                                    title="No notifications"
+                                    description={
+                                        activeTab === "Unread"
+                                            ? "You've read all your notifications! 🎉"
+                                            : activeTab === "Bookings"
+                                            ? "No booking notifications yet"
+                                            : activeTab === "Payments"
+                                            ? "No payment notifications yet"
+                                            : activeTab === "Messages"
+                                            ? "No message notifications yet"
+                                            : activeTab === "Reports"
+                                            ? "No report notifications yet"
+                                            : "You don't have any notifications yet"
+                                    }
+                                />
+                            ) : (
+                                <div className="space-y-2">
+                                    {filtered.map((n) => (
+                                        <div
+                                            key={n.id}
+                                            onClick={() => markRead(n.id)}
+                                            className={`flex items-center gap-4 rounded-lg px-4 py-3 cursor-pointer transition-colors border ${
+                                                n.read 
+                                                    ? `bg-white hover:bg-gray-50 border-gray-100` 
+                                                    : `bg-blue-50 hover:bg-blue-100 border-blue-200`
+                                            }`}
+                                        >
+                                            <div className="shrink-0">
+                                                <div className={`h-10 w-10 flex items-center justify-center rounded-lg ${getNotificationColor(n.type)}`}>
+                                                    <IconFor type={n.type} />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`text-sm ${n.read ? "font-medium" : "font-semibold"} text-gray-900`}>
+                                                    {n.title}
+                                                </p>
+                                                <p className="mt-0.5 text-sm text-gray-600 truncate">{n.body}</p>
+                                                {n.relatedBookingId && (
+                                                    <p className="mt-0.5 text-xs text-[#056db3]">
+                                                        Booking #{n.relatedBookingId}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center gap-4 shrink-0">
+                                                <div className="text-xs text-gray-500">{n.timeAgo}</div>
+                                                {!n.read && (
+                                                    <div className="h-2 w-2 rounded-full bg-[#056db3]" />
+                                                )}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        remove(n.id);
+                                                    }}
+                                                    className="text-gray-400 hover:text-red-600 transition-colors"
+                                                    aria-label="Delete notification"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+                    </div>
+                </main>
+            </div>
         </div>
-      </section>
-    </div>
-  );
+    );
 }
+
+// ── Missing import ──

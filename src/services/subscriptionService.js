@@ -1,18 +1,24 @@
-import api from "./api";
+import authService from "./api";
 
 const subscriptionService = {
-  async getSubscription() {
-    return await api.get("/subscriptions/me");
+  getCurrent: async () => {
+    return authService.get(
+      "/subscriptions/me"
+    );
   },
 
-  async getCommission() {
-    return await api.get("/subscriptions/commission");
-  },
-
-  async upgradeToPremium() {
-    return await api.post("/subscriptions/upgrade", {
-      plan: "PREMIUM",
+  upgrade: async (phoneNumber) => {
+    return authService.post("/subscriptions/upgrade", {
+      phone_number: phoneNumber,
     });
+  },
+
+  getPaymentStatus: async (
+    paymentId
+  ) => {
+    return authService.get(
+      `/subscriptions/payment/${paymentId}`
+    );
   },
 };
 

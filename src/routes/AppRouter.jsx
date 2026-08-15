@@ -43,6 +43,8 @@ import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBooki
 import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
 import ProviderSubscription from "../pages/ServiceProvider/ProviderSubscription";
+import ReportsAnalytics from "../pages/Admin/ReportsAndAnalytics";
+import ServiceProvidersManagement from "../pages/Admin/ServiceProvidersManagement";
 
 export default function AppRouter() {
   return (
@@ -64,8 +66,12 @@ export default function AppRouter() {
         <Route path="/admin/bookings-payments/:bookingId" element={<BookingsAndPaymentsDetails />}/>
         <Route path="/admin/payouts/:payoutId" element={<PayoutDetails />} />
         <Route path="/admin/users" element={<Users />} />
-        <Route path="/admin/service-providers" element={<ServiceProviders />} />
+        <Route path="/admin/service-providers" element={<ServiceProvidersManagement />} />
         <Route path="/admin/escrow" element={<AdminEscrow />} />
+        <Route
+          path="/admin/reports"
+          element={<ReportsAnalytics />}
+        />
         {/* Client Routes */}
 
         <Route path="/client" element={<ClientDashboard />} />
@@ -90,7 +96,7 @@ export default function AppRouter() {
         <Route path="/provider/notifications" element={<ProviderNotification />}/>
         <Route path="/provider/my-reviews" element={<Reviews />} />
         <Route path="/provider/my-jobs/rescheduled/:id" element={<RescheduledJobDetails />}/>
-       
+
         <Route
           path="/provider/subscription"
           element={<ProviderSubscription />}

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import HomeNavbar from "../components/HomeNavbar";
 
 const BRAND = "#056db3";
 
@@ -61,36 +62,22 @@ const RoleSelection = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-gray-50 font-['Sora',sans-serif]">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');`}</style>
+      <HomeNavbar authVariant />
+      <div className="flex flex-col items-center justify-center px-4 pb-10 pt-28 sm:pt-32">
       {/* Logo */}
       <div className="flex items-center gap-2 mb-6">
-        <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: BRAND }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-            <path d="M2 17l10 5 10-5" />
-            <path d="M2 12l10 5 10-5" />
-          </svg>
+        <div className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center shrink-0">
+          <img src="/SasaFix_logo.svg" alt="Sasafix logo" className="w-full h-full object-cover" />
         </div>
-        <span className="text-xl font-semibold text-gray-800">ServiceHub</span>
+        <span className="text-xl font-semibold text-gray-800">Sasafix</span>
       </div>
 
       {/* Heading */}
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Join ServiceHub</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-1">Join Sasafix</h1>
       <p className="text-gray-500 text-sm mb-8">
-        How would you like to use ServiceHub?
+        How would you like to use Sasafix?
       </p>
 
       {/* Role Cards */}
@@ -149,6 +136,7 @@ const RoleSelection = () => {
           Login
         </a>
       </p>
+      </div>
     </div>
   );
 };

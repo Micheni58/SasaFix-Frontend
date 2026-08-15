@@ -55,8 +55,8 @@ function Sidebar({ role = "client" }) {
       icon: <MessageCircle size={20} />,
     },
     {
-      name: "Wallet",
-      path: "/client/wallet",
+      name: "My transactions",
+      path: "/client/transactions",
       icon: <Wallet size={20} />,
     },
     {
@@ -103,8 +103,8 @@ function Sidebar({ role = "client" }) {
       icon: <MessageCircle size={20} />,
     },
     {
-      name: "Wallet",
-      path: "/provider/wallet",
+      name: "My Earnings",
+      path: "/provider/earnings",
       icon: <Wallet size={20} />,
     },
 
@@ -147,10 +147,10 @@ function Sidebar({ role = "client" }) {
       icon: <CalendarDays size={20} />,
     },
     {
-    id: "admin-escrow",  // ← NEW
-    name: "Escrow Management",
+    id: "Transactions",  // ← NEW
+    name: "Transactions Management",
     icon: <Wallet className="h-5 w-5" />,
-    path: "/admin/escrow",
+    path: "/admin/transactions",
     },
     {
       id: "admin-analytics",

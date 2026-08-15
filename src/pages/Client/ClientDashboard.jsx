@@ -1,11 +1,11 @@
-// Client Home Dashboard — fetches real bookings and computes summary stats
+// src/pages/Client/ClientDashboard.jsx
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   MapPin,
   Briefcase,
   CheckCircle,
-  Wallet,
   Star,
   Clock,
   MessageCircle,
@@ -15,9 +15,11 @@ import {
   ChevronRight,
   ShieldCheck,
   RotateCcw,
+  DollarSign,
+  TrendingUp,
 } from "lucide-react";
 import bookingService from "../../api/bookingService";
-import { getWalletBalance } from "../../api/walletService";
+import { getTransactionHistory } from "../../api/transactionService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 
@@ -176,6 +178,24 @@ function StatCardSkeleton() {
   );
 }
 
+function StatCard({ label, value, icon, iconClass, loading }) {
+  return (
+    <div className="min-h-28 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex h-full items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-sm font-medium text-gray-600">{label}</h2>
+          {loading ? (
+            <div className="mt-2 h-6 w-20 animate-pulse rounded bg-gray-200" />
+          ) : (
+            <p className="mt-2 font-mono text-xl font-bold text-gray-800">{value}</p>
+          )}
+        </div>
+        <div className={`shrink-0 rounded-lg p-2 ${iconClass}`}>{icon}</div>
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
@@ -184,8 +204,8 @@ function ClientDashboard() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [walletLoading, setWalletLoading] = useState(true);
+  const [monthlySpent, setMonthlySpent] = useState(0);
+  const [monthlySpentLoading, setMonthlySpentLoading] = useState(true);
 
   const storedUser = getStoredUser();
   const displayName = storedUser
@@ -197,6 +217,10 @@ function ClientDashboard() {
     : "User";
   const locationLabel =
     storedUser?.location || storedUser?.city || storedUser?.address || "Location unavailable";
+
+  const userId = Number(
+    storedUser?.id || storedUser?.client_id || localStorage.getItem("userId") || 1
+  );
 
   // ── Fetch bookings ──
   useEffect(() => {
@@ -225,41 +249,56 @@ function ClientDashboard() {
     };
   }, [storedUser?.client_id, storedUser?.id]);
 
-  // ── Fetch wallet balance ──
+  // ── Fetch monthly spend from transactions ──
   useEffect(() => {
     let mounted = true;
-    const walletUserId = Number(
-      storedUser?.id || storedUser?.client_id || localStorage.getItem("userId") || 0
-    );
-
-    if (!walletUserId) {
-      setWalletLoading(false);
+    if (!userId) {
+      setMonthlySpentLoading(false);
       return;
     }
 
-    getWalletBalance(walletUserId)
-      .then((data) => {
-        if (!mounted) return;
-        setWalletBalance(data.balance || 0);
-      })
-      .catch((err) => {
-        console.error("Failed to load wallet balance", err);
-      })
-      .finally(() => {
-        if (mounted) setWalletLoading(false);
-      });
+    const fetchMonthlySpend = async () => {
+      try {
+        const result = await getTransactionHistory(userId);
+        const transactions = result.transactions || [];
+        
+        // Get current month date range
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    return () => {
-      mounted = false;
+        // Filter SUCCESS transactions for current month
+        const monthTransactions = transactions.filter(tx => {
+          const txDate = new Date(tx.paidAt || tx.createdAt || tx.created_at);
+          if (isNaN(txDate.getTime())) return false;
+          const status = tx.status || tx.status;
+          return txDate >= monthStart && txDate <= monthEnd &&
+                 (status === "SUCCESS" || status === "success" || status === "PAID");
+        });
+
+        // Sum gross amounts (total spent by client)
+        const total = monthTransactions.reduce((sum, tx) => {
+          const amount = tx.grossAmount || tx.gross_amount || tx.amount || 0;
+          return sum + Number(amount);
+        }, 0);
+
+        setMonthlySpent(total);
+      } catch (err) {
+        console.warn("Could not fetch monthly spend:", err);
+      } finally {
+        if (mounted) setMonthlySpentLoading(false);
+      }
     };
-  }, [storedUser?.client_id, storedUser?.id]);
+
+    fetchMonthlySpend();
+    return () => { mounted = false; };
+  }, [userId]);
 
   // ── Derived stats ──
   const activeCount = bookings.filter((booking) =>
     activeStatuses.includes(booking.status)
   ).length;
   
-  // ── FIX: Completed count should include both "Completed" and "Paid" ──
   const completedCount = bookings.filter((booking) => 
     booking.status === "Completed" || booking.status === "Paid"
   ).length;
@@ -276,12 +315,10 @@ function ClientDashboard() {
     null;
   const activeProgress = activeBooking ? getBookingProgress(activeBooking.status) : 0;
 
-  // ── FIX: Most recent completed booking should include both "Completed" and "Paid" ──
   const lastCompleted = bookings.find((booking) => 
     booking.status === "Completed" || booking.status === "Paid"
   ) || null;
 
-  // ── Limit recent bookings to 5 ──
   const recentBookings = bookings.slice(0, 5);
 
   const statCards = [
@@ -290,33 +327,36 @@ function ClientDashboard() {
       value: activeCount,
       icon: <Briefcase className="h-6 w-6 text-[#056db3]" />,
       iconClass: "bg-blue-100",
+      loading: loading,
     },
     {
       label: "Completed jobs",
       value: completedCount,
       icon: <CheckCircle className="h-6 w-6 text-green-600" />,
       iconClass: "bg-green-100",
+      loading: loading,
     },
     {
-      label: "Wallet balance",
-      value: formatAmount(walletBalance),
-      icon: <Wallet className="h-6 w-6 text-[#056db3]" />,
-      iconClass: "bg-blue-100",
-      loading: walletLoading,
+      label: "Monthly Spend",
+      value: formatAmount(monthlySpent),
+      icon: <DollarSign className="h-6 w-6 text-emerald-600" />,
+      iconClass: "bg-emerald-100",
+      loading: monthlySpentLoading,
     },
     {
       label: "Loyalty progress",
       value: `${loyalty}%`,
       icon: <Star className="h-6 w-6 text-yellow-600" />,
       iconClass: "bg-yellow-100",
+      loading: loading,
     },
   ];
 
   const quickActions = [
     { label: "Find a service", to: "/client/find-services", icon: Search },
     { label: "My bookings", to: "/client/my-bookings", icon: Calendar },
-    { label: "Wallet", to: "/client/wallet", icon: Wallet },
     { label: "Messages", to: "/client/messages", icon: MessageCircle },
+    { label: "Transactions", to: "/client/transactions", icon: TrendingUp },
   ];
 
   return (
@@ -379,24 +419,14 @@ function ClientDashboard() {
             {loading
               ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
               : statCards.map((card) => (
-                  <div
+                  <StatCard
                     key={card.label}
-                    className="min-h-28 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-                  >
-                    <div className="flex h-full items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <h2 className="text-sm font-medium text-gray-600">{card.label}</h2>
-                        {card.loading ? (
-                          <div className="mt-2 h-6 w-20 animate-pulse rounded bg-gray-200" />
-                        ) : (
-                          <p className="mt-2 wrap-break-word font-mono text-xl font-bold text-gray-800">
-                            {card.value}
-                          </p>
-                        )}
-                      </div>
-                      <div className={`shrink-0 rounded-lg p-2 ${card.iconClass}`}>{card.icon}</div>
-                    </div>
-                  </div>
+                    label={card.label}
+                    value={card.value}
+                    icon={card.icon}
+                    iconClass={card.iconClass}
+                    loading={card.loading}
+                  />
                 ))}
           </section>
 

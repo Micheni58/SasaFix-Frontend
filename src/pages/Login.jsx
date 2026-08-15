@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import LoginForm from "../components/LoginForm";
+import HomeNavbar from "../components/HomeNavbar";
 
 const features = [
   "Verified professionals",
@@ -19,30 +20,6 @@ const CheckIcon = () => (
     strokeLinejoin="round"
   >
     <polyline points="2,8 6,12 14,4" />
-  </svg>
-);
-
-const StackIcon = () => (
-  <svg viewBox="0 0 28 28" width="28" height="28" fill="none">
-    <rect
-      x="4"
-      y="4"
-      width="20"
-      height="5"
-      rx="2.5"
-      fill="white"
-      opacity="0.5"
-    />
-    <rect
-      x="4"
-      y="11.5"
-      width="20"
-      height="5"
-      rx="2.5"
-      fill="white"
-      opacity="0.75"
-    />
-    <rect x="4" y="19" width="20" height="5" rx="2.5" fill="white" />
   </svg>
 );
 
@@ -67,11 +44,11 @@ export default function Login() {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Sora', sans-serif; }
 
-        .sh-root { font-family: 'Sora', sans-serif; min-height: 100vh; display: flex; }
+        .sh-root { font-family: 'Sora', sans-serif; min-height: 100vh; display: flex; padding-top: 72px; }
 
         .sh-left {
           width: 50%;
-          min-height: 100vh;
+          min-height: calc(100vh - 72px);
           background: linear-gradient(160deg, #034d80 0%, #2e96d4 100%, #0383d3 70%, #2e96d4 100%);
           color: #fff;
           display: flex;
@@ -93,12 +70,18 @@ export default function Login() {
 
         .sh-logo-icon {
           width: 52px; height: 52px;
-          background: rgba(255,255,255,0.15);
-          border-radius: 14px;
+          border-radius: 50%;
+          overflow: hidden;
           display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+          background: rgba(255,255,255,0.15);
           backdrop-filter: blur(8px);
           border: 1px solid rgba(255,255,255,0.2);
-          flex-shrink: 0;
+        }
+
+        .sh-logo-icon img {
+          width: 100%; height: 100%;
+          object-fit: cover;
         }
 
         .sh-logo-name { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
@@ -127,7 +110,7 @@ export default function Login() {
         .sh-feature-text { font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.92); }
 
         .sh-right {
-          width: 50%; min-height: 100vh; background: #fff;
+          width: 50%; min-height: calc(100vh - 72px); background: #fff;
           display: flex; align-items: center; justify-content: center;
           padding: 56px 48px;
         }
@@ -150,6 +133,8 @@ export default function Login() {
         }
       `}</style>
 
+      <HomeNavbar authVariant />
+
       <div className="sh-root">
         {/* LEFT */}
         <div className="sh-left">
@@ -157,9 +142,9 @@ export default function Login() {
           <div className="sh-container">
             <div className="sh-logo" style={fadeUp(0)}>
               <div className="sh-logo-icon">
-                <StackIcon />
+                <img src="/SasaFix_logo.svg" alt="Sasafix logo" />
               </div>
-              <span className="sh-logo-name">ServiceHub</span>
+              <span className="sh-logo-name">Sasafix</span>
             </div>
 
             <h1 className="sh-headline" style={fadeUp(0.1)}>

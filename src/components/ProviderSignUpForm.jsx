@@ -36,32 +36,41 @@ const Icon = ({ d, d2, circle, rect }) => (
 const UserIcon = () => (
   <Icon d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" circle={[12, 7, 4]} />
 );
+
 const MailIcon = () => <Icon rect={[2, 4, 20, 16, 2]} d="M2,4 L12,13 L22,4" />;
+
 const PhoneIcon = () => (
   <Icon d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 3.09 4.18 2 2 0 0 1 5.07 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L9.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
 );
+
 const LockIcon = () => (
   <Icon rect={[3, 11, 18, 11, 2]} d="M7 11V7a5 5 0 0 1 10 0v4" />
 );
+
 const MapIcon = () => (
   <Icon
     d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
     circle={[12, 10, 3]}
   />
 );
+
 const BriefIcon = () => (
   <Icon rect={[2, 7, 20, 14, 2]} d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
 );
+
 const ClockIcon = () => <Icon circle={[12, 12, 10]} d="M12 6v6l4 2" />;
+
 const DollarIcon = () => (
   <Icon d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
 );
+
 const DocIcon = () => (
   <Icon
     d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
     d2="M14 2v6h6M16 13H8M16 17H8M10 9H8"
   />
 );
+
 const CalIcon = () => (
   <Icon rect={[3, 4, 18, 18, 2]} d="M16 2v4M8 2v4M3 10h18" />
 );
@@ -152,6 +161,7 @@ const InputBox = ({
 }) => {
   const handleFocus = (e) => (e.currentTarget.style.borderColor = BRAND);
   const handleBlur = (e) => (e.currentTarget.style.borderColor = "#e5e7eb");
+
   if (as === "textarea")
     return (
       <div
@@ -185,6 +195,7 @@ const InputBox = ({
         />
       </div>
     );
+
   if (as === "select")
     return (
       <div style={inputWrap} onFocus={handleFocus} onBlur={handleBlur}>
@@ -213,6 +224,7 @@ const InputBox = ({
         </select>
       </div>
     );
+
   return (
     <div style={inputWrap} onFocus={handleFocus} onBlur={handleBlur}>
       <span>{icon}</span>
@@ -253,6 +265,7 @@ const StepIndicator = ({ current }) => (
         const n = i + 1;
         const done = current > n;
         const active = current === n;
+
         return (
           <React.Fragment key={n}>
             <div className="flex flex-col items-center">
@@ -293,6 +306,7 @@ const StepIndicator = ({ current }) => (
                 )}
               </div>
             </div>
+
             {i < steps.length - 1 && (
               <div
                 style={{
@@ -307,6 +321,7 @@ const StepIndicator = ({ current }) => (
         );
       })}
     </div>
+
     <p className="text-sm text-gray-400">
       Step {current} of {steps.length} — {steps[current - 1]}
     </p>
@@ -335,6 +350,7 @@ const Logo = () => (
         <path d="M2 12l10 5 10-5" />
       </svg>
     </div>
+
     <span className="text-xl font-semibold text-gray-800">ServiceHub</span>
   </div>
 );
@@ -373,6 +389,7 @@ const Btn = ({ children, onClick, type = "button", disabled, outline }) => (
 // ── Main Component ─────────────────────────────────────────────────
 const ProviderSignUpForm = () => {
   const navigate = useNavigate();
+
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -415,7 +432,11 @@ const ProviderSignUpForm = () => {
   );
 
   const handleChange = (setter) => (e) => {
-    setter((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setter((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+
     setError("");
   };
 
@@ -433,40 +454,67 @@ const ProviderSignUpForm = () => {
 
   const nextStep = (e) => {
     e.preventDefault();
+
     if (step === 1 && personal.password !== personal.confirm_password) {
       setError("Passwords do not match.");
       return;
     }
+
     if (step === 2 && professional.bio.length < 10) {
       setError("Bio must be at least 10 characters.");
       return;
     }
+
     setError("");
     setStep((s) => s + 1);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setLoading(true);
     setError("");
+
     try {
       const { confirm_password, ...personalClean } = personal;
+
       const payload = {
         ...personalClean,
+
         role: "service_provider",
+
         ...professional,
+
         years_of_experience: parseInt(professional.years_of_experience) || 0,
+
         hourly_rate: parseFloat(professional.hourly_rate) || 0,
+
         location: location.city,
         city: location.city,
         country: location.country,
         address: location.address,
+
+        // FIX:
+        // Backend expects:
+        // day_of_week
+        // start_time
+        // end_time
+        // is_available
         availability: availability
           .filter((d) => d.enabled)
-          .map((d) => ({ day: d.day, start_time: d.start, end_time: d.end })),
+          .map((d) => ({
+            day_of_week: d.day,
+            start_time: d.start,
+            end_time: d.end,
+            is_available: d.enabled,
+          })),
       };
+
       const response = await authService.register(payload);
-      navigate("/provider");
+
+      navigate("/email-verification-sent", {
+        state: { email: response.email },
+      });
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {
@@ -477,6 +525,7 @@ const ProviderSignUpForm = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-10">
       <Logo />
+
       <StepIndicator current={step} />
 
       <div className="w-full max-w-lg bg-white rounded-2xl border border-gray-200 p-8">
@@ -492,6 +541,7 @@ const ProviderSignUpForm = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-1">
               Create your account
             </h2>
+
             <p className="text-sm text-gray-400 mb-6">
               Let's start with your personal details
             </p>
@@ -504,6 +554,7 @@ const ProviderSignUpForm = () => {
                 <Field key={name} label={label}>
                   <div style={inputWrap}>
                     <UserIcon />
+
                     <input
                       name={name}
                       value={personal[name]}
@@ -535,6 +586,7 @@ const ProviderSignUpForm = () => {
                 required
               />
             </Field>
+
             <Field label="Phone Number">
               <InputBox
                 icon={<PhoneIcon />}
@@ -545,6 +597,7 @@ const ProviderSignUpForm = () => {
                 placeholder="+254 712 345 678"
               />
             </Field>
+
             <Field label="Password">
               <InputBox
                 icon={<LockIcon />}
@@ -570,6 +623,7 @@ const ProviderSignUpForm = () => {
                 }
               />
             </Field>
+
             <Field label="Confirm Password">
               <InputBox
                 icon={<LockIcon />}
@@ -608,6 +662,7 @@ const ProviderSignUpForm = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-1">
               Tell us about your services
             </h2>
+
             <p className="text-sm text-gray-400 mb-6">
               Help clients understand what you offer
             </p>
@@ -623,6 +678,7 @@ const ProviderSignUpForm = () => {
                 required
               />
             </Field>
+
             <Field label="Years of Experience">
               <InputBox
                 icon={<ClockIcon />}
@@ -634,6 +690,7 @@ const ProviderSignUpForm = () => {
                 required
               />
             </Field>
+
             <Field
               label="Hourly Rate (KES)"
               hint="Set your competitive hourly rate"
@@ -648,6 +705,7 @@ const ProviderSignUpForm = () => {
                 required
               />
             </Field>
+
             <Field
               label="Bio / About Your Services"
               hint={`${professional.bio.length}/10 minimum characters`}
@@ -667,6 +725,7 @@ const ProviderSignUpForm = () => {
               <Btn outline onClick={() => setStep(1)}>
                 ← Back
               </Btn>
+
               <Btn type="submit">Next →</Btn>
             </div>
           </form>
@@ -678,6 +737,7 @@ const ProviderSignUpForm = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-1">
               Where are you based?
             </h2>
+
             <p className="text-sm text-gray-400 mb-6">
               Help clients find you in their area
             </p>
@@ -692,6 +752,7 @@ const ProviderSignUpForm = () => {
                 required
               />
             </Field>
+
             <Field label="Country">
               <InputBox
                 icon={<MapIcon />}
@@ -702,6 +763,7 @@ const ProviderSignUpForm = () => {
                 required
               />
             </Field>
+
             <Field label="Physical Address / Area">
               <InputBox
                 icon={<MapIcon />}
@@ -717,6 +779,7 @@ const ProviderSignUpForm = () => {
               <Btn outline onClick={() => setStep(2)}>
                 ← Back
               </Btn>
+
               <Btn type="submit">Next →</Btn>
             </div>
           </form>
@@ -728,6 +791,7 @@ const ProviderSignUpForm = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-1">
               Set your working hours
             </h2>
+
             <p className="text-sm text-gray-400 mb-6">
               Let clients know when you're available for bookings
             </p>
@@ -742,7 +806,6 @@ const ProviderSignUpForm = () => {
                     backgroundColor: d.enabled ? BRAND_LIGHT : "#f9fafb",
                   }}
                 >
-                  {/* Checkbox */}
                   <input
                     type="checkbox"
                     checked={d.enabled}
@@ -755,15 +818,17 @@ const ProviderSignUpForm = () => {
                       flexShrink: 0,
                     }}
                   />
-                  {/* Day */}
+
                   <CalIcon />
+
                   <span className="text-sm font-semibold text-gray-700 w-24">
                     {d.day}
                   </span>
-                  {/* Times */}
+
                   {d.enabled ? (
                     <div className="flex items-center gap-2 ml-auto">
                       <ClockIcon />
+
                       <input
                         type="time"
                         value={d.start}
@@ -771,7 +836,9 @@ const ProviderSignUpForm = () => {
                         className="border border-gray-200 rounded-lg px-2 py-1 text-sm text-gray-700 bg-white"
                         style={{ width: 110 }}
                       />
+
                       <span className="text-sm text-gray-400">to</span>
+
                       <input
                         type="time"
                         value={d.end}
@@ -804,6 +871,7 @@ const ProviderSignUpForm = () => {
               <Btn outline onClick={() => setStep(3)}>
                 ← Back
               </Btn>
+
               <Btn type="submit" disabled={loading}>
                 {loading ? "Creating account..." : "Complete Registration"}
               </Btn>

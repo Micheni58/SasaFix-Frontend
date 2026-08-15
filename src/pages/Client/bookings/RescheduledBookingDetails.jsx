@@ -1,10 +1,18 @@
 // src/pages/Client/Bookings/RescheduledBookingDetails.jsx
 
 import { useState, useEffect } from "react";
-import { 
-  Mail, Phone, Calendar, Clock3, MapPin, 
-  MessageSquare, Loader2, CheckCircle2,
-  CheckCircle, XCircle, AlertCircle
+import {
+  Mail,
+  Phone,
+  Calendar,
+  Clock3,
+  MapPin,
+  MessageSquare,
+  Loader2,
+  CheckCircle2,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
 } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
@@ -144,7 +152,10 @@ function RescheduledBookingSkeleton() {
                 <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                   <div className="h-6 w-24 rounded bg-gray-200 mb-4" />
                   {[...Array(4)].map((_, i) => (
-                    <div key={i} className="h-12 w-full rounded-lg bg-gray-200" />
+                    <div
+                      key={i}
+                      className="h-12 w-full rounded-lg bg-gray-200"
+                    />
                   ))}
                 </div>
               </div>
@@ -172,7 +183,7 @@ function RescheduledBookingDetails() {
 
   useEffect(() => {
     let mounted = true;
-    
+
     // ── Check if bookingId is undefined ──
     if (!bookingId) {
       console.error("❌ No booking ID found in URL parameters");
@@ -180,16 +191,17 @@ function RescheduledBookingDetails() {
       setLoading(false);
       return;
     }
-    
+
     console.log("🔍 Fetching booking with ID:", bookingId);
     setLoading(true);
-    
-    bookingService.getBooking(bookingId)
+
+    bookingService
+      .getBooking(bookingId)
       .then((b) => {
         if (!mounted) return;
-        
+
         console.log("📦 Raw booking data:", b);
-        
+
         if (!b) {
           setError("Booking not found");
           setLoading(false);
@@ -199,27 +211,50 @@ function RescheduledBookingDetails() {
         // ── Extract service fee ──
         let serviceFeeRaw = 0;
         if (b.amountRaw !== undefined && b.amountRaw !== null) {
-          serviceFeeRaw = typeof b.amountRaw === 'string' ? parseFloat(b.amountRaw) : b.amountRaw;
+          serviceFeeRaw =
+            typeof b.amountRaw === "string"
+              ? parseFloat(b.amountRaw)
+              : b.amountRaw;
         } else if (b.raw?.amount !== undefined && b.raw?.amount !== null) {
-          serviceFeeRaw = typeof b.raw.amount === 'string' ? parseFloat(b.raw.amount) : b.raw.amount;
-        } else if (b.amount !== undefined && b.amount !== null && typeof b.amount === 'number') {
+          serviceFeeRaw =
+            typeof b.raw.amount === "string"
+              ? parseFloat(b.raw.amount)
+              : b.raw.amount;
+        } else if (
+          b.amount !== undefined &&
+          b.amount !== null &&
+          typeof b.amount === "number"
+        ) {
           serviceFeeRaw = b.amount;
-        } else if (b.amount && typeof b.amount === 'string' && b.amount.includes('KES')) {
-          const clean = b.amount.replace(/[^0-9.]/g, '');
+        } else if (
+          b.amount &&
+          typeof b.amount === "string" &&
+          b.amount.includes("KES")
+        ) {
+          const clean = b.amount.replace(/[^0-9.]/g, "");
           serviceFeeRaw = parseFloat(clean) || 0;
         }
         if (isNaN(serviceFeeRaw) || serviceFeeRaw <= 0) serviceFeeRaw = 0;
 
         // ── Extract provider name ──
-        const providerName = b.providerName || b.worker || b.provider_full_name || b.raw?.provider_full_name || b.raw?.provider_name || "Provider";
+        const providerName =
+          b.providerName ||
+          b.worker ||
+          b.provider_full_name ||
+          b.raw?.provider_full_name ||
+          b.raw?.provider_name ||
+          "Provider";
 
         // ── Extract date and time ──
-        const dateValue = b.date || b.scheduled_date || b.raw?.scheduled_date || "";
-        const timeValue = b.time || b.scheduled_start_time || b.raw?.scheduled_start_time || "";
+        const dateValue =
+          b.date || b.scheduled_date || b.raw?.scheduled_date || "";
+        const timeValue =
+          b.time || b.scheduled_start_time || b.raw?.scheduled_start_time || "";
 
         const mapped = {
           id: b.id || bookingId,
-          service: b.service || b.service_name || b.raw?.service_name || "Service",
+          service:
+            b.service || b.service_name || b.raw?.service_name || "Service",
           description: b.details || b.description || b.raw?.description || "",
           date: dateValue,
           time: timeValue,
@@ -228,36 +263,49 @@ function RescheduledBookingDetails() {
           provider: {
             name: providerName,
             initials: getInitials(providerName),
-            phone: b.providerPhone || b.raw?.provider?.phone || b.raw?.service_provider?.phone || "",
-            email: b.providerEmail || b.raw?.provider?.email || b.raw?.service_provider?.email || ""
+            phone:
+              b.providerPhone ||
+              b.raw?.provider?.phone ||
+              b.raw?.service_provider?.phone ||
+              "",
+            email:
+              b.providerEmail ||
+              b.raw?.provider?.email ||
+              b.raw?.service_provider?.email ||
+              "",
           },
           serviceFee: `KES ${serviceFeeRaw.toLocaleString()}`,
           serviceFeeRaw: serviceFeeRaw,
           timeline: [
-            { task: 'Booking Requested', completed: true },
-            { task: 'Provider Proposed New Time', completed: true },
-            { task: 'Awaiting Your Response', completed: false },
-            { task: 'Work Started', completed: false },
-            { task: 'Work Completed', completed: false }
+            { task: "Booking Requested", completed: true },
+            { task: "Provider Proposed New Time", completed: true },
+            { task: "Awaiting Your Response", completed: false },
+            { task: "Work Started", completed: false },
+            { task: "Work Completed", completed: false },
           ],
-          raw: b
+          raw: b,
         };
-        
+
         console.log("✅ Mapped booking data:", mapped);
         setBooking(mapped);
       })
       .catch((e) => {
         console.error("❌ Error fetching booking:", e);
         if (!mounted) return;
-        setError(e.message || 'Failed to load booking');
+        setError(e.message || "Failed to load booking");
       })
       .finally(() => mounted && setLoading(false));
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [bookingId]);
 
   const handleAccept = async () => {
-    if (!window.confirm("Accept the new date and time proposed by the provider?")) return;
+    if (
+      !window.confirm("Accept the new date and time proposed by the provider?")
+    )
+      return;
     setActionLoading(true);
     try {
       await bookingService.updateBookingStatus(bookingId, "ACCEPTED");
@@ -272,7 +320,12 @@ function RescheduledBookingDetails() {
   };
 
   const handleDecline = async () => {
-    if (!window.confirm("Decline this rescheduled time? This will cancel the booking.")) return;
+    if (
+      !window.confirm(
+        "Decline this rescheduled time? This will cancel the booking.",
+      )
+    )
+      return;
     setActionLoading(true);
     try {
       await bookingService.cancelBooking(bookingId);
@@ -300,7 +353,9 @@ function RescheduledBookingDetails() {
             <div className="text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <p className="text-red-500">Error: {error}</p>
-              <p className="text-sm text-gray-500 mt-2">Booking ID: {bookingId || "Not provided"}</p>
+              <p className="text-sm text-gray-500 mt-2">
+                Booking ID: {bookingId || "Not provided"}
+              </p>
               <button
                 onClick={() => navigate("/client/my-bookings")}
                 className="mt-4 px-4 py-2 bg-[#056db3] text-white rounded-lg hover:bg-[#045a94]"
@@ -345,7 +400,9 @@ function RescheduledBookingDetails() {
           <section className="mb-8">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-800">New Time Proposed</h1>
+                <h1 className="text-3xl font-bold text-gray-800">
+                  New Time Proposed
+                </h1>
                 <p className="text-gray-600 mt-2">Booking ID #{booking.id}</p>
               </div>
               <span className="px-4 py-2 rounded-full text-sm font-semibold bg-purple-100 text-purple-800">
@@ -355,7 +412,8 @@ function RescheduledBookingDetails() {
 
             <div className="rounded-lg bg-purple-50 border border-purple-200 p-4">
               <p className="text-sm text-purple-700">
-                Your service provider has proposed a new date and time for this booking. Please review the details below and accept or decline.
+                Your service provider has proposed a new date and time for this
+                booking. Please review the details below and accept or decline.
               </p>
             </div>
           </section>
@@ -365,11 +423,15 @@ function RescheduledBookingDetails() {
             <div className="lg:col-span-2 space-y-6">
               {/* Booking Summary */}
               <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-6">Booking Summary</h2>
+                <h2 className="text-xl font-bold text-gray-800 mb-6">
+                  Booking Summary
+                </h2>
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-gray-600">Service Type</p>
-                    <p className="text-lg text-gray-800 mt-1">{booking.service}</p>
+                    <p className="text-lg text-gray-800 mt-1">
+                      {booking.service}
+                    </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -377,14 +439,18 @@ function RescheduledBookingDetails() {
                         <Calendar className="h-4 w-4" />
                         <span>Proposed Date</span>
                       </div>
-                      <p className="text-lg text-gray-800 mt-1">{formatDate(booking.date) || "N/A"}</p>
+                      <p className="text-lg text-gray-800 mt-1">
+                        {formatDate(booking.date) || "N/A"}
+                      </p>
                     </div>
                     <div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Clock3 className="h-4 w-4" />
                         <span>Proposed Time</span>
                       </div>
-                      <p className="text-lg text-gray-800 mt-1">{formatTimeRange(booking.time) || "N/A"}</p>
+                      <p className="text-lg text-gray-800 mt-1">
+                        {formatTimeRange(booking.time) || "N/A"}
+                      </p>
                     </div>
                   </div>
                   <div>
@@ -392,41 +458,57 @@ function RescheduledBookingDetails() {
                       <MapPin className="h-4 w-4" />
                       <span>Location</span>
                     </div>
-                    <p className="text-lg text-gray-800 mt-1">{booking.location || "N/A"}</p>
+                    <p className="text-lg text-gray-800 mt-1">
+                      {booking.location || "N/A"}
+                    </p>
                   </div>
                   {booking.description && (
                     <div>
                       <p className="text-sm text-gray-600">Description</p>
-                      <p className="text-gray-800 mt-1">{booking.description}</p>
+                      <p className="text-gray-800 mt-1">
+                        {booking.description}
+                      </p>
                     </div>
                   )}
                   <div>
                     <p className="text-sm text-gray-600">Service Fee</p>
-                    <p className="text-lg text-gray-800 mt-1 font-semibold">{booking.serviceFee}</p>
+                    <p className="text-lg text-gray-800 mt-1 font-semibold">
+                      {booking.serviceFee}
+                    </p>
                   </div>
                 </div>
               </section>
 
               {/* Provider Information */}
               <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-6">Provider Information</h2>
+                <h2 className="text-xl font-bold text-gray-800 mb-6">
+                  Provider Information
+                </h2>
                 <div className="flex items-center gap-4 mb-6">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-2xl font-bold text-white">
                     {booking.provider.initials}
                   </div>
                   <div>
-                    <p className="text-lg font-semibold text-gray-800">{booking.provider.name}</p>
+                    <p className="text-lg font-semibold text-gray-800">
+                      {booking.provider.name}
+                    </p>
                   </div>
                 </div>
                 <div className="flex gap-3 mb-6">
                   {booking.provider.phone && (
-                    <a href={`tel:${booking.provider.phone}`} className="flex items-center gap-2 px-4 py-2 text-[#056db3] hover:bg-blue-50 rounded-lg transition-colors">
+                    <a
+                      href={`tel:${booking.provider.phone}`}
+                      className="flex items-center gap-2 px-4 py-2 text-[#056db3] hover:bg-blue-50 rounded-lg transition-colors"
+                    >
                       <Phone className="w-4 h-4" />
                       <span className="text-sm font-medium">Call</span>
                     </a>
                   )}
                   {booking.provider.email && (
-                    <a href={`mailto:${booking.provider.email}`} className="flex items-center gap-2 px-4 py-2 text-[#056db3] hover:bg-blue-50 rounded-lg transition-colors">
+                    <a
+                      href={`mailto:${booking.provider.email}`}
+                      className="flex items-center gap-2 px-4 py-2 text-[#056db3] hover:bg-blue-50 rounded-lg transition-colors"
+                    >
                       <Mail className="w-4 h-4" />
                       <span className="text-sm font-medium">Email</span>
                     </a>
@@ -439,7 +521,9 @@ function RescheduledBookingDetails() {
 
               {/* Timeline */}
               <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-6">Booking Status Timeline</h2>
+                <h2 className="text-xl font-bold text-gray-800 mb-6">
+                  Booking Status Timeline
+                </h2>
                 <div className="space-y-4">
                   {booking.timeline.map((item, index) => (
                     <div key={index} className="flex items-start gap-4">
@@ -451,11 +535,15 @@ function RescheduledBookingDetails() {
                         )}
                       </div>
                       <div className="flex-1">
-                        <p className={`font-medium ${item.completed ? "text-green-600" : "text-gray-800"}`}>
+                        <p
+                          className={`font-medium ${item.completed ? "text-green-600" : "text-gray-800"}`}
+                        >
                           {item.task}
                         </p>
-                        {item.task === 'Awaiting Your Response' && (
-                          <p className="text-sm text-purple-600">Accept or decline to move forward</p>
+                        {item.task === "Awaiting Your Response" && (
+                          <p className="text-sm text-purple-600">
+                            Accept or decline to move forward
+                          </p>
                         )}
                       </div>
                     </div>
@@ -475,7 +563,11 @@ function RescheduledBookingDetails() {
                   disabled={actionLoading}
                   className="w-full flex items-center justify-center gap-2 bg-green-600 border-2 border-green-600 text-white font-semibold py-2 px-2 rounded-lg hover:bg-green-700 hover:border-green-700 transition-colors disabled:opacity-50"
                 >
-                  {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                  {actionLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5" />
+                  )}
                   Accept New Time
                 </button>
 
@@ -485,7 +577,11 @@ function RescheduledBookingDetails() {
                   disabled={actionLoading}
                   className="w-full flex items-center justify-center gap-2 text-red-600 border-2 border-red-300 font-semibold py-2 px-2 rounded-lg hover:bg-red-100 hover:border-red-700 transition-colors disabled:opacity-50"
                 >
-                  {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <XCircle className="w-5 h-5" />}
+                  {actionLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <XCircle className="w-5 h-5" />
+                  )}
                   Decline
                 </button>
 
@@ -507,7 +603,9 @@ function RescheduledBookingDetails() {
 
                 {/* Important Notes */}
                 <div className="mt-6 pt-6 border-t border-gray-200 bg-[#fdffe9] rounded-2xl p-4">
-                  <p className="text-sm font-semibold text-gray-800 mb-3">Important Notes</p>
+                  <p className="text-sm font-semibold text-gray-800 mb-3">
+                    Important Notes
+                  </p>
                   <ul className="space-y-2 text-sm text-gray-700">
                     <li className="flex gap-2">
                       <span className="text-[#056db3] font-bold">•</span>
@@ -519,7 +617,9 @@ function RescheduledBookingDetails() {
                     </li>
                     <li className="flex gap-2">
                       <span className="text-[#056db3] font-bold">•</span>
-                      <span>Message the provider if you need a different time</span>
+                      <span>
+                        Message the provider if you need a different time
+                      </span>
                     </li>
                     <li className="flex gap-2">
                       <span className="text-[#056db3] font-bold">•</span>

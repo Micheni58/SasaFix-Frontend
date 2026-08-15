@@ -4,14 +4,14 @@ import Home from "../pages/Home";
 import Login from "../pages/Login";
 import SignUp from "../pages/SignUp";
 import About from "../pages/About";
-import AdminEscrow from "../pages/Admin/AdminEscrow";
+import AdminTransactions from "../pages/Admin/AdminTransactions";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import AdminNotification from "../pages/Admin/Notification";
 import AdminSettings from "../pages/Admin/Settings";
 import ClientDashboard from "../pages/Client/ClientDashboard";
 import ClientNotification from "../pages/Client/Notification";
 import ClientMessages from "../pages/Client/Messages";
-import ClientWallet from "../pages/Client/Wallet";
+import ClientTransactions from "../pages/Client/Transactions";
 import Profile from "../pages/Profile";
 import FindServices from "../pages/ServiceDiscovery/FindServices";
 import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
@@ -45,6 +45,11 @@ import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
 import ReportsAnalytics from "../pages/Admin/ReportsAndAnalytics";
 import ServiceProvidersManagement from "../pages/Admin/ServiceProvidersManagement";
 import Subscription from "../components/provider/Subscription";
+import ProviderSubscription from "../pages/ServiceProvider/ProviderSubscription";
+import VerifyEmail from "../pages/VerifyEmail";
+import EmailVerificationSent from "../pages/EmailVerificationSent";
+import ProviderEarnings from "../pages/ServiceProvider/Earnings";
+import AIAssistant from "../pages/ServiceProvider/AIAssistant";
 
 export default function AppRouter() {
   return (
@@ -53,17 +58,28 @@ export default function AppRouter() {
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/signup" element={<RoleSelection />} />
         <Route path="/signup/details" element={<SignUp />} />
         <Route path="/about" element={<About />} />
+        <Route
+          path="/email-verification-sent"
+          element={<EmailVerificationSent />}
+        />
 
         {/* Protected/Dashboard Routes */}
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/admin/notifications" element={<AdminNotification />} />
         <Route path="/admin/reports" element={<ReportAndAnalytics />} />
-        <Route path="/admin/bookings-payments" element={<BookingsAndPayments />} />
-        <Route path="/admin/bookings-payments/:bookingId" element={<BookingsAndPaymentsDetails />}/>
+        <Route
+          path="/admin/bookings-payments"
+          element={<BookingsAndPayments />}
+        />
+        <Route
+          path="/admin/bookings-payments/:bookingId"
+          element={<BookingsAndPaymentsDetails />}
+        />
         <Route path="/admin/payouts/:payoutId" element={<PayoutDetails />} />
         <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/service-providers" element={<ServiceProvidersManagement />} />
@@ -72,40 +88,94 @@ export default function AppRouter() {
           path="/admin/reports"
           element={<ReportsAnalytics />}
         />
+        <Route path="/admin/service-providers" element={<ServiceProviders />} />
+        <Route path="/admin/transactions" element={<AdminTransactions />} />
         {/* Client Routes */}
 
         <Route path="/client" element={<ClientDashboard />} />
         <Route path="/client/find-services" element={<FindServices />} />
         <Route path="/client/messages" element={<ClientMessages />} />
-        <Route path="/client/wallet" element={<ClientWallet />} />
+        <Route path="/client/transactions" element={<ClientTransactions />} />
         <Route path="/client/notifications" element={<ClientNotification />} />
         <Route path="/client/profile" element={<ClientProfile />} />
         <Route path="/client/my-bookings" element={<MyBookings />} />
-        <Route path="/client/my-bookings/in-progress/:bookingId" element={<InProgressBookingDetails />} />
-        <Route path="/client/my-bookings/completed/:bookingId" element={<CompletedBookingDetails />} />
-        <Route path="/client/my-bookings/cancelled/:bookingId" element={<CancelledBookingDetails />} />
-        <Route path="/client/my-bookings/upcoming/:bookingId" element={<UpcomingBookingDetails />} />
-        <Route path="/client/my-bookings/rescheduled/:bookingId" element={<RescheduledBookingDetails />} />
-        <Route path="/client/my-bookings/paid/:bookingId" element={<PaidBookingDetails />} />
+        <Route
+          path="/client/my-bookings/in-progress/:bookingId"
+          element={<InProgressBookingDetails />}
+        />
+        <Route
+          path="/client/my-bookings/completed/:bookingId"
+          element={<CompletedBookingDetails />}
+        />
+        <Route
+          path="/client/my-bookings/cancelled/:bookingId"
+          element={<CancelledBookingDetails />}
+        />
+        <Route
+          path="/client/my-bookings/upcoming/:bookingId"
+          element={<UpcomingBookingDetails />}
+        />
+        <Route
+          path="/client/my-bookings/rescheduled/:bookingId"
+          element={<RescheduledBookingDetails />}
+        />
+        <Route
+          path="/client/my-bookings/paid/:bookingId"
+          element={<PaidBookingDetails />}
+        />
 
         <Route path="/provider" element={<ProviderDashboard />} />
         <Route path="/provider/messages" element={<ClientMessages />} />
-        <Route path="/provider/wallet" element={<ClientWallet />} />
+        <Route path="/provider/earnings" element={<ProviderEarnings />} />
         <Route path="/provider/profile" element={<Profile />} />
         <Route path="/provider/availability" element={<Availability />} />
-        <Route path="/provider/notifications" element={<ProviderNotification />}/>
+        <Route
+          path="/provider/notifications"
+          element={<ProviderNotification />}
+        />
         <Route path="/provider/my-reviews" element={<Reviews />} />
         <Route path="/provider/my-jobs/rescheduled/:id" element={<RescheduledJobDetails />}/>
         <Route path="/provider/subscription" element={<Subscription />} />
 
+        <Route
+          path="/provider/my-jobs/rescheduled/:id"
+          element={<RescheduledJobDetails />}
+        />
+
+        <Route
+          path="/provider/my-jobs/rescheduled/:id"
+          element={<RescheduledJobDetails />}
+        />
+        <Route path="/provider/ai-assistant" element={<AIAssistant />} />
+
+        <Route
+          path="/provider/subscription"
+          element={<ProviderSubscription />}
+        />
+
         <Route path="/profile" element={<Profile />} />
 
         <Route path="/provider/my-jobs" element={<MyJobs />} />
-        <Route path="/provider/my-jobs/new/:id" element={<NewJobRequestDetails />}/>
-        <Route path="/provider/my-jobs/accepted/:id"element={<AcceptedJobDetails />}/>
-        <Route path="/provider/my-jobs/in-progress/:id" element={<InProgressJobDetails />}/>
-        <Route path="/provider/my-jobs/completed/:id" element={<CompletedJobDetails />}/>
-        <Route path="/provider/my-jobs/cancelled/:id" element={<CancelledJobDetails />}/>
+        <Route
+          path="/provider/my-jobs/new/:id"
+          element={<NewJobRequestDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/accepted/:id"
+          element={<AcceptedJobDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/in-progress/:id"
+          element={<InProgressJobDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/completed/:id"
+          element={<CompletedJobDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/cancelled/:id"
+          element={<CancelledJobDetails />}
+        />
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />

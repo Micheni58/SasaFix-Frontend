@@ -42,7 +42,9 @@ import RescheduledJobDetails from "../pages/ServiceProvider/Jobs/RescheduledJobD
 import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBookingDetails";
 import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
-import ProviderSubscription from "../pages/ServiceProvider/ProviderSubscription";
+import ReportsAnalytics from "../pages/Admin/ReportsAndAnalytics";
+import ServiceProvidersManagement from "../pages/Admin/ServiceProvidersManagement";
+import Subscription from "../components/provider/Subscription";
 import VerifyEmail from "../pages/VerifyEmail";
 import EmailVerificationSent from "../pages/EmailVerificationSent";
 import ProviderEarnings from "../pages/ServiceProvider/Earnings";
@@ -79,6 +81,12 @@ export default function AppRouter() {
         />
         <Route path="/admin/payouts/:payoutId" element={<PayoutDetails />} />
         <Route path="/admin/users" element={<Users />} />
+        <Route path="/admin/service-providers" element={<ServiceProvidersManagement />} />
+        <Route path="/admin/escrow" element={<AdminEscrow />} />
+        <Route
+          path="/admin/reports"
+          element={<ReportsAnalytics />}
+        />
         <Route path="/admin/service-providers" element={<ServiceProviders />} />
         <Route path="/admin/transactions" element={<AdminTransactions />} />
         {/* Client Routes */}
@@ -125,6 +133,8 @@ export default function AppRouter() {
           element={<ProviderNotification />}
         />
         <Route path="/provider/my-reviews" element={<Reviews />} />
+        <Route path="/provider/my-jobs/rescheduled/:id" element={<RescheduledJobDetails />}/>
+        <Route path="/provider/subscription" element={<Subscription />} />
 
         <Route
           path="/provider/my-jobs/rescheduled/:id"
@@ -136,11 +146,6 @@ export default function AppRouter() {
           element={<RescheduledJobDetails />}
         />
         <Route path="/provider/ai-assistant" element={<AIAssistant />} />
-
-        <Route
-          path="/provider/subscription"
-          element={<ProviderSubscription />}
-        />
 
         <Route path="/profile" element={<Profile />} />
 

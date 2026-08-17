@@ -42,7 +42,6 @@ import RescheduledJobDetails from "../pages/ServiceProvider/Jobs/RescheduledJobD
 import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBookingDetails";
 import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
-import ProviderSubscription from "../pages/ServiceProvider/ProviderSubscription";
 import ServiceProvidersManagement from "../pages/Admin/ServiceProvidersManagement";
 import Subscription from "../components/provider/Subscription";
 import VerifyEmail from "../pages/VerifyEmail";
@@ -169,10 +168,7 @@ export default function AppRouter() {
           path="/provider/my-jobs/cancelled/:id"
           element={<CancelledJobDetails />}
         />
-        <Route
-          path="/provider/subscription"
-          element={<ProviderSubscription />}
-        />
+      
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />

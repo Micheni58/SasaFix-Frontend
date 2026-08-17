@@ -10,28 +10,18 @@ import {
   Search,
   MessageCircle,
   Wallet,
-  ShieldCheck,
   BarChart3,
   Users,
   Store,
-  UserCog,
+  ShieldCheck,
   Star,
 } from "lucide-react";
 
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { useSubscription } from "../hooks/useSubscription";
 
 function Sidebar({ role = "client" }) {
   const [isOpen, setIsOpen] = useState(false);
-
-  const {
-    subscription,
-    loading,
-  } = useSubscription();
-
-  const isPremium =
-    subscription?.plan === "PREMIUM";
 
   const clientLinks = [
     {
@@ -107,17 +97,11 @@ function Sidebar({ role = "client" }) {
       path: "/provider/earnings",
       icon: <Wallet size={20} />,
     },
-
-    ...(isPremium
-      ? [
-          {
-            name: "Subscriptions",
-            path: "/provider/subscription",
-            icon: <ShieldCheck size={20} />,
-          },
-        ]
-      : []),
-
+    {
+      name: "Subscriptions",
+      path: "/provider/subscription",
+      icon: <ShieldCheck size={20} />,
+    },
     {
       name: "Profile",
       path: "/provider/profile",
@@ -147,6 +131,10 @@ function Sidebar({ role = "client" }) {
       icon: <CalendarDays size={20} />,
     },
     {
+      id: "admin-escrow",
+      name: "Escrow Management",
+      icon: <Wallet className="h-5 w-5" />,
+      path: "/admin/escrow",
     id: "Transactions",  // ← NEW
     name: "Transactions Management",
     icon: <Wallet className="h-5 w-5" />,
@@ -182,7 +170,6 @@ function Sidebar({ role = "client" }) {
   return (
     <>
       {/* Mobile Button */}
-
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="lg:hidden fixed top-5 left-5 z-50 bg-[#056db3] text-white p-2 rounded-xl shadow-lg"
@@ -191,7 +178,6 @@ function Sidebar({ role = "client" }) {
       </button>
 
       {/* Sidebar */}
-
       <aside
         className={`
           fixed
@@ -210,19 +196,14 @@ function Sidebar({ role = "client" }) {
           ${isOpen ? "w-72" : "w-0 lg:w-72 overflow-hidden"}
         `}
       >
-
         {/* Logo */}
-
         <div className="h-24 flex items-center px-8 border-b border-gray-100 flex-shrink-0">
-
           <h1 className="text-3xl font-bold tracking-tight text-[#056db3]">
             SasaFix
           </h1>
-
         </div>
 
         {/* Navigation */}
-
         <nav
           className="
             flex-1
@@ -264,27 +245,20 @@ function Sidebar({ role = "client" }) {
           ))}
         </nav>
 
-        {/* Premium Card */}
-
-        {role === "provider" &&
-         !loading &&
-         !isPremium && (
+        {/* Upgrade Card */}
+        {role === "provider" && (
           <div className="border-t border-gray-100 p-4 flex-shrink-0">
-
             <div className="rounded-2xl bg-gradient-to-br from-[#056db3] to-[#0b86d5] p-4 text-white">
-
               <div className="flex items-center gap-2 mb-2">
-
                 <ShieldCheck size={18} />
 
                 <h3 className="font-semibold text-sm">
-                  Upgrade to Premium
+                  Premium Subscription
                 </h3>
-
               </div>
 
               <p className="text-[11px] leading-5 text-blue-100 mb-3">
-                Priority bookings, exclusive discounts and premium workers.
+                Upgrade to Premium and reduce your commission from 10% to 5%.
               </p>
 
               <button
@@ -303,14 +277,11 @@ function Sidebar({ role = "client" }) {
                   transition
                 "
               >
-                Upgrade Now
+                View Subscription
               </button>
-
             </div>
-
           </div>
         )}
-
       </aside>
     </>
   );

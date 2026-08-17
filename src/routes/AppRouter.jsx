@@ -43,9 +43,6 @@ import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBooki
 import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
 import ProviderSubscription from "../pages/ServiceProvider/ProviderSubscription";
-import ReportsAnalytics from "../pages/Admin/ReportsAndAnalytics";
-import ServiceProvidersManagement from "../pages/Admin/ServiceProvidersManagement";
-import ReportsAnalytics from "../pages/Admin/ReportsAndAnalytics";
 import ServiceProvidersManagement from "../pages/Admin/ServiceProvidersManagement";
 import Subscription from "../components/provider/Subscription";
 import VerifyEmail from "../pages/VerifyEmail";
@@ -73,7 +70,6 @@ export default function AppRouter() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/admin/notifications" element={<AdminNotification />} />
-        <Route path="/admin/reports" element={<ReportAndAnalytics />} />
         <Route
           path="/admin/bookings-payments"
           element={<BookingsAndPayments />}

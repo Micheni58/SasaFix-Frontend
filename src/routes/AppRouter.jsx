@@ -169,6 +169,10 @@ export default function AppRouter() {
           path="/provider/my-jobs/cancelled/:id"
           element={<CancelledJobDetails />}
         />
+        <Route
+          path="/provider/subscription"
+          element={<ProviderSubscription />}
+        />
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />

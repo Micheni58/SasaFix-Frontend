@@ -132,7 +132,7 @@ const InputField = ({
       onFocus={(e) => (e.currentTarget.style.borderColor = BRAND)}
       onBlur={(e) => (e.currentTarget.style.borderColor = "#e5e7eb")}
     >
-      <span className="flex-shrink-0">{icon}</span>
+      <span className="shrink-0">{icon}</span>
       <input
         name={name}
         type={type}
@@ -243,12 +243,14 @@ const SignUpForm = () => {
 
     try {
       const { confirm_password, ...payload } = formData;
-      const response = await authService.register(payload);
-      const user = response.user;
 
-      if (user.role === "admin") navigate("/admin");
-      else if (user.role === "service_provider") navigate("/provider");
-      else navigate("/client");
+      await authService.register(payload);
+
+      navigate("/email-verification-sent", {
+        state: {
+          email: formData.email,
+        },
+      });
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {
@@ -279,7 +281,7 @@ const SignUpForm = () => {
             <path d="M2 12l10 5 10-5" />
           </svg>
         </div>
-        <span className="text-xl font-semibold text-gray-800">ServiceHub</span>
+        <span className="text-xl font-semibold text-gray-800">SasaFix </span>
       </div>
 
       <StepIndicator current={step} />
@@ -382,7 +384,7 @@ const SignUpForm = () => {
                 <button
                   type="button"
                   onClick={() => setShowPass((p) => !p)}
-                  className="flex-shrink-0 p-0 bg-transparent border-none cursor-pointer"
+                  className="shrink-0 p-0 bg-transparent border-none cursor-pointer"
                 >
                   <EyeIcon show={showPass} />
                 </button>
@@ -402,7 +404,7 @@ const SignUpForm = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfirm((p) => !p)}
-                  className="flex-shrink-0 p-0 bg-transparent border-none cursor-pointer"
+                  className="shrink-0 p-0 bg-transparent border-none cursor-pointer"
                 >
                   <EyeIcon show={showConfirm} />
                 </button>

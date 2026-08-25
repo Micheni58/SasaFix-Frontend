@@ -23,6 +23,7 @@ import NewJobRequestDetails from "../pages/ServiceProvider/Jobs/NewJobRequestDet
 import AcceptedJobDetails from "../pages/ServiceProvider/Jobs/AcceptedJobDetails";
 import InProgressJobDetails from "../pages/ServiceProvider/Jobs/InProgressJobDetails";
 import CompletedJobDetails from "../pages/ServiceProvider/Jobs/CompletedJobDetails";
+import PaidJobDetails from "../pages/ServiceProvider/Jobs/PaidJobDetails";
 import ClientProfile from "../pages/Client/Profile";
 import RoleSelection from "../pages/RoleSelection"; // new file we made
 import SignUpForm from "../components/SignUpForm"; // existing file
@@ -80,11 +81,11 @@ export default function AppRouter() {
         <Route path="/admin/payouts/:payoutId" element={<PayoutDetails />} />
         <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/service-providers" element={<ServiceProvidersManagement />} />
-        <Route path="/admin/escrow" element={<AdminEscrow />} />
-        <Route
+        {/* <Route path="/admin/escrow" element={<AdminEscrow />} /> */}
+        {/* <Route
           path="/admin/reports"
           element={<ReportsAnalytics />}
-        />
+        /> */}
         <Route path="/admin/service-providers" element={<ServiceProviders />} />
         <Route path="/admin/transactions" element={<AdminTransactions />} />
         {/* Client Routes */}
@@ -163,6 +164,10 @@ export default function AppRouter() {
         <Route
           path="/provider/my-jobs/completed/:id"
           element={<CompletedJobDetails />}
+        />
+        <Route
+          path="/provider/my-jobs/paid/:id"
+          element={<PaidJobDetails />}
         />
         <Route
           path="/provider/my-jobs/cancelled/:id"

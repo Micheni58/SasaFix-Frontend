@@ -21,6 +21,8 @@ import Navbar from '../../components/Navbar';
 import ReviewAnalysis from '../../components/ai/ReviewAnalysis';
 import PriceSuggestion from '../../components/ai/PriceSuggestion';
 import DescriptionGenerator from '../../components/ai/DescriptionGenerator';
+import bookingService from '../../api/bookingService';
+import ratingService from '../../api/ratingService';
 
 // ── Helper Functions ──
 
@@ -81,7 +83,7 @@ function FeatureCard({ icon: Icon, title, description, color, onClick, badge }) 
   );
 }
 
-function OnboardingCard({ step, title, description, icon: Icon, isCompleted }) {
+function OnboardingCard({ step, title, description, icon: Icon, isCompleted, onStart }) {
   return (
     <div className={`flex items-start gap-4 p-4 rounded-xl border ${
       isCompleted 
@@ -108,11 +110,17 @@ function OnboardingCard({ step, title, description, icon: Icon, isCompleted }) {
       </div>
       {!isCompleted && (
         <button 
+          onClick={onStart}
           className="shrink-0 rounded-lg px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#045a94]"
           style={{ backgroundColor: '#056db3' }}
         >
           Start
         </button>
+      )}
+      {isCompleted && (
+        <span className="shrink-0 text-xs font-medium text-green-600">
+          ✅ Done
+        </span>
       )}
     </div>
   );
@@ -124,6 +132,10 @@ const AIAssistant = () => {
   const [selectedTool, setSelectedTool] = useState(null);
   const [providerId, setProviderId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [providerData, setProviderData] = useState(null);
+  const [providerBookings, setProviderBookings] = useState([]);
+  const [providerReviews, setProviderReviews] = useState([]);
+  const [onboardingSteps, setOnboardingSteps] = useState([]);
 
   useEffect(() => {
     const storedUser = getStoredUser();
@@ -144,8 +156,94 @@ const AIAssistant = () => {
     }
 
     setProviderId(id ? Number(id) : null);
-    setLoading(false);
+
+    if (id) {
+      fetchProviderData(Number(id));
+    } else {
+      setLoading(false);
+    }
   }, []);
+
+  const fetchProviderData = async (id) => {
+    try {
+      // Fetch provider profile data
+      const providerResponse = await fetch(`/api/service-providers/${id}`);
+      let providerData = null;
+      if (providerResponse.ok) {
+        providerData = await providerResponse.json();
+        setProviderData(providerData);
+      }
+
+      // Fetch bookings to check if provider has completed jobs
+      const bookings = await bookingService.listProviderBookings(id);
+      setProviderBookings(bookings || []);
+
+      // Fetch reviews
+      try {
+        const reviews = await ratingService.getProviderAverageRating(id);
+        setProviderReviews(reviews || []);
+      } catch (e) {
+        setProviderReviews([]);
+      }
+
+    } catch (error) {
+      console.error('Error fetching provider data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Calculate onboarding progress dynamically ──
+  useEffect(() => {
+    if (!providerData) return;
+
+    const completedBookings = providerBookings.filter(
+      b => b.status === 'Completed' || b.status === 'Paid'
+    );
+
+    const hasReviews = providerReviews && providerReviews.totalRatings > 0;
+
+    const steps = [
+      {
+        step: 1,
+        title: 'Complete Your Profile',
+        description: 'Add your bio, skills, and service details to attract more clients.',
+        icon: FileText,
+        isCompleted: Boolean(
+          providerData?.bio || 
+          providerData?.service_category || 
+          providerData?.hourly_rate
+        ),
+        action: '/provider/profile',
+      },
+      {
+        step: 2,
+        title: 'Set Your Availability',
+        description: 'Define your working hours so clients can book you easily.',
+        icon: Calendar,
+        isCompleted: false, // This would need a separate API call to check availability
+        action: '/provider/availability',
+      },
+      {
+        step: 3,
+        title: 'Optimize Your Pricing',
+        description: 'Use AI to find the perfect price point for your services.',
+        icon: TrendingUp,
+        isCompleted: providerData?.hourly_rate > 0,
+        action: '/provider/ai-assistant',
+      },
+      {
+        step: 4,
+        title: 'Get Your First Review',
+        description: 'Complete a job and ask your client for feedback.',
+        icon: Star,
+        isCompleted: hasReviews || completedBookings.length > 0,
+        action: '/provider/my-jobs',
+      },
+    ];
+
+    setOnboardingSteps(steps);
+  }, [providerData, providerBookings, providerReviews]);
 
   const tools = [
     {
@@ -180,38 +278,6 @@ const AIAssistant = () => {
   // Find the selected tool data
   const activeTool = tools.find(tool => tool.id === selectedTool);
   const ActiveComponent = activeTool?.component;
-
-  // ── Mock Onboarding Steps ──
-  const onboardingSteps = [
-    {
-      step: 1,
-      title: 'Complete Your Profile',
-      description: 'Add your bio, skills, and service details to attract more clients.',
-      icon: FileText,
-      isCompleted: false,
-    },
-    {
-      step: 2,
-      title: 'Set Your Availability',
-      description: 'Define your working hours so clients can book you easily.',
-      icon: Calendar,
-      isCompleted: false,
-    },
-    {
-      step: 3,
-      title: 'Optimize Your Pricing',
-      description: 'Use AI to find the perfect price point for your services.',
-      icon: TrendingUp,
-      isCompleted: false,
-    },
-    {
-      step: 4,
-      title: 'Get Your First Review',
-      description: 'Complete a job and ask your client for feedback.',
-      icon: Star,
-      isCompleted: false,
-    },
-  ];
 
   // ── Loading State ──
   if (loading) {
@@ -277,6 +343,8 @@ const AIAssistant = () => {
     );
   }
 
+  const completedCount = onboardingSteps.filter(s => s.isCompleted).length;
+
   // ── Tool Selection View ──
   if (!selectedTool) {
     return (
@@ -321,12 +389,25 @@ const AIAssistant = () => {
                   <Compass className="h-5 w-5" style={{ color: '#056db3' }} />
                   <h2 className="text-lg font-semibold text-gray-800">Your Onboarding Journey</h2>
                   <span className="ml-2 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600">
-                    {onboardingSteps.filter(s => s.isCompleted).length}/{onboardingSteps.length}
+                    {completedCount}/{onboardingSteps.length}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   {onboardingSteps.map((step) => (
-                    <OnboardingCard key={step.step} {...step} />
+                    <OnboardingCard
+                      key={step.step}
+                      {...step}
+                      onStart={() => {
+                        if (step.action) {
+                          // Navigate to the action or open the appropriate tool
+                          if (step.step === 3) {
+                            setSelectedTool('pricing');
+                          } else {
+                            window.location.href = step.action;
+                          }
+                        }
+                      }}
+                    />
                   ))}
                 </div>
               </div>
@@ -406,8 +487,8 @@ const AIAssistant = () => {
               {ActiveComponent && (
                 <ActiveComponent
                   providerId={providerId}
-                  serviceCategory="Plumbing"
-                  location="Nairobi"
+                  serviceCategory={providerData?.service_category || "Plumbing"}
+                  location={providerData?.city || "Nairobi"}
                 />
               )}
             </div>

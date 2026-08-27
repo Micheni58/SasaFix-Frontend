@@ -15,6 +15,8 @@ import {
   Lightbulb,
   Calendar,
   CheckCircle,
+  CreditCard,
+  User,
 } from 'lucide-react';
 import Sidebar from '../../layout/Sidebar';
 import Navbar from '../../components/Navbar';
@@ -23,6 +25,8 @@ import PriceSuggestion from '../../components/ai/PriceSuggestion';
 import DescriptionGenerator from '../../components/ai/DescriptionGenerator';
 import bookingService from '../../api/bookingService';
 import ratingService from '../../api/ratingService';
+import apiClient from '../../api/apiClient';
+import subscriptionService from '../../services/subscriptionService';
 
 // ── Helper Functions ──
 
@@ -119,7 +123,7 @@ function OnboardingCard({ step, title, description, icon: Icon, isCompleted, onS
       )}
       {isCompleted && (
         <span className="shrink-0 text-xs font-medium text-green-600">
-          ✅ Done
+          Done
         </span>
       )}
     </div>
@@ -134,8 +138,11 @@ const AIAssistant = () => {
   const [loading, setLoading] = useState(true);
   const [providerData, setProviderData] = useState(null);
   const [providerBookings, setProviderBookings] = useState([]);
-  const [providerReviews, setProviderReviews] = useState([]);
+  const [providerRatings, setProviderRatings] = useState({ totalRatings: 0, averageScore: 0 });
+  const [subscriptionData, setSubscriptionData] = useState(null);
+  const [availabilityData, setAvailabilityData] = useState([]);
   const [onboardingSteps, setOnboardingSteps] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const storedUser = getStoredUser();
@@ -155,39 +162,102 @@ const AIAssistant = () => {
            localStorage.getItem('userId');
     }
 
-    setProviderId(id ? Number(id) : null);
-
     if (id) {
+      setProviderId(Number(id));
       fetchProviderData(Number(id));
     } else {
       setLoading(false);
+      setError('No provider ID found. Please ensure you are logged in as a service provider.');
     }
   }, []);
 
   const fetchProviderData = async (id) => {
     try {
-      // Fetch provider profile data
-      const providerResponse = await fetch(`/api/service-providers/${id}`);
-      let providerData = null;
-      if (providerResponse.ok) {
-        providerData = await providerResponse.json();
-        setProviderData(providerData);
+      setLoading(true);
+      setError(null);
+
+      // ✅ Fetch provider profile data using /providers endpoint
+      try {
+        const response = await apiClient.get(`/providers/${id}`);
+        setProviderData(response.data);
+      } catch (err) {
+        console.warn('Provider fetch failed:', err);
+        // Fallback: use user data
+        try {
+          const userResponse = await apiClient.get('/users/me');
+          if (userResponse.data) {
+            const userData = userResponse.data;
+            setProviderData({
+              id: id,
+              user_id: userData.id,
+              first_name: userData.first_name,
+              last_name: userData.last_name,
+              email: userData.email,
+              phone_number: userData.phone_number,
+              city: userData.city || userData.location,
+              service_category: 'General Services',
+              hourly_rate: 0,
+              bio: '',
+              total_jobs_completed: 0,
+            });
+          }
+        } catch (userErr) {
+          console.error('Failed to fetch user data:', userErr);
+          setError('Could not load your profile data. Please try again.');
+        }
       }
 
-      // Fetch bookings to check if provider has completed jobs
-      const bookings = await bookingService.listProviderBookings(id);
-      setProviderBookings(bookings || []);
-
-      // Fetch reviews
+      // ✅ Fetch bookings using existing bookingService
       try {
-        const reviews = await ratingService.getProviderAverageRating(id);
-        setProviderReviews(reviews || []);
+        const bookings = await bookingService.listProviderBookings(id);
+        setProviderBookings(bookings || []);
       } catch (e) {
-        setProviderReviews([]);
+        console.warn('Failed to fetch bookings:', e);
+        setProviderBookings([]);
+      }
+
+      // ✅ Fetch ratings using existing ratingService
+      try {
+        const ratings = await ratingService.getProviderAverageRating(id);
+        setProviderRatings(ratings || { totalRatings: 0, averageScore: 0 });
+      } catch (e) {
+        console.warn('Failed to fetch ratings:', e);
+        setProviderRatings({ totalRatings: 0, averageScore: 0 });
+      }
+
+      // ✅ Fetch subscription data using subscriptionService
+      try {
+        const subResponse = await subscriptionService.getCurrent();
+        setSubscriptionData(subResponse.data || {
+          provider_id: id,
+          plan: 'free',
+          is_active: true,
+          commission_rate: 10.0,
+          has_subscription: false
+        });
+      } catch (e) {
+        console.warn('Failed to fetch subscription:', e);
+        setSubscriptionData({
+          provider_id: id,
+          plan: 'free',
+          is_active: true,
+          commission_rate: 10.0,
+          has_subscription: false
+        });
+      }
+
+      // ✅ Fetch availability using /providers/{id}/availability endpoint
+      try {
+        const availResponse = await apiClient.get(`/providers/${id}/availability`);
+        setAvailabilityData(availResponse.data || []);
+      } catch (e) {
+        console.warn('Failed to fetch availability:', e);
+        setAvailabilityData([]);
       }
 
     } catch (error) {
       console.error('Error fetching provider data:', error);
+      setError('Failed to load your profile data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -201,19 +271,22 @@ const AIAssistant = () => {
       b => b.status === 'Completed' || b.status === 'Paid'
     );
 
-    const hasReviews = providerReviews && providerReviews.totalRatings > 0;
+    const hasReviews = providerRatings && providerRatings.totalRatings > 0;
+    const hasSubscription = subscriptionData && subscriptionData.is_active && subscriptionData.has_subscription;
+    const hasAvailability = availabilityData && availabilityData.length > 0;
+    const hasProfile = Boolean(
+      providerData?.bio || 
+      providerData?.service_category || 
+      providerData?.hourly_rate
+    );
 
     const steps = [
       {
         step: 1,
         title: 'Complete Your Profile',
         description: 'Add your bio, skills, and service details to attract more clients.',
-        icon: FileText,
-        isCompleted: Boolean(
-          providerData?.bio || 
-          providerData?.service_category || 
-          providerData?.hourly_rate
-        ),
+        icon: User,
+        isCompleted: hasProfile,
         action: '/provider/profile',
       },
       {
@@ -221,7 +294,7 @@ const AIAssistant = () => {
         title: 'Set Your Availability',
         description: 'Define your working hours so clients can book you easily.',
         icon: Calendar,
-        isCompleted: false, // This would need a separate API call to check availability
+        isCompleted: hasAvailability,
         action: '/provider/availability',
       },
       {
@@ -234,6 +307,14 @@ const AIAssistant = () => {
       },
       {
         step: 4,
+        title: 'Subscribe to Premium',
+        description: 'Get lower commission rates and priority access to jobs.',
+        icon: CreditCard,
+        isCompleted: hasSubscription,
+        action: '/provider/subscription',
+      },
+      {
+        step: 5,
         title: 'Get Your First Review',
         description: 'Complete a job and ask your client for feedback.',
         icon: Star,
@@ -243,7 +324,7 @@ const AIAssistant = () => {
     ];
 
     setOnboardingSteps(steps);
-  }, [providerData, providerBookings, providerReviews]);
+  }, [providerData, providerBookings, providerRatings, subscriptionData, availabilityData]);
 
   const tools = [
     {
@@ -313,13 +394,48 @@ const AIAssistant = () => {
     );
   }
 
+  // ── Error State ──
+  if (error) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar role="provider" />
+        <div className="flex-1 ml-72">
+          <Navbar />
+          <div className="flex items-center justify-center h-96 px-8">
+            <div className="text-center p-8 bg-white rounded-2xl shadow-sm max-w-md border border-gray-100">
+              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-4xl">
+                ⚠️
+              </div>
+              <h2 className="mt-4 text-xl font-bold text-gray-800">Something went wrong</h2>
+              <p className="mt-2 text-gray-500">{error}</p>
+              <button
+                onClick={() => {
+                  if (providerId) {
+                    fetchProviderData(providerId);
+                  } else {
+                    window.location.reload();
+                  }
+                }}
+                className="mt-6 inline-flex items-center gap-2 rounded-xl px-6 py-3 font-semibold text-white transition-colors hover:bg-[#045a94]"
+                style={{ backgroundColor: '#056db3' }}
+              >
+                <Sparkles className="h-4 w-4" />
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!providerId) {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar role="provider" />
         <div className="flex-1 ml-72">
           <Navbar />
-          <div className="flex items-center justify-center h-96">
+          <div className="flex items-center justify-center h-96 px-8">
             <div className="text-center p-8 bg-white rounded-2xl shadow-sm max-w-md border border-gray-100">
               <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-4xl">
                 🔍
@@ -398,13 +514,12 @@ const AIAssistant = () => {
                       key={step.step}
                       {...step}
                       onStart={() => {
-                        if (step.action) {
-                          // Navigate to the action or open the appropriate tool
-                          if (step.step === 3) {
-                            setSelectedTool('pricing');
-                          } else {
-                            window.location.href = step.action;
-                          }
+                        if (step.step === 3) {
+                          setSelectedTool('pricing');
+                        } else if (step.step === 4) {
+                          window.location.href = '/provider/subscription';
+                        } else {
+                          window.location.href = step.action;
                         }
                       }}
                     />
@@ -487,7 +602,7 @@ const AIAssistant = () => {
               {ActiveComponent && (
                 <ActiveComponent
                   providerId={providerId}
-                  serviceCategory={providerData?.service_category || "Plumbing"}
+                  serviceCategory={providerData?.service_category || "General Services"}
                   location={providerData?.city || "Nairobi"}
                 />
               )}

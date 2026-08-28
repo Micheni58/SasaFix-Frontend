@@ -25,7 +25,7 @@ function normalizeBooking(apiBooking) {
     // Handle both lowercase and uppercase statuses from API
     const rawStatus = apiBooking.status || "";
     const statusLower = rawStatus.toLowerCase();
-    
+
     // Map backend enum values (lowercase) to frontend display names
     const statusMap = {
         "pending": "New Requests",
@@ -121,6 +121,11 @@ async function normalizeBookingAsync(apiBooking) {
 // BOOKING ENDPOINTS
 // ─────────────────────────────────────────────
 
+export async function createBooking(bookingData) {
+    const resp = await client.post("/bookings/", bookingData);
+    return normalizeBooking(resp.data);
+}
+
 export async function listClientBookings(clientId) {
     try {
         const resp = await client.get(`/bookings/client/${clientId}`);
@@ -210,10 +215,10 @@ export async function updateBookingStatus(bookingId, newStatus) {
             "CANCELLED": "cancelled",
             "PAID": "paid",
         };
-        
+
         // Get the backend status value (lowercase)
         const backendStatus = statusMap[newStatus] || newStatus.toLowerCase();
-        
+
         const resp = await client.patch(`/bookings/${bookingId}/status`, {
             status: backendStatus
         });
@@ -260,6 +265,7 @@ export async function getProviderAvailability(providerId) {
 }
 
 export default {
+    createBooking,
     listClientBookings,
     listProviderBookings,
     getBooking,

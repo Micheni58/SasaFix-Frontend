@@ -85,7 +85,8 @@ function Navbar() {
       className="
         fixed
         top-0
-        left-72
+        left-0
+        lg:left-72
         right-0
         h-20
         bg-white
@@ -94,14 +95,16 @@ function Navbar() {
         flex
         items-center
         justify-between
-        px-8
+        px-4
+        sm:px-6
+        lg:px-8
         z-30
       "
     >
       {/* Search */}
 
-      <div className="flex-1 max-w-2xl">
 
+      <div className="flex-1 max-w-2xl pl-14 sm:pl-0">
         <div className="relative">
 
           <Search

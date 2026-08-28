@@ -72,7 +72,7 @@ function UpcomingBookingSkeleton() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           <div className="animate-pulse">
@@ -242,7 +242,7 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
             {job?.service || "Service"} with {getProviderName()}
           </p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -256,7 +256,7 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
               required
             />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -292,7 +292,7 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
               <li>Require re-confirmation from the provider</li>
             </ul>
           </div>
-          
+
           <div className="flex gap-3">
             <button
               type="button"
@@ -364,8 +364,8 @@ function UpcomingBookingDetails() {
     } catch (err) {
       console.error(err);
       window.alert("Failed to submit reschedule request.");
-    } finally { 
-      setActionLoading(false); 
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -410,7 +410,7 @@ function UpcomingBookingDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="client" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 flex items-center justify-center">
             <p className="text-gray-500">Booking not found.</p>
@@ -425,8 +425,8 @@ function UpcomingBookingDetails() {
   const formattedTime = formatTimeRange(booking.time || (booking.scheduled_start_time && `${booking.scheduled_start_time} - ${booking.scheduled_end_time}`));
 
   // ── Get provider name as string ──
-  const providerName = typeof booking.providerName === 'string' 
-    ? booking.providerName 
+  const providerName = typeof booking.providerName === 'string'
+    ? booking.providerName
     : booking.worker || "Provider";
 
   const ui = {
@@ -464,7 +464,7 @@ function UpcomingBookingDetails() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           <section className="mb-8">
@@ -484,7 +484,7 @@ function UpcomingBookingDetails() {
               <BookingInfoCard booking={ui} />
               <ProviderInfoCard worker={ui.workerObj} />
               <Timeline items={ui.timeline} />
-              <PaymentDetailsCard 
+              <PaymentDetailsCard
                 booking={ui}
                 isPaid={false}
                 isPaymentPending={false}

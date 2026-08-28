@@ -219,7 +219,7 @@ function EmptyState({ icon: Icon, title, description, color, iconColor }) {
 
 function getBookingRoute(booking) {
   const status = booking.status || "Pending";
-  
+
   const routeMap = {
     "Upcoming": `/client/my-bookings/upcoming/${booking.id}`,
     "Pending": `/client/my-bookings/upcoming/${booking.id}`,
@@ -231,7 +231,7 @@ function getBookingRoute(booking) {
     "Paid": `/client/my-bookings/paid/${booking.id}`,
     "Cancelled": `/client/my-bookings/cancelled/${booking.id}`,
   };
-  
+
   return routeMap[status] || `/client/my-bookings/${booking.id}`;
 }
 
@@ -279,19 +279,19 @@ function MyBookings() {
   // ── Filter bookings based on active tab ──
   const filteredBookings = bookings.filter((booking) => {
     if (activeTab === "Upcoming") {
-      return booking.status === "Upcoming" || 
-             booking.status === "Pending" || 
-             booking.status === "Accepted" || 
+      return booking.status === "Upcoming" ||
+             booking.status === "Pending" ||
+             booking.status === "Accepted" ||
              booking.status === "New Requests";
     }
     return booking.status === activeTab;
   });
 
   const tabCounts = {
-    Upcoming: bookings.filter((booking) => 
-      booking.status === "Upcoming" || 
-      booking.status === "Pending" || 
-      booking.status === "Accepted" || 
+    Upcoming: bookings.filter((booking) =>
+      booking.status === "Upcoming" ||
+      booking.status === "Pending" ||
+      booking.status === "Accepted" ||
       booking.status === "New Requests"
     ).length,
     "In Progress": bookings.filter((booking) => booking.status === "In Progress").length,
@@ -308,7 +308,7 @@ function MyBookings() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           {/* ── Page Header ── */}
@@ -332,7 +332,7 @@ function MyBookings() {
             <div className="flex min-w-max">
               {tabs.map((tab) => {
                 const count = tabCounts[tab] || 0;
-                
+
                 return (
                   <button
                     key={tab}
@@ -405,7 +405,7 @@ function MyBookings() {
                       const providerName = getProviderName(booking);
                       const providerInitials = getProviderInitials(booking);
                       const bookingRoute = getBookingRoute(booking);
-                      
+
                       return (
                         <tr key={booking.id} className="border-b border-gray-100 align-middle hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-5">
@@ -489,9 +489,9 @@ function MyBookings() {
                                   <span className="h-4 w-4 text-gray-600">💬</span>
                                   Message
                                 </Link>
-                                {booking.status !== "Completed" && 
-                                 booking.status !== "Paid" && 
-                                 booking.status !== "Rescheduled" && 
+                                {booking.status !== "Completed" &&
+                                 booking.status !== "Paid" &&
+                                 booking.status !== "Rescheduled" &&
                                  booking.status !== "Cancelled" && (
                                   <button
                                     onClick={async () => {

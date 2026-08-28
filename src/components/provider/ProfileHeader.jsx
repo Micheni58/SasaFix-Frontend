@@ -1,5 +1,14 @@
 // src/components/provider/ProfileHeader.jsx
 
+const formatJoinedDate = (dateValue) => {
+  if (!dateValue) return "-";
+
+  const date = new Date(dateValue);
+  return Number.isNaN(date.getTime())
+    ? dateValue
+    : date.toLocaleDateString();
+};
+
 const ProfileHeader = ({ provider }) => {
   return (
     <div className="bg-white rounded-xl border border-gray-200 px-8 py-8">
@@ -8,7 +17,7 @@ const ProfileHeader = ({ provider }) => {
 
         {/* Avatar */}
 
-        <div className="w-32 h-32 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden flex-shrink-0">
 
           {provider.profile_photo_url ? (
             <img
@@ -17,7 +26,7 @@ const ProfileHeader = ({ provider }) => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <span className="text-white text-5xl font-bold">
+            <span className="text-white text-3xl font-bold">
               {provider.first_name?.charAt(0)}
               {provider.last_name?.charAt(0)}
             </span>
@@ -33,7 +42,7 @@ const ProfileHeader = ({ provider }) => {
 
           <div className="flex items-center gap-4 flex-wrap">
 
-            <h1 className="text-5xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900">
 
               {provider.first_name} {provider.last_name}
 
@@ -49,7 +58,7 @@ const ProfileHeader = ({ provider }) => {
 
           {/* Category */}
 
-          <p className="text-blue-600 text-3xl mt-3 font-medium">
+          <p className="text-blue-600 text-sm mt-1 font-medium">
 
             {provider.service_category}
 
@@ -64,7 +73,7 @@ const ProfileHeader = ({ provider }) => {
             </span>
 
             <span>
-              Joined {provider.member_since || "-"}
+              Joined {formatJoinedDate(provider.member_since)}
             </span>
 
             <span>
@@ -81,15 +90,15 @@ const ProfileHeader = ({ provider }) => {
 
           <div className="flex items-center gap-3 mt-6">
 
-            <div className="text-yellow-400 text-2xl">
+            <div className="text-yellow-400 text-base">
               ★★★★★
             </div>
 
-            <span className="text-xl font-semibold text-gray-800">
+            <span className="text-sm font-semibold text-gray-800">
               {provider.average_rating || "New"}
             </span>
 
-            <span className="text-gray-500 text-lg">
+            <span className="text-gray-500 text-sm">
               ({provider.total_reviews || 0} reviews)
             </span>
 

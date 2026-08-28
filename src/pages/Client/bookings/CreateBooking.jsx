@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Calendar, Clock3, MapPin, FileText, ShieldCheck } from "lucide-react";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { getProvider } from "../../../services/discoveryApi";
 
 function CreateBooking() {
     const navigate = useNavigate();
+    const { providerId: routeProviderId } = useParams();
     const [serviceType, setServiceType] = useState("");
     const [preferredDate, setPreferredDate] = useState("");
     const [preferredTime, setPreferredTime] = useState("");
@@ -21,6 +23,7 @@ function CreateBooking() {
     const [submitting, setSubmitting] = useState(false);
     const [providers, setProviders] = useState([]);
     const [providerAvailability, setProviderAvailability] = useState(null);
+    const [error, setError] = useState("");
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
 
@@ -34,7 +37,13 @@ function CreateBooking() {
         setShowConfirmModal(false);
         setSubmitting(true);
         try {
-            const clientId = Number(localStorage.getItem("userId") || 1);
+            const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+            const clientId = Number(
+                localStorage.getItem("userId") || storedUser.id || storedUser.user_id,
+            );
+            if (!clientId || !providerId) {
+                throw new Error("A client and service provider are required.");
+            }
             // compute end time from preferredTime and durationHours
             let endTime = null;
             if (preferredTime) {
@@ -60,13 +69,11 @@ function CreateBooking() {
                 amount: providerRate ? Math.round(providerRate * Number(durationHours || 1)) : undefined,
             };
 
-            try {
-                await bookingService.createBooking(payload);
-            } catch (e) {
-                console.log("Booking payload (no backend):", payload);
-            }
+            await bookingService.createBooking(payload);
 
             navigate("/client/my-bookings");
+        } catch (bookingError) {
+            setError(bookingError.message || "Unable to create booking.");
         } finally {
             setSubmitting(false);
         }
@@ -88,11 +95,37 @@ function CreateBooking() {
     };
 
     useEffect(() => {
+        if (!routeProviderId) return undefined;
+
+        let mounted = true;
+        const selectedProviderId = Number(routeProviderId);
+        setProviderId(selectedProviderId);
+
+        getProvider(selectedProviderId)
+            .then((provider) => {
+                if (!mounted) return;
+                setProviderName(
+                    `${provider.first_name || ""} ${provider.last_name || ""}`.trim(),
+                );
+                setProviderTrade(provider.service_category || "");
+                setProviderRate(Number(provider.hourly_rate) || 0);
+                setServiceType(provider.service_category || "");
+            })
+            .catch(() => {
+                if (mounted) setError("Unable to load this provider.");
+            });
+
+        return () => {
+            mounted = false;
+        };
+    }, [routeProviderId]);
+
+    useEffect(() => {
         let mounted = true;
         bookingService.listProviders().then((list) => {
             if (!mounted) return;
             setProviders(list);
-        }).catch((e)=>{console.error(e)});
+        }).catch(() => {});
         return () => { mounted = false; };
     }, []);
 
@@ -111,11 +144,16 @@ function CreateBooking() {
 
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
-           
+
             <Sidebar role="client" />
-            <div className="flex-1 ml-72">
+            <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
             <main className="pt-24 px-6 pb-6">
+                {error && (
+                    <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {error}
+                    </div>
+                )}
                 <section className="mb-8">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div>
@@ -148,6 +186,7 @@ function CreateBooking() {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Choose Provider</label>
                                 <select
                                     value={providerId || ""}
+                                    disabled={Boolean(routeProviderId)}
                                     onChange={(e) => {
                                         const val = e.target.value;
                                         if (!val) {
@@ -164,6 +203,11 @@ function CreateBooking() {
                                     className="w-full rounded-xl border border-gray-300 bg-gray-100 px-4 py-3 text-gray-800  focus:outline-none focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3]"
                                 >
                                     <option value="">Select provider</option>
+                                    {routeProviderId && (
+                                        <option value={providerId}>
+                                            {providerName || `Provider #${providerId}`}
+                                        </option>
+                                    )}
                                     {providers.map((p) => (
                                         <option key={p.id} value={p.id}>{p.name || p.full_name || p.provider_full_name || `Provider #${p.id}`}</option>
                                     ))}

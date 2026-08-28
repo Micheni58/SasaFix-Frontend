@@ -18,6 +18,7 @@ import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
 import ProviderNotification from "../pages/ServiceProvider/Notification";
 import Availability from "../pages/ServiceProvider/Availability";
 import MyBookings from "../pages/Client/bookings/MyBookings";
+import CreateBooking from "../pages/Client/bookings/CreateBooking";
 import MyJobs from "../pages/ServiceProvider/Jobs/MyJobs";
 import NewJobRequestDetails from "../pages/ServiceProvider/Jobs/NewJobRequestDetails";
 import AcceptedJobDetails from "../pages/ServiceProvider/Jobs/AcceptedJobDetails";
@@ -42,7 +43,8 @@ import RescheduledJobDetails from "../pages/ServiceProvider/Jobs/RescheduledJobD
 import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBookingDetails";
 import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
-import ProviderSubscription from "../pages/ServiceProvider/ProviderSubscription";
+import ServiceProvidersManagement from "../pages/Admin/ServiceProvidersManagement";
+import Subscription from "../components/provider/Subscription";
 import VerifyEmail from "../pages/VerifyEmail";
 import EmailVerificationSent from "../pages/EmailVerificationSent";
 import ProviderEarnings from "../pages/ServiceProvider/Earnings";
@@ -68,7 +70,6 @@ export default function AppRouter() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="/admin/notifications" element={<AdminNotification />} />
-        <Route path="/admin/reports" element={<ReportAndAnalytics />} />
         <Route
           path="/admin/bookings-payments"
           element={<BookingsAndPayments />}
@@ -85,11 +86,19 @@ export default function AppRouter() {
 
         <Route path="/client" element={<ClientDashboard />} />
         <Route path="/client/find-services" element={<FindServices />} />
+        <Route
+          path="/providers/:providerId"
+          element={<ProviderProfilePage />}
+        />
         <Route path="/client/messages" element={<ClientMessages />} />
         <Route path="/client/transactions" element={<ClientTransactions />} />
         <Route path="/client/notifications" element={<ClientNotification />} />
         <Route path="/client/profile" element={<ClientProfile />} />
         <Route path="/client/my-bookings" element={<MyBookings />} />
+        <Route
+          path="/client/bookings/create/:providerId"
+          element={<CreateBooking />}
+        />
         <Route
           path="/client/my-bookings/in-progress/:bookingId"
           element={<InProgressBookingDetails />}
@@ -125,6 +134,8 @@ export default function AppRouter() {
           element={<ProviderNotification />}
         />
         <Route path="/provider/my-reviews" element={<Reviews />} />
+        <Route path="/provider/my-jobs/rescheduled/:id" element={<RescheduledJobDetails />}/>
+        <Route path="/provider/subscription" element={<Subscription />} />
 
         <Route
           path="/provider/my-jobs/rescheduled/:id"
@@ -139,7 +150,7 @@ export default function AppRouter() {
 
         <Route
           path="/provider/subscription"
-          element={<ProviderSubscription />}
+          element={<Subscription />}
         />
 
         <Route path="/profile" element={<Profile />} />
@@ -165,6 +176,7 @@ export default function AppRouter() {
           path="/provider/my-jobs/cancelled/:id"
           element={<CancelledJobDetails />}
         />
+      
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />

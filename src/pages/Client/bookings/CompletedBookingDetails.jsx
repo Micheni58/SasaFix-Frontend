@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  MessageSquare, Flag, Loader2, Wallet, CheckCircle2, 
+import {
+  MessageSquare, Flag, Loader2, Wallet, CheckCircle2,
   XCircle, AlertCircle, CreditCard, ArrowLeft
 } from "lucide-react";
 import bookingService from "../../../api/bookingService";
@@ -279,12 +279,12 @@ function CompletedBookingDetails() {
         fetchBooking();
         return () => { mounted = false; };
     }, [bookingId, navigate]);
- 
+
     useEffect(() => {
         if (!transactionId || transactionStatus !== "PENDING") return;
- 
+
         let isMounted = true;
- 
+
         const pollStatus = async () => {
             try {
                 const result = await paymentsService.checkTransactionStatus(transactionId);
@@ -307,47 +307,47 @@ function CompletedBookingDetails() {
                 setPaymentError(err.message || "Failed to update payment status.");
             }
         };
- 
+
         pollStatus();
- 
+
         return () => {
             isMounted = false;
         };
     }, [transactionId, transactionStatus, bookingId, navigate]);
- 
+
     // ── Handle Payment ──
     const handlePayment = async () => {
         const phone = paymentData.phone_number.trim();
         const amount = parseFloat(paymentData.amount);
- 
+
         if (!phone) {
             setPaymentError("Please enter your M-Pesa phone number");
             return;
         }
- 
+
         const cleanPhone = phone.replace(/\s/g, '');
         if (!cleanPhone.match(/^254[0-9]{9}$/)) {
             setPaymentError("Phone number must be in format: 2547XXXXXXXX");
             return;
         }
- 
+
         if (!amount || amount <= 0) {
             setPaymentError("Please enter a valid amount");
             return;
         }
- 
+
         const clientId = booking?.client_id || booking?.raw?.client_id;
         const providerId = booking?.serviceProviderId || booking?.raw?.service_provider_id;
         const bookingIdNum = parseInt(bookingId, 10);
- 
+
         if (!clientId || !providerId) {
             setPaymentError("Missing required information. Please refresh.");
             return;
         }
- 
+
         setPaymentLoading(true);
         setPaymentError(null);
- 
+
         try {
             const payload = {
                 phone_number: cleanPhone,
@@ -357,30 +357,30 @@ function CompletedBookingDetails() {
                 provider_id: providerId,
                 commission_rate: 10,
             };
- 
+
             const result = await paymentsService.initiateSTKPush(payload);
             const checkoutId = result.checkout_request_id;
             setCheckoutRequestId(checkoutId);
             setTransactionId(result.transaction_id);
             setTransactionStatus(result.status || "PENDING");
- 
+
             setShowPaymentModal(false);
             setPaymentData({ phone_number: "", amount: "" });
- 
+
             if (result.status === "SUCCESS") {
                 await bookingService.updateBookingStatus(bookingId, "paid");
                 alert("✅ Payment completed successfully.");
                 navigate(`/client/my-bookings/paid/${bookingId}`);
                 return;
             }
- 
+
             alert(
                 `✅ STK Push sent!\n\n` +
                 `Checkout ID: ${checkoutId}\n` +
                 `Amount: KES ${amount.toLocaleString()}\n\n` +
                 `Please complete the payment by entering your M-Pesa PIN on your phone.`
             );
- 
+
         } catch (err) {
             console.error("❌ Payment error:", err);
             setPaymentError(err.message || "Payment failed. Please try again.");
@@ -415,7 +415,7 @@ function CompletedBookingDetails() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="client" />
-                <div className="flex-1 ml-72">
+                <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
                     <main className="pt-24 px-6 pb-6">
                         <section className="mb-8">
@@ -452,7 +452,7 @@ function CompletedBookingDetails() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="client" />
-                <div className="flex-1 ml-72">
+                <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
                     <main className="pt-24 px-6 pb-6 flex items-center justify-center">
                         <p className="text-gray-500">Booking not found.</p>
@@ -501,7 +501,7 @@ function CompletedBookingDetails() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="client" />
-            <div className="flex-1 ml-72">
+            <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
                 <main className="pt-24 px-6 pb-6">
                     {/* ── Back Button ── */}
@@ -549,7 +549,7 @@ function CompletedBookingDetails() {
                             <BookingInfoCard booking={ui} />
                             <ProviderInfoCard worker={ui.worker} />
                             <Timeline items={ui.timeline} />
-                            <PaymentDetailsCard 
+                            <PaymentDetailsCard
                                 booking={ui}
                                 isPaid={isPaid}
                                 isPaymentPending={!isPaid}
@@ -589,7 +589,7 @@ function CompletedBookingDetails() {
                                                 Checkout ID: {checkoutRequestId.substring(0, 15)}...
                                             </p>
                                         )}
- 
+
                                         <div className="text-xs text-gray-400 bg-gray-50 p-3 rounded-xl">
                                             <p className="font-medium">📱 Payment Instructions:</p>
                                             <ul className="list-disc pl-4 mt-1 space-y-1">

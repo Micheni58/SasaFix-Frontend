@@ -12,6 +12,11 @@ const ReviewAnalysis = ({ providerId, providerName }) => {
   const [hasLoaded, setHasLoaded] = useState(false);
 
   const loadAnalysis = async () => {
+    if (!providerId) {
+      setError('Provider ID is missing. Please try again.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -29,7 +34,10 @@ const ReviewAnalysis = ({ providerId, providerName }) => {
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-bold text-gray-800">⭐ Review Insights</h3>
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">⭐</span>
+          <h3 className="text-xl font-bold text-gray-800">Review Insights</h3>
+        </div>
         <button
           onClick={loadAnalysis}
           disabled={isLoading}
@@ -56,7 +64,7 @@ const ReviewAnalysis = ({ providerId, providerName }) => {
         </div>
       )}
 
-      {!hasLoaded && !isLoading && (
+      {!hasLoaded && !isLoading && !error && (
         <div className="text-center py-8">
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-3xl">
             ⭐
@@ -79,29 +87,53 @@ const ReviewAnalysis = ({ providerId, providerName }) => {
       {analysis && !isLoading && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-4 text-sm">
-            <span className="bg-gray-100 px-3 py-1 rounded-full">
-              <strong>{analysis.total_reviews}</strong> Reviews
+            <span className="bg-gray-100 px-3 py-1 rounded-full flex items-center gap-1">
+              📝 <strong>{analysis.total_reviews}</strong> Reviews
             </span>
-            {analysis.average_rating && (
-              <span className="bg-yellow-100 px-3 py-1 rounded-full">
+            {analysis.average_rating && analysis.average_rating > 0 && (
+              <span className="bg-yellow-100 px-3 py-1 rounded-full flex items-center gap-1">
                 ⭐ {analysis.average_rating.toFixed(1)} / 5.0
               </span>
             )}
-            {analysis.total_jobs_completed && (
-              <span className="bg-blue-100 px-3 py-1 rounded-full">
+            {analysis.total_jobs_completed !== undefined && analysis.total_jobs_completed > 0 && (
+              <span className="bg-blue-100 px-3 py-1 rounded-full flex items-center gap-1">
                 🏆 {analysis.total_jobs_completed} Jobs
               </span>
             )}
           </div>
 
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-gray-700 mb-2">💡 AI Feedback:</h4>
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+            <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span>💡</span> AI Feedback:
+            </h4>
             <MarkdownRenderer content={analysis.analysis} />
           </div>
 
           {analysis.total_reviews === 0 && (
-            <div className="p-4 bg-blue-50 rounded-lg text-blue-700 text-center">
-              🌟 No reviews yet. Keep delivering great service!
+            <div className="p-4 bg-blue-50 rounded-lg text-blue-700 text-center border border-blue-200">
+              🌟 No reviews yet. Keep delivering great service and reviews will follow!
+            </div>
+          )}
+
+          {/* Personalized encouragement based on review count */}
+          {analysis.total_reviews > 0 && analysis.total_reviews < 3 && (
+            <div className="p-4 bg-amber-50 rounded-lg text-amber-700 text-sm border border-amber-200">
+              💡 <strong>Tip:</strong> You have {analysis.total_reviews} review{analysis.total_reviews > 1 ? 's' : ''}. 
+              Ask your clients to leave reviews after each completed job to build more social proof!
+            </div>
+          )}
+
+          {analysis.total_reviews >= 3 && analysis.total_reviews < 10 && (
+            <div className="p-4 bg-green-50 rounded-lg text-green-700 text-sm border border-green-200">
+              ✅ <strong>Great start!</strong> You have {analysis.total_reviews} reviews. 
+              Keep up the good work and maintain your high standards!
+            </div>
+          )}
+
+          {analysis.total_reviews >= 10 && (
+            <div className="p-4 bg-purple-50 rounded-lg text-purple-700 text-sm border border-purple-200">
+              🎉 <strong>Excellent!</strong> You have {analysis.total_reviews} reviews. 
+              You're building a strong reputation on Sasafix!
             </div>
           )}
         </div>

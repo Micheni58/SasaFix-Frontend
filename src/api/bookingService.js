@@ -261,7 +261,16 @@ export async function listProviders() {
 }
 
 export async function getProviderAvailability(providerId) {
-    return null;
+    const response = await client.get(`/providers/${providerId}/availability`);
+    return response.data;
+}
+
+export async function updateProviderAvailability(providerId, availability) {
+    const response = await client.put(
+        `/providers/${providerId}/availability`,
+        availability,
+    );
+    return response.data;
 }
 
 export default {
@@ -275,4 +284,5 @@ export default {
     rescheduleBooking,
     listProviders,
     getProviderAvailability,
+    updateProviderAvailability,
 };

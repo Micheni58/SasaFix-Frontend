@@ -3,6 +3,7 @@ import { Clock3, Copy, X } from "lucide-react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 import authService from "../../services/api";
+import bookingService from "../../api/bookingService";
 
 const BRAND = "#056db3";
 const BRAND_DARK = "#045ca0";
@@ -71,12 +72,8 @@ export default function Availability() {
       setLoading(false);
       return;
     }
-    fetch(`http://localhost:8000/api/providers/${providerId}/availability`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-      },
-    })
-      .then((r) => r.json())
+    bookingService
+      .getProviderAvailability(providerId)
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setDays((current) => {
@@ -151,26 +148,12 @@ export default function Availability() {
     setSaving(true);
     try {
       const payload = WEEK_DAYS.map((day) => ({
-        day,
+        day_of_week: day,
         start_time: days[day].start,
         end_time: days[day].end,
         is_available: days[day].enabled,
       }));
-      const res = await fetch(
-        `http://localhost:8000/api/providers/${providerId}/availability`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify(payload),
-        },
-      );
-      if (!res.ok) {
-        const e = await res.json();
-        throw new Error(e.detail);
-      }
+      await bookingService.updateProviderAvailability(providerId, payload);
       showToast("Availability updated.");
     } catch (e) {
       showToast(e.message || "Save failed.", false);

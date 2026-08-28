@@ -2,22 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  MessageSquare,
-  Flag,
-  Loader2,
-  CheckCircle2,
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { 
+  MessageSquare, 
+  Flag, 
+  Loader2, 
+  CheckCircle2, 
   CreditCard,
-  Calendar,
-  Clock3,
-  MapPin,
-  Wallet,
   Download,
-  Star,
-  User,
-  Briefcase,
-  Mail,
-  Phone,
   ArrowLeft
 } from "lucide-react";
 import bookingService from "../../../api/bookingService";
@@ -28,12 +20,12 @@ import { PaymentDetailsCard } from "../../../components/cards/PaymentDetailsCard
 import { Timeline } from "../../../components/cards/Timeline";
 import { BookingInfoCard } from "../../../components/cards/BookingInfoCard";
 import { ReviewCard } from "../../../components/cards/ReviewCard";
+import { SasaFixReceipt } from "../../../components/SasaFixReceipt";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
 // ─────────────────────────────────────────────
 
-// Adds ordinal suffix: 1 -> 1st, 2 -> 2nd, 3 -> 3rd, 19 -> 19th, etc.
 function ordinalSuffix(day) {
   const d = Number(day);
   if (d % 10 === 1 && d % 100 !== 11) return `${d}st`;
@@ -42,37 +34,29 @@ function ordinalSuffix(day) {
   return `${d}th`;
 }
 
-// Formats a date string (e.g. "2026-08-19") into "19th August 2026"
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const parsed = new Date(dateStr);
   if (isNaN(parsed.getTime())) return dateStr;
-
   const day = ordinalSuffix(parsed.getDate());
   const month = parsed.toLocaleString("en-US", { month: "long" });
   const year = parsed.getFullYear();
-
   return `${day} ${month} ${year}`;
 }
 
-// Formats a 24hr time string (e.g. "09:00" or "09:00:00") into "9:00 AM"
 function formatTime(timeStr) {
   if (!timeStr) return "";
   const parts = timeStr.split(":");
   if (parts.length < 2) return timeStr;
-
   let hours = parseInt(parts[0], 10);
   const minutes = parts[1];
   if (isNaN(hours)) return timeStr;
-
   const period = hours >= 12 ? "PM" : "AM";
   hours = hours % 12;
   if (hours === 0) hours = 12;
-
   return `${hours}:${minutes} ${period}`;
 }
 
-// Formats a time range "start - end" (e.g. "09:00 - 10:00") into "9:00 AM - 10:00 AM"
 function formatTimeRange(timeStr) {
   if (!timeStr) return "";
   if (timeStr.includes(" - ")) {
@@ -94,7 +78,6 @@ function PaidBookingSkeleton() {
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           <div className="animate-pulse">
-            {/* Header Skeleton */}
             <section className="mb-8">
               <div className="flex justify-between items-start mb-6 flex-wrap gap-4">
                 <div>
@@ -115,99 +98,31 @@ function PaidBookingSkeleton() {
                       <div className="h-6 w-48 animate-pulse rounded bg-gray-100" />
                     </div>
                     <div className="grid grid-cols-2 gap-6">
-                      <div className="flex items-start gap-3">
-                        <div className="h-5 w-5 animate-pulse rounded bg-gray-200" />
-                        <div>
-                          <div className="h-4 w-12 animate-pulse rounded bg-gray-200 mb-2" />
-                          <div className="h-5 w-24 animate-pulse rounded bg-gray-100" />
+                      {[0, 1].map((i) => (
+                        <div key={i} className="flex items-start gap-3">
+                          <div className="h-5 w-5 animate-pulse rounded bg-gray-200" />
+                          <div>
+                            <div className="h-4 w-12 animate-pulse rounded bg-gray-200 mb-2" />
+                            <div className="h-5 w-24 animate-pulse rounded bg-gray-100" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="h-5 w-5 animate-pulse rounded bg-gray-200" />
-                        <div>
-                          <div className="h-4 w-12 animate-pulse rounded bg-gray-200 mb-2" />
-                          <div className="h-5 w-24 animate-pulse rounded bg-gray-100" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="h-5 w-5 animate-pulse rounded bg-gray-200" />
-                      <div className="flex-1">
-                        <div className="h-4 w-16 animate-pulse rounded bg-gray-200 mb-2" />
-                        <div className="h-5 w-48 animate-pulse rounded bg-gray-100" />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="h-4 w-20 animate-pulse rounded bg-gray-200 mb-2" />
-                      <div className="h-5 w-64 animate-pulse rounded bg-gray-100" />
+                      ))}
                     </div>
                   </div>
                 </div>
-
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="h-7 w-48 animate-pulse rounded bg-gray-200 mb-6" />
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="h-16 w-16 animate-pulse rounded-full bg-gray-200" />
-                    <div className="flex-1">
-                      <div className="h-5 w-32 animate-pulse rounded bg-gray-200 mb-2" />
-                      <div className="h-4 w-24 animate-pulse rounded bg-gray-100" />
-                    </div>
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="h-7 w-40 animate-pulse rounded bg-gray-200 mb-6" />
+                    <div className="h-24 w-full animate-pulse rounded bg-gray-100" />
                   </div>
-                  <div className="flex flex-col gap-3 mb-6 sm:flex-row">
-                    <div className="h-10 w-32 animate-pulse rounded-lg bg-gray-200" />
-                    <div className="h-10 w-32 animate-pulse rounded-lg bg-gray-200" />
-                  </div>
-                  <div className="h-10 w-full animate-pulse rounded-lg bg-gray-200" />
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="h-7 w-40 animate-pulse rounded bg-gray-200 mb-6" />
-                  <div className="space-y-4">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="flex items-start gap-4">
-                        <div className="h-5 w-5 animate-pulse rounded-full bg-gray-200" />
-                        <div className="flex-1">
-                          <div className="h-5 w-32 animate-pulse rounded bg-gray-200" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="h-7 w-40 animate-pulse rounded bg-gray-200 mb-6" />
-                  <div className="space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="flex justify-between items-center py-2">
-                        <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
-                        <div className="h-5 w-20 animate-pulse rounded bg-gray-200" />
-                      </div>
-                    ))}
-                    <div className="border-t border-gray-300 pt-2" />
-                    <div className="flex justify-between items-center py-2">
-                      <div className="h-5 w-28 animate-pulse rounded bg-gray-200" />
-                      <div className="h-7 w-24 animate-pulse rounded bg-gray-200" />
-                    </div>
-                  </div>
-                  <div className="h-14 w-full animate-pulse rounded-lg bg-gray-100 mt-4" />
-                </div>
+                ))}
               </div>
-
               <div className="lg:col-span-1">
                 <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                   <div className="h-7 w-32 animate-pulse rounded bg-gray-200" />
                   <div className="h-28 w-full animate-pulse rounded-lg bg-gray-100" />
                   <div className="h-12 w-full animate-pulse rounded-lg bg-gray-200" />
                   <div className="h-12 w-full animate-pulse rounded-lg bg-gray-200" />
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <div className="h-5 w-40 animate-pulse rounded bg-gray-200 mb-3" />
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="flex gap-2 mb-2">
-                        <div className="h-4 w-4 animate-pulse rounded bg-gray-200" />
-                        <div className="h-4 w-48 animate-pulse rounded bg-gray-200" />
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             </div>
@@ -215,6 +130,50 @@ function PaidBookingSkeleton() {
         </main>
       </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// DOWNLOAD BUTTON
+// ─────────────────────────────────────────────
+
+/**
+ * Wraps PDFDownloadLink so it only mounts after the booking data is ready.
+ * PDFDownloadLink needs a stable document prop — avoid passing it inline
+ * before `ui` exists, or react-pdf will throw.
+ */
+function ReceiptDownloadButton({ ui, role = "client" }) {
+  const fileName = `SasaFix-Receipt-${role}-Booking-${ui.id}.pdf`;
+
+  return (
+    <PDFDownloadLink
+      document={<SasaFixReceipt booking={ui} role={role} />}
+      fileName={fileName}
+    >
+      {({ loading: pdfLoading, error }) => (
+        <button
+          disabled={pdfLoading}
+          className="w-full flex items-center justify-center gap-2 border-2 border-emerald-600 text-emerald-600 py-2 px-2 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {pdfLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Generating Receipt...
+            </>
+          ) : error ? (
+            <>
+              <Download className="w-5 h-5" />
+              Retry Download
+            </>
+          ) : (
+            <>
+              <Download className="w-5 h-5" />
+              Download Receipt
+            </>
+          )}
+        </button>
+      )}
+    </PDFDownloadLink>
   );
 }
 
@@ -250,23 +209,14 @@ function PaidBookingDetails() {
     return () => { mounted = false; };
   }, [bookingId]);
 
-  // ── Handle Message ──
   const handleMessage = () => {
     navigate(`/client/messages?provider=${booking?.serviceProviderId}`);
   };
 
-  // ── Handle Download Receipt ──
-  const handleDownloadReceipt = () => {
-    // Placeholder for receipt download functionality
-    alert("📄 Receipt download will be available soon.");
-  };
-
-  // ── Handle Back ──
   const handleBack = () => {
     navigate("/client/my-bookings");
   };
 
-  // ── Submit Report ──
   const submitReport = async () => {
     if (!reportText) {
       window.alert("Please add a reason for the report.");
@@ -277,10 +227,7 @@ function PaidBookingDetails() {
     window.alert("Report submitted. Our team will review it.");
   };
 
-  // ── Loading State with Skeletons ──
-  if (loading) {
-    return <PaidBookingSkeleton />;
-  }
+  if (loading) return <PaidBookingSkeleton />;
 
   if (!booking) {
     return (
@@ -298,7 +245,11 @@ function PaidBookingDetails() {
 
   // ── Format date and time ──
   const formattedDate = formatDate(booking.date || booking.scheduled_date);
-  const formattedTime = formatTimeRange(booking.time || (booking.scheduled_start_time && `${booking.scheduled_start_time} - ${booking.scheduled_end_time}`));
+  const formattedTime = formatTimeRange(
+    booking.time ||
+    (booking.scheduled_start_time &&
+      `${booking.scheduled_start_time} - ${booking.scheduled_end_time}`)
+  );
 
   const ui = {
     id: booking.id,
@@ -308,10 +259,14 @@ function PaidBookingDetails() {
     time: formattedTime,
     location: booking.location,
     status: booking.status,
-    serviceFee: booking.amountRaw ? `KES ${booking.amountRaw.toLocaleString()}` : "KES 0",
+    amountRaw: booking.amountRaw || 0,
+    serviceFee: booking.amountRaw
+      ? `KES ${booking.amountRaw.toLocaleString()}`
+      : "KES 0",
     commission: `KES ${Math.round((booking.amountRaw || 0) * 0.1).toLocaleString()}`,
     totalPaid: `KES ${Math.round(booking.amountRaw || 0).toLocaleString()}`,
     commissionRate: 0.1,
+    isPremium: booking.raw?.service_provider?.is_premium || false,
     paidAt: booking.paidAt || booking.raw?.paid_at || new Date().toISOString(),
     worker: {
       id: booking.serviceProviderId || booking.raw?.service_provider_id,
@@ -337,6 +292,7 @@ function PaidBookingDetails() {
       <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
+
           {/* ── Back Button ── */}
           <button
             onClick={handleBack}
@@ -369,15 +325,12 @@ function PaidBookingDetails() {
           </section>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
             {/* ── Main Content ── */}
             <div className="lg:col-span-2 space-y-6">
               <BookingInfoCard booking={ui} />
               <ProviderInfoCard worker={ui.worker} />
-
-              {/* ── Timeline ── */}
               <Timeline items={ui.timeline} />
-
-              {/* ── Payment Details ── */}
               <PaymentDetailsCard
                 booking={ui}
                 isPaid={true}
@@ -388,8 +341,6 @@ function PaidBookingDetails() {
                 isCompleted={true}
                 isApproved={false}
               />
-
-              {/* ── Review Section ── */}
               <ReviewCard
                 bookingId={ui.id}
                 providerId={ui.worker.id}
@@ -408,23 +359,18 @@ function PaidBookingDetails() {
                   <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
                   <p className="text-sm font-semibold text-emerald-700">Payment Complete</p>
                   <p className="text-xs text-emerald-600 mt-1">
-                    Paid on {new Date(ui.paidAt).toLocaleDateString()} at {new Date(ui.paidAt).toLocaleTimeString()}
+                    Paid on {new Date(ui.paidAt).toLocaleDateString()} at{" "}
+                    {new Date(ui.paidAt).toLocaleTimeString()}
                   </p>
                 </div>
 
-                {/* ── Download Receipt ── */}
-                <button
-                  onClick={handleDownloadReceipt}
-                  className="w-full flex items-center justify-center gap-2 border-2 border-emerald-600 text-emerald-600 py-2 px-2 rounded-lg hover:bg-emerald-50 transition-colors"
-                >
-                  <Download className="w-5 h-5" />
-                  Download Receipt
-                </button>
+                {/* ── Download Receipt (PDF) ── */}
+                <ReceiptDownloadButton ui={ui} role="client" />
 
                 {/* ── Message Provider ── */}
                 <button
                   onClick={handleMessage}
-                  className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 bg-[#056db3] text-white py-2 px-2 rounded-lg hover:bg-blue-900 transition-colors mt-2"
                 >
                   <MessageSquare className="w-5 h-5" />
                   Message Provider
@@ -439,7 +385,7 @@ function PaidBookingDetails() {
                   Report Issue
                 </button>
 
-                {/* ── Important Notes ── */}
+                {/* ── Payment Summary ── */}
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <p className="text-sm font-semibold text-gray-800 mb-3">Payment Summary</p>
                   <ul className="space-y-2 text-sm text-gray-700">
@@ -490,6 +436,7 @@ function PaidBookingDetails() {
               </div>
             </div>
           )}
+
         </main>
       </div>
     </div>

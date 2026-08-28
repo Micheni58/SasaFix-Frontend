@@ -36,6 +36,7 @@ const STATUS_STYLES = {
   "Approved": "bg-green-100 text-green-800",
   "Rejected": "bg-red-100 text-red-800",
   "Cancelled": "bg-red-100 text-red-800",
+  "Paid": "bg-emerald-100 text-emerald-800",
 };
 
 const TIER_COLORS = { gold: "#CA8A04", blue: "#056db3", gray: "#9CA3AF" };
@@ -125,6 +126,7 @@ function getBookingRoute(booking) {
     "Approved": `/provider/my-jobs/approved/${booking.id}`,
     "Rejected": `/provider/my-jobs/rejected/${booking.id}`,
     "Cancelled": `/provider/my-jobs/cancelled/${booking.id}`,
+    "Paid": `/provider/my-jobs/paid/${booking.id}`,
   };
   return routeMap[status] || `/provider/my-jobs/${booking.id}`;
 }
@@ -249,48 +251,90 @@ function AIInsightCard({ onGenerate, isLoading, insight }) {
 }
 
 // ── Availability Card ──
-function AvailabilityCard({ bookings }) {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const dayAfter = new Date();
-  dayAfter.setDate(dayAfter.getDate() + 2);
-  const dayAfterStr = dayAfter.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+function AvailabilityCard({ bookings, availability, loading }) {
+  const generateTimeSlots = (startTime, endTime) => {
+    if (!startTime || !endTime) return [];
 
-  const generateTimeSlots = () => {
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
+    const start = startHour * 60 + startMinute;
+    const end = endHour * 60 + endMinute;
     const slots = [];
-    for (let hour = 9; hour <= 17; hour += 2) {
-      const start = `${hour.toString().padStart(2, '0')}:00`;
-      const end = `${(hour + 2).toString().padStart(2, '0')}:00`;
-      slots.push(`${start} - ${end}`);
+    for (let slotStart = start; slotStart < end; slotStart += 120) {
+      const slotEnd = Math.min(slotStart + 120, end);
+      const format = (minutes) => {
+        const hour = Math.floor(minutes / 60);
+        return `${String(hour).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+      };
+      slots.push(`${format(slotStart)} - ${format(slotEnd)}`);
     }
     return slots;
   };
 
-  const allSlots = generateTimeSlots();
-  const todayBookings = bookings.filter(b => isToday(b.date || b.scheduled_date));
-  const bookedSlots = todayBookings.map(b => b.time || `${b.scheduled_start_time} - ${b.scheduled_end_time}`);
+  const dates = [0, 1, 2].map((offset) => {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    return date;
+  });
 
-  const slots = allSlots.map(slot => ({
-    time: slot,
-    booked: bookedSlots.some(b => b && b.includes(slot.split(' - ')[0]))
-  }));
+  const getDaySchedule = (date) => {
+    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+    return availability.find(
+      (entry) => (entry.day_of_week || entry.day || "").toLowerCase() === dayName.toLowerCase(),
+    );
+  };
 
-  const tomorrowSlots = allSlots.slice(0, 3);
-  const nextDaySlots = allSlots.slice(0, 3);
+  const isBookingOnDate = (booking, date) => {
+    const bookingDate = new Date(booking.date || booking.scheduled_date);
+    return !Number.isNaN(bookingDate.getTime()) &&
+      bookingDate.getFullYear() === date.getFullYear() &&
+      bookingDate.getMonth() === date.getMonth() &&
+      bookingDate.getDate() === date.getDate();
+  };
+
+  const scheduleForDate = (date) => {
+    const schedule = getDaySchedule(date);
+    const available = Boolean(schedule?.is_available);
+    const slots = available
+      ? generateTimeSlots(schedule.start_time, schedule.end_time)
+      : [];
+    const bookedSlots = bookings
+      .filter((booking) => isBookingOnDate(booking, date))
+      .map((booking) => booking.scheduled_start_time || booking.time?.split(" - ")[0]);
+
+    return {
+      available,
+      slots: slots.map((time) => ({
+        time,
+        booked: bookedSlots.some((bookedTime) => bookedTime?.slice(0, 5) === time.slice(0, 5)),
+      })),
+    };
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
+        {dates.map((date, index) => {
+          const schedule = scheduleForDate(date);
+          const title = index === 0
+            ? "Today"
+            : date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+          return (
+        <div key={date.toDateString()}>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-lg text-gray-800">Today</h3>
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
-              {slots.filter(s => s.booked).length} Booked
+            <h3 className="font-bold text-lg text-gray-800">{title}</h3>
+            <span className={`px-2 py-1 rounded-full text-sm font-medium ${schedule.available ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+              {schedule.available ? `${schedule.slots.filter((slot) => slot.booked).length} Booked` : "Unavailable"}
             </span>
           </div>
           <div className="space-y-2">
-            {slots.slice(0, 4).map((slot, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
+            {loading ? (
+              <p className="py-3 text-sm text-gray-500">Loading availability…</p>
+            ) : schedule.slots.length === 0 ? (
+              <p className="py-3 text-sm text-gray-500">No working hours set.</p>
+            ) : schedule.slots.map((slot) => (
+              <div key={slot.time} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
                 <span className="text-sm font-medium text-gray-700">{slot.time}</span>
                 <span className={`text-xs font-medium ${slot.booked ? "text-blue-600" : "text-green-600"}`}>
                   {slot.booked ? "Booked" : "Available"}
@@ -299,34 +343,8 @@ function AvailabilityCard({ bookings }) {
             ))}
           </div>
         </div>
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-lg text-gray-800">Tomorrow</h3>
-            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">Available</span>
-          </div>
-          <div className="space-y-2">
-            {tomorrowSlots.map((slot, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
-                <span className="text-sm font-medium text-gray-700">{slot}</span>
-                <span className="text-xs font-medium text-green-600">Available</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-lg text-gray-800">{dayAfterStr}</h3>
-            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">Available</span>
-          </div>
-          <div className="space-y-2">
-            {nextDaySlots.map((slot, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
-                <span className="text-sm font-medium text-gray-700">{slot}</span>
-                <span className="text-xs font-medium text-green-600">Available</span>
-              </div>
-            ))}
-          </div>
-        </div>
+          );
+        })}
       </div>
       <Link to="/provider/availability" className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
         <Calendar className="h-4 w-4" />
@@ -342,6 +360,8 @@ function AvailabilityCard({ bookings }) {
 
 function ProviderDashboard() {
   const [bookings, setBookings] = useState([]);
+  const [availability, setAvailability] = useState([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [earningsLoading, setEarningsLoading] = useState(true);
@@ -363,10 +383,12 @@ function ProviderDashboard() {
       "Provider"
     : "Provider";
 
-  const userId = Number(storedUser?.id || localStorage.getItem("userId") || 0);
+  // ✅ Get provider ID correctly
   const providerId = Number(
-    storedUser?.provider_id || storedUser?.service_provider_id ||
-    storedUser?.id || localStorage.getItem("userId") || 1
+    storedUser?.provider_id || 
+    storedUser?.service_provider_id || 
+    localStorage.getItem("providerId") ||
+    0
   );
 
   // ── Fetch bookings ──
@@ -374,6 +396,13 @@ function ProviderDashboard() {
     let mounted = true;
     setLoading(true);
     setError(null);
+
+    if (!providerId) {
+      setBookings([]);
+      setError("Provider account not found. Please sign in again.");
+      setLoading(false);
+      return () => { mounted = false; };
+    }
 
     const fetchData = async () => {
       try {
@@ -417,15 +446,46 @@ function ProviderDashboard() {
     return () => { mounted = false; };
   }, [providerId]);
 
-  // ── Fetch month-to-date earnings from transaction history ──
+  // ── Fetch the provider's saved working hours ──
   useEffect(() => {
     let mounted = true;
-    if (!userId) { setEarningsLoading(false); return; }
+    setAvailabilityLoading(true);
+
+    if (!providerId) {
+      setAvailability([]);
+      setAvailabilityLoading(false);
+      return () => { mounted = false; };
+    }
+
+    bookingService
+      .getProviderAvailability(providerId)
+      .then((data) => {
+        if (mounted) setAvailability(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.warn("Could not fetch availability:", err);
+        if (mounted) setAvailability([]);
+      })
+      .finally(() => {
+        if (mounted) setAvailabilityLoading(false);
+      });
+
+    return () => { mounted = false; };
+  }, [providerId]);
+
+  // ── Fetch month-to-date earnings from transaction history ──
+  // ✅ Fixed: Use providerId instead of userId
+  useEffect(() => {
+    let mounted = true;
+    if (!providerId) { 
+      setEarningsLoading(false); 
+      return; 
+    }
 
     const fetchMonthEarnings = async () => {
       try {
-        // Fetch all transactions and filter locally
-        const txRes = await getProviderTransactions(userId);
+        // ✅ Use providerId for transactions
+        const txRes = await getProviderTransactions(providerId);
         const txList = Array.isArray(txRes)
           ? txRes
           : txRes?.transactions || txRes?.data?.transactions || [];
@@ -472,7 +532,7 @@ function ProviderDashboard() {
 
     fetchMonthEarnings();
     return () => { mounted = false; };
-  }, [userId]);
+  }, [providerId]);  // ✅ Use providerId as dependency
 
   // ── AI Insight Generation ──
   const generateAIInsight = async () => {
@@ -782,7 +842,11 @@ function ProviderDashboard() {
           </div>
 
           {/* ── Availability Card ── */}
-          <AvailabilityCard bookings={bookings} />
+          <AvailabilityCard
+            bookings={bookings}
+            availability={availability}
+            loading={availabilityLoading}
+          />
         </main>
       </div>
     </div>

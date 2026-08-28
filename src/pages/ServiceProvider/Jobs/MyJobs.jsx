@@ -16,7 +16,7 @@ import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
 
-const tabs = ["New Requests", "Accepted", "In Progress", "Completed", "Rescheduled", "Cancelled"];
+const tabs = ["New Requests", "Accepted", "In Progress", "Completed", "Rescheduled", "Paid", "Cancelled"];
 
 const statusStyles = {
     "New Requests": "bg-amber-100 text-amber-800",
@@ -57,6 +57,13 @@ const emptyStateConfigs = {
         color: "bg-green-50",
         iconColor: "text-green-500",
     },
+    "Paid": {
+        icon: CheckCircle,
+        title: "No Paid Jobs",
+        description: "Paid jobs will appear here after a client's payment has been processed.",
+        color: "bg-emerald-50",
+        iconColor: "text-emerald-500",
+    },
     "Rescheduled": {
         icon: Clock,
         title: "No Rescheduled Jobs",
@@ -96,6 +103,9 @@ function getJobDetailsPath(job) {
     }
     if (status.includes("completed")) {
         return `/provider/my-jobs/completed/${job.id}`;
+    }
+    if (status.includes("paid")) {
+        return `/provider/my-jobs/paid/${job.id}`;
     }
     if (status.includes("cancelled")) {
         return `/provider/my-jobs/cancelled/${job.id}`;

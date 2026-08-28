@@ -1,9 +1,8 @@
-// src/pages/ProviderEarnings.jsx - Payout history with working filters
+// src/pages/ProviderEarnings.jsx - Payout history with smooth transitions & transaction summary
 
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import {
-    ArrowUpRight,
     TrendingUp,
     DollarSign,
     History,
@@ -13,11 +12,15 @@ import {
     Smartphone,
     Briefcase,
     Receipt,
+    FileText,
+    File,
 } from "lucide-react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 import { getSidebarRole } from "../../utils/sidebarRole";
 import transactionService from "../../api/transactionService";
+import { TransactionSummaryPDF } from "../../components/TransactionSummaryPDF";
+import { PDFDownloadLink } from "@react-pdf/renderer";
 
 // ─────────────────────────────────────────────
 // HELPERS
@@ -57,6 +60,19 @@ function formatDate(dateString) {
         year: "numeric",
         month: "short",
         day: "numeric",
+    });
+}
+
+function formatDateFull(dateString) {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString("en-KE", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
     });
 }
 
@@ -158,6 +174,181 @@ function TransactionRowSkeleton() {
 }
 
 // ─────────────────────────────────────────────
+// TRANSACTION SUMMARY COMPONENT
+// ─────────────────────────────────────────────
+
+function TransactionSummary({ transactions, filter, periodLabel }) {
+    const [isGeneratingCSV, setIsGeneratingCSV] = useState(false);
+
+    // Filter to only completed/successful transactions
+    const completedTransactions = transactions.filter(tx => {
+        const status = (tx.status || "").toUpperCase();
+        return status === "COMPLETED" || status === "SUCCESS" || status === "PAID";
+    });
+
+    const generateCSV = () => {
+        if (completedTransactions.length === 0) {
+            alert("No completed transactions to summarize for this period.");
+            return;
+        }
+
+        setIsGeneratingCSV(true);
+
+        try {
+            // Calculate totals
+            let totalGross = 0;
+            let totalCommission = 0;
+            let totalNet = 0;
+
+            completedTransactions.forEach(tx => {
+                const gross = tx.gross_amount || tx.grossAmount || 0;
+                const commission = tx.commission_amount || tx.commissionAmount || 0;
+                const net = tx.net_amount || tx.netAmount || 0;
+                totalGross += Number(gross);
+                totalCommission += Number(commission);
+                totalNet += Number(net);
+            });
+
+            // Build summary data
+            const summaryData = {
+                period: periodLabel || "Selected Period",
+                generatedAt: new Date().toLocaleString("en-KE", {
+                    dateStyle: "full",
+                    timeStyle: "medium",
+                }),
+                totals: {
+                    totalEarned: totalNet,
+                    totalCommission: totalCommission,
+                    totalGross: totalGross,
+                    jobsPaid: completedTransactions.length,
+                },
+                transactions: completedTransactions.map(tx => ({
+                    id: tx.id,
+                    description: tx.description || "Transaction",
+                    date: formatDateFull(tx.paid_at || tx.paidAt || tx.created_at || tx.createdAt || tx.date),
+                    amount: tx.amount || tx.net_amount || tx.netAmount || 0,
+                    status: (tx.status || "PENDING").toUpperCase(),
+                    type: tx.type || "payment",
+                    gross: tx.gross_amount || tx.grossAmount || 0,
+                    commission: tx.commission_amount || tx.commissionAmount || 0,
+                    net: tx.net_amount || tx.netAmount || 0,
+                    client: tx.client_name || null,
+                })),
+            };
+
+            // Create CSV
+            const headers = ["ID", "Description", "Date", "Status", "Gross (KES)", "Commission (KES)", "Net (KES)"];
+            const rows = summaryData.transactions.map(t => [
+                t.id,
+                t.description,
+                t.date,
+                t.status,
+                t.gross.toFixed(2),
+                t.commission.toFixed(2),
+                t.net.toFixed(2),
+            ]);
+
+            const csv = [
+                "Sasafix Earnings Summary",
+                "========================",
+                `Period: ${summaryData.period}`,
+                `Generated: ${summaryData.generatedAt}`,
+                "",
+                `Total Jobs Paid: ${summaryData.totals.jobsPaid}`,
+                `Total Earned: KES ${summaryData.totals.totalEarned.toFixed(2)}`,
+                `Total Commission: KES ${summaryData.totals.totalCommission.toFixed(2)}`,
+                `Total Gross: KES ${summaryData.totals.totalGross.toFixed(2)}`,
+                "",
+                "Transaction Details",
+                "-------------------",
+                headers.join(","),
+                ...rows.map(row => row.join(",")),
+                "",
+                "Sasafix - Trusted Local Services",
+                `© ${new Date().getFullYear()} Sasafix. All rights reserved.`,
+            ].join("\n");
+
+            // Download CSV
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `earnings_summary_${new Date().toISOString().split("T")[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Error generating CSV:", error);
+            alert("Failed to generate CSV. Please try again.");
+        } finally {
+            setIsGeneratingCSV(false);
+        }
+    };
+
+    return (
+        <div className="flex items-center gap-2">
+            {/* CSV Download Button */}
+            <button
+                onClick={generateCSV}
+                disabled={isGeneratingCSV || completedTransactions.length === 0}
+                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+                {isGeneratingCSV ? (
+                    <>
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        Generating CSV...
+                    </>
+                ) : (
+                    <>
+                        <FileText className="h-3.5 w-3.5" />
+                        CSV
+                    </>
+                )}
+            </button>
+
+            {/* PDF Download Button - Only for completed transactions */}
+            {completedTransactions.length > 0 ? (
+                <PDFDownloadLink
+                    document={
+                        <TransactionSummaryPDF
+                            transactions={completedTransactions}
+                            periodLabel={periodLabel}
+                            filter={filter}
+                            role="provider"
+                        />
+                    }
+                    fileName={`earnings_summary_${new Date().toISOString().split("T")[0]}.pdf`}
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                    {({ loading }) => (
+                        <>
+                            {loading ? (
+                                <>
+                                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                    Generating PDF...
+                                </>
+                            ) : (
+                                <>
+                                    <File className="h-3.5 w-3.5" />
+                                    PDF
+                                </>
+                            )}
+                        </>
+                    )}
+                </PDFDownloadLink>
+            ) : (
+                <button
+                    disabled
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-400 opacity-40 cursor-not-allowed"
+                >
+                    <File className="h-3.5 w-3.5" />
+                    PDF
+                </button>
+            )}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 
@@ -171,6 +362,7 @@ function ProviderEarnings() {
     const [error, setError] = useState(null);
 
     const [transactions, setTransactions] = useState([]);
+    const [isFiltering, setIsFiltering] = useState(false);
 
     // ── Get provider ID from localStorage ──
     const storedUser = getStoredUser();
@@ -182,14 +374,19 @@ function ProviderEarnings() {
     );
 
     // ── Fetch transactions ──
-    const fetchTransactions = async (showRefresh = false) => {
+    const fetchTransactions = async (showRefresh = false, newFilter = null) => {
         if (!providerId) {
             setLoading(false);
             return;
         }
 
+        if (newFilter !== null) {
+            setIsFiltering(true);
+        } else if (!showRefresh) {
+            setLoading(true);
+        }
+
         if (showRefresh) setRefreshing(true);
-        else setLoading(true);
         setError(null);
 
         try {
@@ -198,7 +395,9 @@ function ProviderEarnings() {
                 ? txRes
                 : txRes?.transactions || txRes?.data?.transactions || [];
             
-            const { start, end } = getDateRange(activeFilter);
+            const filterToUse = newFilter !== null ? newFilter : activeFilter;
+            const { start, end } = getDateRange(filterToUse);
+            
             const filtered = txList.filter(tx => {
                 const txDate = new Date(tx.paid_at || tx.paidAt || tx.created_at || tx.createdAt || tx.date);
                 if (isNaN(txDate.getTime())) return false;
@@ -216,13 +415,21 @@ function ProviderEarnings() {
         } finally {
             setLoading(false);
             setRefreshing(false);
+            setIsFiltering(false);
         }
     };
 
     useEffect(() => {
         fetchTransactions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [providerId, activeFilter]);
+    }, [providerId]);
+
+    // ── Handle filter change with smooth transition ──
+    const handleFilterChange = (value) => {
+        if (value === activeFilter) return;
+        setActiveFilter(value);
+        fetchTransactions(false, value);
+    };
 
     // ── Resolve transaction data ──
     const resolveTx = (tx) => {
@@ -253,13 +460,11 @@ function ProviderEarnings() {
     };
 
     // ── Calculate stats from FILTERED and COMPLETED transactions only ──
-    // Get all transactions that are COMPLETED/SUCCESS/PAID (successful payments)
     const successfulTxes = transactions.filter(tx => {
         const status = (tx.status || "").toUpperCase();
         return status === "COMPLETED" || status === "SUCCESS" || status === "PAID";
     });
 
-    // Only include incoming (provider earnings) transactions
     const incomingSuccessful = successfulTxes
         .map(resolveTx)
         .filter(t => t.isIncoming);
@@ -268,8 +473,13 @@ function ProviderEarnings() {
     const completedJobs = incomingSuccessful.length;
     const avgPerJob = completedJobs > 0 ? Math.round(totalEarned / completedJobs) : 0;
 
-    // Check if there are any transactions at all (for display purposes)
-    const hasTransactions = transactions.length > 0;
+    // Get completed transactions for display
+    const completedTransactions = transactions.filter(tx => {
+        const status = (tx.status || "").toUpperCase();
+        return status === "COMPLETED" || status === "SUCCESS" || status === "PAID";
+    });
+
+    const hasTransactions = completedTransactions.length > 0;
     const hasCompletedTransactions = completedJobs > 0;
 
     // ── Get period label ──
@@ -280,11 +490,7 @@ function ProviderEarnings() {
         return `${startStr} - ${endStr}`;
     };
 
-    const handleFilterChange = (value) => {
-        setActiveFilter(value);
-    };
-
-    // ── Loading State ──
+    // ── Loading State (only for initial load) ──
     if (loading) {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
@@ -292,6 +498,7 @@ function ProviderEarnings() {
                 <div className="flex-1 w-full lg:ml-72 transition-all duration-300 min-w-0">
                     <Navbar />
                     <main className="pt-20 md:pt-24 px-4 sm:px-6 pb-10 space-y-6 max-w-7xl mx-auto">
+                        {/* Loading skeletons... */}
                         <div className="animate-pulse">
                             <div className="h-8 w-48 bg-gray-200 rounded mb-2" />
                             <div className="h-4 w-64 bg-gray-200 rounded" />
@@ -386,6 +593,8 @@ function ProviderEarnings() {
         );
     }
 
+    const periodLabel = getPeriodLabel();
+
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role={sidebarRole} />
@@ -395,7 +604,7 @@ function ProviderEarnings() {
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
-                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">My Earnings</h1>
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">Earnings & Transactions</h1>
                             <p className="mt-1 text-xs sm:text-sm text-gray-500">
                                 Every job payout, paid straight to your M-Pesa the moment it's completed.
                             </p>
@@ -431,49 +640,57 @@ function ProviderEarnings() {
                                 ))}
                             </div>
                         </div>
-                        <span className="text-xs text-gray-400">
-                            {hasTransactions ? getPeriodLabel() : "No transactions"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400">
+                                {hasTransactions ? periodLabel : "No completed transactions"}
+                            </span>
+                            <TransactionSummary 
+                                transactions={transactions} 
+                                filter={activeFilter}
+                                periodLabel={periodLabel}
+                            />
+                        </div>
                     </div>
 
-                    {/* ── Stat Cards - Only showing COMPLETED transactions ── */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    {/* ── Stat Cards ── */}
+                    <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 transition-opacity duration-300 ${isFiltering ? 'opacity-60' : 'opacity-100'}`}>
                         <StatCard
                             icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />}
                             iconBg="bg-green-50 border border-green-100"
                             label="Total Earned"
                             value={hasCompletedTransactions ? `KES ${totalEarned.toLocaleString()}` : "KES 0"}
-                            sub={hasCompletedTransactions ? getPeriodLabel() : "No completed jobs"}
-                            isLoading={loading}
+                            sub={hasCompletedTransactions ? periodLabel : "No completed jobs"}
+                            isLoading={isFiltering}
                         />
                         <StatCard
                             icon={<Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-[#056db3]" />}
                             iconBg="bg-blue-50 border border-blue-100"
                             label="Jobs Paid Out"
                             value={completedJobs}
-                            sub={hasCompletedTransactions ? getPeriodLabel() : "No completed jobs"}
-                            isLoading={loading}
+                            sub={hasCompletedTransactions ? periodLabel : "No completed jobs"}
+                            isLoading={isFiltering}
                         />
                         <StatCard
                             icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />}
                             iconBg="bg-purple-50 border border-purple-100"
                             label="Average per Job"
                             value={hasCompletedTransactions ? `KES ${avgPerJob.toLocaleString()}` : "KES 0"}
-                            sub={hasCompletedTransactions ? getPeriodLabel() : "No completed jobs"}
-                            isLoading={loading}
+                            sub={hasCompletedTransactions ? periodLabel : "No completed jobs"}
+                            isLoading={isFiltering}
                         />
                     </div>
 
+                    {/* ── Recent Activity and How Payouts Work ── */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                         <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm">
                             <div className="flex items-center justify-between mb-1">
                                 <h2 className="text-base sm:text-lg font-bold text-gray-800">Recent Activity</h2>
                                 <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                                    {transactions.length}
+                                    {completedTransactions.length}
                                 </span>
                             </div>
                             <p className="text-xs sm:text-sm text-gray-500 mb-4">
-                                Your latest payouts {hasTransactions ? `for ${getPeriodLabel()}` : ""}
+                                Your latest payouts {hasTransactions ? `for ${periodLabel}` : ""}
                             </p>
 
                             {!hasTransactions ? (
@@ -490,7 +707,7 @@ function ProviderEarnings() {
                                 </div>
                             ) : (
                                 <div className="space-y-3">
-                                    {transactions.slice(0, 5).map((tx, idx) => {
+                                    {completedTransactions.slice(0, 5).map((tx, idx) => {
                                         const { absoluteAmount, isIncoming, dateVal, description } = resolveTx(tx);
                                         return (
                                             <div key={tx.id || idx} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 last:pb-0 gap-2">
@@ -553,10 +770,10 @@ function ProviderEarnings() {
                     {/* ── Payout History Table ── */}
                     <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
                         <div className="px-4 sm:px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <h2 className="text-base sm:text-lg font-bold text-gray-800">Payout History</h2>
+                            <h2 className="text-base sm:text-lg font-bold text-gray-800">Transaction History</h2>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-400">
-                                    {hasTransactions ? `${transactions.length} transactions` : "No transactions"}
+                                    {hasTransactions ? `${completedTransactions.length} completed transactions` : "No completed transactions"}
                                 </span>
                             </div>
                         </div>
@@ -564,7 +781,7 @@ function ProviderEarnings() {
                         {!hasTransactions ? (
                             <div className="p-8 text-center text-gray-500 text-sm">
                                 <History className="mx-auto h-12 w-12 text-gray-300 mb-3" />
-                                No payouts for this period. Complete a job to see it here.
+                                No completed payouts for this period. Complete a job to see it here.
                             </div>
                         ) : (
                             <div className="overflow-x-auto w-full">
@@ -579,7 +796,7 @@ function ProviderEarnings() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {transactions.map((tx, idx) => {
+                                        {completedTransactions.map((tx, idx) => {
                                             const { absoluteAmount, isIncoming, rawStatus, dateVal, description, txType } = resolveTx(tx);
                                             return (
                                                 <tr key={tx.id || idx} className="hover:bg-gray-50">
@@ -617,7 +834,7 @@ function ProviderEarnings() {
                                             );
                                         })}
                                     </tbody>
-                                    {transactions.length > 0 && (
+                                    {completedTransactions.length > 0 && (
                                         <tfoot className="bg-gray-50 border-t border-gray-200">
                                             <tr>
                                                 <td colSpan="4" className="px-3 sm:px-4 py-2 text-right font-semibold text-gray-700">

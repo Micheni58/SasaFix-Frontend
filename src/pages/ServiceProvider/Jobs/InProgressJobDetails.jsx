@@ -1,8 +1,8 @@
 // src/pages/ServiceProvider/Jobs/InProgressJobDetails.jsx - Full Updated
 
 import { useState, useEffect } from "react";
-import { 
-  Mail, Phone, Calendar, Clock3, MapPin, 
+import {
+  Mail, Phone, Calendar, Clock3, MapPin,
   MessageSquare, Flag, Loader2, CheckCircle2,
   RotateCcw, AlertTriangle
 } from "lucide-react";
@@ -68,7 +68,7 @@ function InProgressJobSkeleton() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           <div className="animate-pulse">
@@ -197,7 +197,7 @@ function InProgressJobDetails() {
     bookingService.getBooking(bookingId)
       .then((b) => {
         if (!mounted) return;
-        
+
         let serviceFeeRaw = 0;
         if (b.amountRaw !== undefined && b.amountRaw !== null) {
           serviceFeeRaw = typeof b.amountRaw === 'string' ? parseFloat(b.amountRaw) : b.amountRaw;
@@ -209,20 +209,20 @@ function InProgressJobDetails() {
           const clean = b.amount.replace(/[^0-9.]/g, '');
           serviceFeeRaw = parseFloat(clean) || 0;
         }
-        
+
         if (isNaN(serviceFeeRaw) || serviceFeeRaw <= 0) {
           serviceFeeRaw = 0;
         }
-        
+
         const commissionRate = 10;
         const commissionRaw = serviceFeeRaw * (commissionRate / 100);
         const earningsRaw = serviceFeeRaw - commissionRaw;
-        
+
         const clientName = b.client || b.clientName || b.client_full_name || b.raw?.client_full_name || `Client #${b.clientId}`;
-        
+
         const formattedDate = formatDate(b.date || b.scheduled_date || '');
         const formattedTime = formatTimeRange(b.time || (b.scheduled_start_time && `${b.scheduled_start_time} - ${b.scheduled_end_time}`) || '');
-        
+
         const mapped = {
           id: b.id || bookingId,
           service: b.service || b.service_name || '',
@@ -272,7 +272,7 @@ function InProgressJobDetails() {
       navigate("/provider/my-jobs");
       return;
     }
-    
+
     setActionLoading(true);
     try {
       await bookingService.updateBookingStatus(bookingId, "completed");
@@ -333,7 +333,7 @@ function InProgressJobDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 flex items-center justify-center">
             <p className="text-red-500">Error: {error}</p>
@@ -347,7 +347,7 @@ function InProgressJobDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 flex items-center justify-center">
             <p className="text-gray-500">No booking found.</p>
@@ -363,7 +363,7 @@ function InProgressJobDetails() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           {/* ── Header ── */}
@@ -493,7 +493,7 @@ function InProgressJobDetails() {
                     <span className="font-semibold text-green-600 text-2xl">{job.earningsDisplay}</span>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 rounded-lg bg-blue-50 border border-blue-200 p-3">
                   <p className="text-sm text-blue-700">
                     💡 You'll receive your earnings after the job is completed and approved by the client.

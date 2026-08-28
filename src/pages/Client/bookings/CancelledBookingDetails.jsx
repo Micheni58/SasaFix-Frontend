@@ -204,7 +204,7 @@ function CancelledBookingDetails() {
     useEffect(() => {
         let mounted = true;
         setLoading(true);
-        
+
         const fetchBooking = async () => {
             try {
                 const b = await bookingService.getBooking(Number(bookingId));
@@ -216,7 +216,7 @@ function CancelledBookingDetails() {
                 if (mounted) setLoading(false);
             }
         };
-        
+
         fetchBooking();
         return () => { mounted = false; };
     }, [bookingId]);
@@ -242,7 +242,7 @@ function CancelledBookingDetails() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="client" />
-                <div className="flex-1 ml-72">
+                <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
                     <main className="pt-24 px-6 pb-6">
                         <section className="mb-8">
@@ -276,7 +276,7 @@ function CancelledBookingDetails() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="client" />
-                <div className="flex-1 ml-72">
+                <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
                     <main className="pt-24 px-6 pb-6 flex items-center justify-center">
                         <p className="text-gray-500">Booking not found.</p>
@@ -319,7 +319,7 @@ function CancelledBookingDetails() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="client" />
-            <div className="flex-1 ml-72">
+            <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
                 <main className="pt-24 px-6 pb-6">
                     <section className="mb-8">
@@ -340,7 +340,7 @@ function CancelledBookingDetails() {
                             <BookingInfoCard booking={ui} />
                             <ProviderInfoCard worker={ui.worker} />
                             <Timeline items={ui.timeline} />
-                            <PaymentDetailsCard 
+                            <PaymentDetailsCard
                                 booking={ui}
                                 isPaid={false}
                                 isPaymentPending={false}

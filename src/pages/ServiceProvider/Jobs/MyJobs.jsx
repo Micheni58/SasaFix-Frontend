@@ -100,7 +100,7 @@ function getJobDetailsPath(job) {
     if (status.includes("cancelled")) {
         return `/provider/my-jobs/cancelled/${job.id}`;
     }
-    
+
     return `/provider/my-jobs/new/${job.id}`;
 }
 
@@ -182,7 +182,7 @@ function JobsSkeleton() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="provider" />
-            <div className="flex-1 ml-72">
+            <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
                 <main className="pt-24 px-6 pb-6">
                     <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
@@ -237,7 +237,7 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
                         {job.service} with {getClientName(job)}
                     </p>
                 </div>
-                
+
                 <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
                     <div>
                         <label htmlFor="reschedule-date" className="block text-sm font-medium text-gray-700 mb-1">
@@ -253,7 +253,7 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
                             required
                         />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label htmlFor="reschedule-start-time" className="block text-sm font-medium text-gray-700 mb-1">
@@ -293,7 +293,7 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
                             <li>Require re-confirmation from the client</li>
                         </ul>
                     </div>
-                    
+
                     <div className="flex gap-3 mt-4">
                         <button
                             type="button"
@@ -441,7 +441,7 @@ function MyJobs() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="provider" />
-            <div className="flex-1 ml-72">
+            <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
                 <main className="pt-24 px-6 pb-6">
                     <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
@@ -625,9 +625,9 @@ function MyJobs() {
                                                                     <span className="h-4 w-4 text-gray-600">💬</span>
                                                                     Message
                                                                 </button>
-                                                                
-                                                                {job.status !== "Completed" && 
-                                                                 job.status !== "Cancelled" && 
+
+                                                                {job.status !== "Completed" &&
+                                                                 job.status !== "Cancelled" &&
                                                                  job.status !== "Paid" && (
                                                                     <button
                                                                         onClick={() => {
@@ -641,7 +641,7 @@ function MyJobs() {
                                                                         Reschedule
                                                                     </button>
                                                                 )}
-                                                                
+
                                                                 {job.status === "New Requests" && (
                                                                     <>
                                                                         <button
@@ -666,9 +666,9 @@ function MyJobs() {
                                                                         </button>
                                                                     </>
                                                                 )}
-                                                                
-                                                                {job.status !== "Completed" && 
-                                                                 job.status !== "Cancelled" && 
+
+                                                                {job.status !== "Completed" &&
+                                                                 job.status !== "Cancelled" &&
                                                                  job.status !== "Paid" && (
                                                                     <button
                                                                         onClick={async () => {

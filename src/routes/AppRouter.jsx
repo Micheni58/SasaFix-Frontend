@@ -18,6 +18,7 @@ import ProviderDashboard from "../pages/ServiceProvider/ProviderDashboard";
 import ProviderNotification from "../pages/ServiceProvider/Notification";
 import Availability from "../pages/ServiceProvider/Availability";
 import MyBookings from "../pages/Client/bookings/MyBookings";
+import CreateBooking from "../pages/Client/bookings/CreateBooking";
 import MyJobs from "../pages/ServiceProvider/Jobs/MyJobs";
 import NewJobRequestDetails from "../pages/ServiceProvider/Jobs/NewJobRequestDetails";
 import AcceptedJobDetails from "../pages/ServiceProvider/Jobs/AcceptedJobDetails";
@@ -87,11 +88,19 @@ export default function AppRouter() {
 
         <Route path="/client" element={<ClientDashboard />} />
         <Route path="/client/find-services" element={<FindServices />} />
+        <Route
+          path="/providers/:providerId"
+          element={<ProviderProfilePage />}
+        />
         <Route path="/client/messages" element={<ClientMessages />} />
         <Route path="/client/transactions" element={<ClientTransactions />} />
         <Route path="/client/notifications" element={<ClientNotification />} />
         <Route path="/client/profile" element={<ClientProfile />} />
         <Route path="/client/my-bookings" element={<MyBookings />} />
+        <Route
+          path="/client/bookings/create/:providerId"
+          element={<CreateBooking />}
+        />
         <Route
           path="/client/my-bookings/in-progress/:bookingId"
           element={<InProgressBookingDetails />}
@@ -141,7 +150,7 @@ export default function AppRouter() {
 
         <Route
           path="/provider/subscription"
-          element={<ProviderSubscription />}
+          element={<Subscription />}
         />
 
         <Route path="/profile" element={<Profile />} />

@@ -46,14 +46,14 @@ const FindServices = () => {
     <div className="flex min-h-screen bg-[#f8fafc]">
     <Sidebar role="client" />
 
-    <div className="flex-1 ml-72 min-w-0">
+    <div className="flex-1 ml-0 lg:ml-72 min-w-0">
       <Navbar />
 
-      <main className="pt-24 px-6 pb-6">
+      <main className="pt-24 pb-6 px-4 sm:px-6 lg:px-8">
         <div className="min-h-full bg-gray-50">
 
       {/* Header */}
-      <div className="bg-white px-8 pt-6 pb-4 border-b border-gray-100">
+      <div className="bg-gray-50 pt-6 pb-4 border-b border-gray-100">
         <h1 className="text-2xl font-bold text-gray-900">
           {filters.search
             ? `Search Results for "${filters.search}"`
@@ -68,7 +68,7 @@ const FindServices = () => {
       </div>
 
       {/* Main */}
-      <div className="flex gap-5 px-8 py-5 items-start">
+      <div className="flex gap-3 sm:gap-5 py-5 items-start">
 
         {/* Sidebar */}
         <FilterSidebar

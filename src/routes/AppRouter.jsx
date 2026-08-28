@@ -136,6 +136,8 @@ export default function AppRouter() {
           element={<ProviderNotification />}
         />
         <Route path="/provider/my-reviews" element={<Reviews />} />
+        <Route path="/provider/my-jobs/rescheduled/:id" element={<RescheduledJobDetails />}/>
+        <Route path="/provider/subscription" element={<Subscription />} />
 
         <Route
           path="/provider/my-jobs/rescheduled/:id"

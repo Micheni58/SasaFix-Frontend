@@ -38,7 +38,15 @@ export async function getProvider(providerId) {
     throw new Error("Provider not found.");
   }
 
-  return await response.json();
+  const provider = await response.json();
+  const location =
+    [provider.address, provider.city, provider.country]
+      .filter(Boolean)
+      .join(", ") ||
+    provider.location ||
+    "";
+
+  return { ...provider, location };
 }
 
 /**

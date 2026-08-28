@@ -104,7 +104,7 @@ function ConfirmationModal({
           </div>
           <h3 className="text-2xl font-bold text-gray-800">{title}</h3>
           <p className="mt-2 text-gray-600">{message}</p>
-          
+
           <div className="mt-6 flex gap-3">
             <button
               onClick={onClose}
@@ -158,7 +158,7 @@ function HoldPayoutModal({
           <p className="mt-2 text-gray-600">
             Please provide a reason for holding this payout of {payoutAmount} to {providerName}.
           </p>
-          
+
           <div className="mt-4 text-left">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Reason for Holding
@@ -433,7 +433,7 @@ function PayoutDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
             <button
@@ -455,7 +455,7 @@ function PayoutDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
             <button
@@ -499,7 +499,7 @@ function PayoutDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
             <button
@@ -533,7 +533,7 @@ function PayoutDetails() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
           {/* ── Header ── */}
@@ -844,7 +844,7 @@ function PayoutDetails() {
               <p className="mt-2 text-gray-600">
                 Please provide a reason for rejecting this payout of {payout?.formatted_amount || formatCurrency(payout?.amount)} to {payout?.provider_name || `Provider #${payout?.provider_id}`}.
               </p>
-              
+
               <div className="mt-4 text-left">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Reason for Rejection

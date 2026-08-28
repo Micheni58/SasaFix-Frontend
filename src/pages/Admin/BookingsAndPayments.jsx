@@ -365,7 +365,7 @@ function BookingsAndPayments() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc] overflow-hidden">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-72 min-w-0">
+        <div className="flex-1 ml-0 lg:ml-72 min-w-0">
           <Navbar />
           <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full overflow-x-hidden">
             <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
@@ -395,7 +395,7 @@ function BookingsAndPayments() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6">
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center max-w-2xl mx-auto">
@@ -420,7 +420,7 @@ function BookingsAndPayments() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc] overflow-hidden">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-72 min-w-0">
+      <div className="flex-1 ml-0 lg:ml-72 min-w-0">
         <Navbar />
         <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full overflow-x-hidden">
           {/* ── Page Header ── */}

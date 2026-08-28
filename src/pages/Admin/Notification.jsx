@@ -256,7 +256,7 @@ export default function AdminNotification() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="admin" />
-                <div className="flex-1 ml-72">
+                <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
                     <main className="pt-24 px-6 pb-6">
                         <div className="max-w-5xl mx-auto">
@@ -281,7 +281,7 @@ export default function AdminNotification() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="admin" />
-                <div className="flex-1 ml-72">
+                <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
                     <main className="pt-24 px-6 pb-6">
                         <div className="max-w-5xl mx-auto">
@@ -319,7 +319,7 @@ export default function AdminNotification() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="admin" />
-            <div className="flex-1 ml-72">
+            <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
                 <main className="pt-24 px-6 pb-6">
                     <div className="max-w-5xl mx-auto">
@@ -402,8 +402,8 @@ export default function AdminNotification() {
                                             key={n.id}
                                             onClick={() => markRead(n.id)}
                                             className={`flex items-center gap-4 rounded-lg px-4 py-3 cursor-pointer transition-colors border ${
-                                                n.read 
-                                                    ? `bg-white hover:bg-gray-50 border-gray-100` 
+                                                n.read
+                                                    ? `bg-white hover:bg-gray-50 border-gray-100`
                                                     : `bg-blue-50 hover:bg-blue-100 border-blue-200`
                                             }`}
                                         >

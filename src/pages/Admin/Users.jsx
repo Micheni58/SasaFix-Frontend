@@ -362,7 +362,7 @@ function Users() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           {toast && <Toast msg={toast.msg} ok={toast.ok} />}

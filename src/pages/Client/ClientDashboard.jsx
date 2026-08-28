@@ -104,11 +104,11 @@ function getProviderRing(booking) {
 
 function formatDateToWords(dateString) {
   if (!dateString) return "Date pending";
-  
+
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "Date pending";
-    
+
     return new Intl.DateTimeFormat("en-KE", {
       day: "numeric",
       month: "long",
@@ -125,7 +125,7 @@ function formatDateToWords(dateString) {
 
 function getBookingRoute(booking) {
   const status = booking.status || "Pending";
-  
+
   const routeMap = {
     "Upcoming": `/client/my-bookings/upcoming/${booking.id}`,
     "Pending": `/client/my-bookings/upcoming/${booking.id}`,
@@ -137,7 +137,7 @@ function getBookingRoute(booking) {
     "Paid": `/client/my-bookings/paid/${booking.id}`,
     "Cancelled": `/client/my-bookings/cancelled/${booking.id}`,
   };
-  
+
   return routeMap[status] || `/client/my-bookings/${booking.id}`;
 }
 
@@ -261,7 +261,7 @@ function ClientDashboard() {
       try {
         const result = await getTransactionHistory(userId);
         const transactions = result.transactions || [];
-        
+
         // Get current month date range
         const now = new Date();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -298,11 +298,11 @@ function ClientDashboard() {
   const activeCount = bookings.filter((booking) =>
     activeStatuses.includes(booking.status)
   ).length;
-  
-  const completedCount = bookings.filter((booking) => 
+
+  const completedCount = bookings.filter((booking) =>
     booking.status === "Completed" || booking.status === "Paid"
   ).length;
-  
+
   const loyalty = Math.min(
     100,
     Math.round((completedCount / Math.max(1, bookings.length)) * 100)
@@ -315,7 +315,7 @@ function ClientDashboard() {
     null;
   const activeProgress = activeBooking ? getBookingProgress(activeBooking.status) : 0;
 
-  const lastCompleted = bookings.find((booking) => 
+  const lastCompleted = bookings.find((booking) =>
     booking.status === "Completed" || booking.status === "Paid"
   ) || null;
 
@@ -362,7 +362,7 @@ function ClientDashboard() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="ml-72 min-w-0 flex-1">
+      <div className="ml-0 lg:ml-72 min-w-0 flex-1">
         <Navbar />
         <main className="px-6 pb-6 pt-24">
           {/* ── Header ── */}

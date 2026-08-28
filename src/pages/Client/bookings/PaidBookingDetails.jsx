@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  MessageSquare, 
-  Flag, 
-  Loader2, 
-  CheckCircle2, 
+import {
+  MessageSquare,
+  Flag,
+  Loader2,
+  CheckCircle2,
   CreditCard,
   Calendar,
   Clock3,
@@ -90,7 +90,7 @@ function PaidBookingSkeleton() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           <div className="animate-pulse">
@@ -233,7 +233,7 @@ function PaidBookingDetails() {
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    
+
     const fetchBooking = async () => {
       try {
         const b = await bookingService.getBooking(Number(bookingId));
@@ -245,7 +245,7 @@ function PaidBookingDetails() {
         if (mounted) setLoading(false);
       }
     };
-    
+
     fetchBooking();
     return () => { mounted = false; };
   }, [bookingId]);
@@ -286,7 +286,7 @@ function PaidBookingDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="client" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 flex items-center justify-center">
             <p className="text-gray-500">Booking not found.</p>
@@ -334,7 +334,7 @@ function PaidBookingDetails() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           {/* ── Back Button ── */}
@@ -362,7 +362,7 @@ function PaidBookingDetails() {
             <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 flex items-center gap-3">
               <CreditCard className="h-5 w-5 text-emerald-600" />
               <p className="text-sm text-emerald-700">
-                Payment of <strong>{ui.serviceFee}</strong> has been processed successfully. 
+                Payment of <strong>{ui.serviceFee}</strong> has been processed successfully.
                 Thank you for using SasaFix!
               </p>
             </div>
@@ -373,12 +373,12 @@ function PaidBookingDetails() {
             <div className="lg:col-span-2 space-y-6">
               <BookingInfoCard booking={ui} />
               <ProviderInfoCard worker={ui.worker} />
-              
+
               {/* ── Timeline ── */}
               <Timeline items={ui.timeline} />
-              
+
               {/* ── Payment Details ── */}
-              <PaymentDetailsCard 
+              <PaymentDetailsCard
                 booking={ui}
                 isPaid={true}
                 isPaymentPending={false}

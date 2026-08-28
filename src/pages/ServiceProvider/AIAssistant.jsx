@@ -90,13 +90,13 @@ function FeatureCard({ icon: Icon, title, description, color, onClick, badge }) 
 function OnboardingCard({ step, title, description, icon: Icon, isCompleted, onStart }) {
   return (
     <div className={`flex items-start gap-4 p-4 rounded-xl border ${
-      isCompleted 
-        ? 'border-green-200 bg-green-50' 
+      isCompleted
+        ? 'border-green-200 bg-green-50'
         : 'border-gray-200 bg-white'
     } transition-all hover:shadow-md`}>
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-        isCompleted 
-          ? 'bg-green-100 text-green-600' 
+        isCompleted
+          ? 'bg-green-100 text-green-600'
           : 'bg-blue-50 text-[#056db3]'
       }`}>
         {isCompleted ? (
@@ -365,7 +365,7 @@ const AIAssistant = () => {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="px-8 pb-8 pt-28">
             <div className="max-w-6xl mx-auto">
@@ -429,13 +429,14 @@ const AIAssistant = () => {
     );
   }
 
-  if (!providerId) {
+  // ── Error State ──
+  if (error) {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
-          <div className="flex items-center justify-center h-96 px-8">
+          <div className="flex items-center justify-center h-96">
             <div className="text-center p-8 bg-white rounded-2xl shadow-sm max-w-md border border-gray-100">
               <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-4xl">
                 🔍
@@ -466,7 +467,7 @@ const AIAssistant = () => {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="px-8 pb-8 pt-28">
             <div className="max-w-6xl mx-auto">
@@ -572,7 +573,7 @@ const AIAssistant = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="px-8 pb-8 pt-28">
           <div className="max-w-4xl mx-auto">

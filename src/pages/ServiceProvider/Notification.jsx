@@ -35,7 +35,7 @@ function getTimeAgo(dateValue) {
     if (diffDays < 7) return `${diffDays} days ago`;
     if (diffWeeks === 1) return "1 week ago";
     if (diffWeeks < 4) return `${diffWeeks} weeks ago`;
-    
+
     return createdAt.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
@@ -47,16 +47,16 @@ function getTimeAgo(dateValue) {
 function shouldShowNotification(notification) {
     // If not read, always show
     if (!notification.read) return true;
-    
+
     // If read, check if it's older than 3 days
     if (!notification.createdAt) return true;
-    
+
     const createdAt = new Date(notification.createdAt);
     if (Number.isNaN(createdAt.getTime())) return true;
-    
+
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-    
+
     return createdAt > threeDaysAgo;
 }
 
@@ -140,10 +140,10 @@ export default function ProviderNotification() {
                 fetchNotifications(),
                 fetchUnreadNotificationCount(),
             ]);
-            
+
             // Filter out read notifications older than 3 days
             const filteredData = (data || []).filter(shouldShowNotification);
-            
+
             setNotifications(filteredData);
             // Count unread from filtered data
             const unread = filteredData.filter((n) => !n.read).length;
@@ -164,7 +164,7 @@ export default function ProviderNotification() {
 
     const filtered = useMemo(() => {
         let result = notifications;
-        
+
         if (activeTab === "Unread") {
             result = notifications.filter((n) => !n.read);
         } else if (activeTab === "Jobs") {
@@ -173,25 +173,25 @@ export default function ProviderNotification() {
             // ── Payments tab: only payment-related notifications ──
             result = notifications.filter((n) => {
                 if (n.type !== "payment") return false;
-                
+
                 // Filter for payment-specific keywords in title or body
                 const title = (n.title || "").toLowerCase();
                 const body = (n.text || n.body || "").toLowerCase();
-                
+
                 const paymentKeywords = [
-                    "payment", "paid", "pay", "withdrawal", "withdraw", 
+                    "payment", "paid", "pay", "withdrawal", "withdraw",
                     "earnings", "earning", "wallet", "balance", "commission",
                     "payout", "approved", "released", "completed", "pending"
                 ];
-                
-                return paymentKeywords.some(keyword => 
+
+                return paymentKeywords.some(keyword =>
                     title.includes(keyword) || body.includes(keyword)
                 );
             });
         } else if (activeTab === "Messages") {
             result = notifications.filter((n) => n.type === "message");
         }
-        
+
         return result;
     }, [activeTab, notifications]);
 
@@ -204,11 +204,11 @@ export default function ProviderNotification() {
             const title = (n.title || "").toLowerCase();
             const body = (n.text || n.body || "").toLowerCase();
             const paymentKeywords = [
-                "payment", "paid", "pay", "withdrawal", "withdraw", 
+                "payment", "paid", "pay", "withdrawal", "withdraw",
                 "earnings", "earning", "wallet", "balance", "commission",
                 "payout", "approved", "released", "completed", "pending"
             ];
-            return paymentKeywords.some(keyword => 
+            return paymentKeywords.some(keyword =>
                 title.includes(keyword) || body.includes(keyword)
             );
         }).length,
@@ -265,7 +265,7 @@ export default function ProviderNotification() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="provider" />
-                <div className="flex-1 ml-72">
+                <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
                     <main className="pt-24 px-6 pb-6">
                         <NotificationSkeleton />
@@ -278,7 +278,7 @@ export default function ProviderNotification() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="provider" />
-            <div className="flex-1 ml-72">
+            <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
                 <main className="pt-24 px-6 pb-6">
                     {/* ── Page Header ── */}

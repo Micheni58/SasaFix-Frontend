@@ -76,7 +76,7 @@ function RescheduledBookingSkeleton() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           <div className="animate-pulse">
@@ -347,7 +347,7 @@ function RescheduledBookingDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="client" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 flex items-center justify-center">
             <div className="text-center">
@@ -373,7 +373,7 @@ function RescheduledBookingDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="client" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 flex items-center justify-center">
             <p className="text-gray-500">No booking found.</p>
@@ -386,7 +386,7 @@ function RescheduledBookingDetails() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           {successMessage && (

@@ -355,7 +355,7 @@ const [mpesaPhone, setMpesaPhone] =
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
 
-        <div className="ml-72 flex-1">
+        <div className="ml-0 lg:ml-72 flex-1">
           <Navbar />
 
           <main className="px-8 pb-10 pt-24">
@@ -372,7 +372,7 @@ const [mpesaPhone, setMpesaPhone] =
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
 
-        <div className="ml-72 flex-1">
+        <div className="ml-0 lg:ml-72 flex-1">
           <Navbar />
 
           <main className="px-8 pb-10 pt-24">
@@ -397,7 +397,7 @@ const [mpesaPhone, setMpesaPhone] =
 
       <Sidebar role="provider" />
 
-      <div className="ml-72 flex-1">
+      <div className="ml-0 lg:ml-72 flex-1">
 
         <Navbar />
 

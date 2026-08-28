@@ -74,7 +74,7 @@ function PaidBookingSkeleton() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           <div className="animate-pulse">
@@ -233,7 +233,7 @@ function PaidBookingDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="client" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 flex items-center justify-center">
             <p className="text-gray-500">Booking not found.</p>
@@ -289,7 +289,7 @@ function PaidBookingDetails() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
 

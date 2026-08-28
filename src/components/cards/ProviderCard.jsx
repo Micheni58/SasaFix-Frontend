@@ -12,16 +12,17 @@ const ProviderCard = ({ provider }) => {
   const reviews = provider.total_reviews ?? 0;
 
   const location =
-    provider.city && provider.country
-      ? `${provider.city}, ${provider.country}`
-      : provider.city ||
-        provider.country ||
-        "Location unavailable";
+    provider.address ||
+    [provider.city, provider.country].filter(Boolean).join(", ") ||
+    provider.location ||
+    "Location unavailable";
 
   const avatar = initials(
     provider.first_name,
     provider.last_name
   );
+  const providerId =
+    provider.id || provider.provider_id || provider.service_provider_id;
 
   return (
     <div
@@ -225,9 +226,7 @@ const ProviderCard = ({ provider }) => {
           {/* View Profile */}
 
           <button
-            onClick={() =>
-              navigate(`/providers/${provider.id}`)
-            }
+            onClick={() => navigate(`/providers/${providerId}`)}
             className="
               w-[92px]
               h-[50px]

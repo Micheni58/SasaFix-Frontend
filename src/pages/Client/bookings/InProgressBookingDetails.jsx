@@ -203,7 +203,7 @@ function InProgressBookingDetails() {
     useEffect(() => {
         let mounted = true;
         setLoading(true);
-        
+
         const fetchBooking = async () => {
             try {
                 const b = await bookingService.getBooking(Number(bookingId));
@@ -215,7 +215,7 @@ function InProgressBookingDetails() {
                 if (mounted) setLoading(false);
             }
         };
-        
+
         fetchBooking();
         return () => { mounted = false; };
     }, [bookingId]);
@@ -241,7 +241,7 @@ function InProgressBookingDetails() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="client" />
-                <div className="flex-1 ml-72">
+                <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
                     <main className="pt-24 px-6 pb-6">
                         <section className="mb-8">
@@ -278,7 +278,7 @@ function InProgressBookingDetails() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="client" />
-                <div className="flex-1 ml-72">
+                <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
                     <main className="pt-24 px-6 pb-6 flex items-center justify-center">
                         <p className="text-gray-500">Booking not found.</p>
@@ -325,7 +325,7 @@ function InProgressBookingDetails() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="client" />
-            <div className="flex-1 ml-72">
+            <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
                 <main className="pt-24 px-6 pb-6">
                     <section className="mb-8">
@@ -334,7 +334,7 @@ function InProgressBookingDetails() {
                                 <h1 className="text-3xl font-bold text-gray-800">Work In Progress</h1>
                                 <p className="text-gray-600 mt-2">Booking #{ui.id}</p>
                             </div>
-                            <div className="flex items-center gap-3 flex-wrap">                                
+                            <div className="flex items-center gap-3 flex-wrap">
                                 <span className="px-4 py-2 rounded-full text-sm font-semibold bg-indigo-50 text-indigo-700 flex items-center gap-2">
                                     <Clock3 className="w-4 h-4 animate-pulse" />
                                     In Progress
@@ -348,7 +348,7 @@ function InProgressBookingDetails() {
                             <BookingInfoCard booking={ui} />
                             <ProviderInfoCard worker={ui.worker} />
                             <Timeline items={ui.timeline} />
-                            <PaymentDetailsCard 
+                            <PaymentDetailsCard
                                 booking={ui}
                                 isPaid={false}
                                 isPaymentPending={false}

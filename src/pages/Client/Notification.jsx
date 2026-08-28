@@ -35,7 +35,7 @@ function getTimeAgo(dateValue) {
     if (diffDays < 7) return `${diffDays} days ago`;
     if (diffWeeks === 1) return "1 week ago";
     if (diffWeeks < 4) return `${diffWeeks} weeks ago`;
-    
+
     return createdAt.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
@@ -47,13 +47,13 @@ function getTimeAgo(dateValue) {
 function shouldShowNotification(notification) {
     if (!notification.read) return true;
     if (!notification.createdAt) return true;
-    
+
     const createdAt = new Date(notification.createdAt);
     if (Number.isNaN(createdAt.getTime())) return true;
-    
+
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-    
+
     return createdAt > threeDaysAgo;
 }
 
@@ -171,9 +171,9 @@ export default function ClientNotification() {
                 fetchNotifications(),
                 fetchUnreadNotificationCount(),
             ]);
-            
+
             const filteredData = (data || []).filter(shouldShowNotification);
-            
+
             setNotifications(filteredData);
             const unread = filteredData.filter((n) => !n.read).length;
             setUnreadCount(unread);
@@ -193,7 +193,7 @@ export default function ClientNotification() {
 
     const filtered = useMemo(() => {
         let result = notifications;
-        
+
         if (activeTab === "Unread") {
             result = notifications.filter((n) => !n.read);
         } else if (activeTab === "Bookings") {
@@ -204,19 +204,19 @@ export default function ClientNotification() {
                 const title = (n.title || "").toLowerCase();
                 const body = (n.text || n.body || "").toLowerCase();
                 const paymentKeywords = [
-                    "payment", "paid", "pay", "refund", 
+                    "payment", "paid", "pay", "refund",
                     "charged", "charge", "mpesa", "stk",
                     "transaction", "receipt", "invoice",
                     "complete", "success", "confirmed"
                 ];
-                return paymentKeywords.some(keyword => 
+                return paymentKeywords.some(keyword =>
                     title.includes(keyword) || body.includes(keyword)
                 );
             });
         } else if (activeTab === "Messages") {
             result = notifications.filter((n) => n.type === "message");
         }
-        
+
         return result;
     }, [activeTab, notifications]);
 
@@ -229,12 +229,12 @@ export default function ClientNotification() {
             const title = (n.title || "").toLowerCase();
             const body = (n.text || n.body || "").toLowerCase();
             const paymentKeywords = [
-                "payment", "paid", "pay", "refund", 
+                "payment", "paid", "pay", "refund",
                 "charged", "charge", "mpesa", "stk",
                 "transaction", "receipt", "invoice",
                 "complete", "success", "confirmed"
             ];
-            return paymentKeywords.some(keyword => 
+            return paymentKeywords.some(keyword =>
                 title.includes(keyword) || body.includes(keyword)
             );
         }).length,
@@ -291,7 +291,7 @@ export default function ClientNotification() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="client" />
-                <div className="flex-1 ml-72">
+                <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
                     <main className="pt-24 px-6 pb-6">
                         <div className="max-w-5xl mx-auto">
@@ -314,7 +314,7 @@ export default function ClientNotification() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="client" />
-            <div className="flex-1 ml-72">
+            <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
                 <main className="pt-24 px-6 pb-6">
                     <div className="max-w-5xl mx-auto">
@@ -401,7 +401,7 @@ export default function ClientNotification() {
                                 <div className="space-y-2">
                                     {filtered.map((n) => {
                                         const timeAgo = n.timeAgo || getTimeAgo(n.createdAt);
-                                        
+
                                         return (
                                             <div
                                                 key={n.id}

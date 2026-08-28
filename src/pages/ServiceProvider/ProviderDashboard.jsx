@@ -489,7 +489,7 @@ function ProviderDashboard() {
         const txList = Array.isArray(txRes)
           ? txRes
           : txRes?.transactions || txRes?.data?.transactions || [];
-        
+
         if (!mounted) return;
 
         // Get current month date range
@@ -554,7 +554,7 @@ function ProviderDashboard() {
 
   // ── Derived stats ──
   const today = new Date();
-  
+
   const todaysBookings = bookings.filter((b) => {
     if (b.status === "New Requests" || b.status === "Pending") {
       return true;
@@ -571,7 +571,7 @@ function ProviderDashboard() {
       return false;
     }
   });
-  
+
   const displayedJobs = todaysBookings.slice(0, 5);
 
   const activeStatuses = ["Accepted", "In Progress"];
@@ -631,7 +631,7 @@ function ProviderDashboard() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="px-6 pb-6 pt-24">
           {/* ── Header ── */}

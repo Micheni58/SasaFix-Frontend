@@ -399,7 +399,7 @@ const AIAssistant = () => {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <div className="flex items-center justify-center h-96 px-8">
             <div className="text-center p-8 bg-white rounded-2xl shadow-sm max-w-md border border-gray-100">

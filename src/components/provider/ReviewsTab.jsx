@@ -29,7 +29,8 @@ const ReviewsTab = ({ provider }) => {
 
   useEffect(() => {
     let mounted = true;
-    const providerId = provider.id || provider.provider_id || provider.service_provider_id;
+    const providerId =
+      provider.id || provider.provider_id || provider.service_provider_id;
 
     Promise.all([
       reviewService.getProviderReviews(providerId),
@@ -63,25 +64,16 @@ const ReviewsTab = ({ provider }) => {
 
   return (
     <div className="bg-white rounded-b-xl border border-gray-200 border-t-0 p-8">
-
-      <h2 className="text-2xl font-bold mb-6">
-        Reviews
-      </h2>
+      <h2 className="text-2xl font-bold mb-6">Reviews</h2>
 
       <div className="bg-gray-50 rounded-xl p-8 text-center">
+        <h3 className="text-5xl mb-3">⭐</h3>
 
-        <h3 className="text-5xl mb-3">
-          ⭐
-        </h3>
-
-        <p className="text-3xl font-bold">
-          {provider.average_rating || "New"}
-        </p>
+        <p className="text-3xl font-bold">{provider.average_rating || "New"}</p>
 
         <p className="text-gray-500 mt-2">
           {provider.total_reviews || 0} Reviews
         </p>
-
       </div>
 
       {loading && <p className="mt-8 text-gray-500">Loading reviews...</p>}
@@ -111,7 +103,9 @@ const ReviewsTab = ({ provider }) => {
                   </p>
                 </div>
                 {review.rating > 0 && (
-                  <span className="text-yellow-500">{"★".repeat(review.rating)}</span>
+                  <span className="text-yellow-500">
+                    {"★".repeat(review.rating)}
+                  </span>
                 )}
               </div>
               <p className="mt-4 text-gray-600 whitespace-pre-line">
@@ -126,7 +120,6 @@ const ReviewsTab = ({ provider }) => {
           ))}
         </div>
       )}
-
     </div>
   );
 };

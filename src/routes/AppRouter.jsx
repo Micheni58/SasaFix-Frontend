@@ -81,12 +81,6 @@ export default function AppRouter() {
         />
         <Route path="/admin/payouts/:payoutId" element={<PayoutDetails />} />
         <Route path="/admin/users" element={<Users />} />
-        <Route path="/admin/service-providers" element={<ServiceProvidersManagement />} />
-        {/* <Route path="/admin/escrow" element={<AdminEscrow />} /> */}
-        {/* <Route
-          path="/admin/reports"
-          element={<ReportsAnalytics />}
-        /> */}
         <Route path="/admin/service-providers" element={<ServiceProviders />} />
         <Route path="/admin/transactions" element={<AdminTransactions />} />
         {/* Client Routes */}

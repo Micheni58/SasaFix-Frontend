@@ -1,452 +1,1084 @@
+// src/pages/Client/CreateBooking.jsx
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Calendar, Clock3, MapPin, FileText, ShieldCheck } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Clock3,
+  MapPin,
+  FileText,
+  ShieldCheck,
+  User,
+  Star,
+  Briefcase,
+  ChevronLeft,
+  AlertCircle,
+  CheckCircle,
+  X,
+  Loader2,
+  DollarSign,
+  Wrench,
+  Lock,
+  ChevronRight,
+} from "lucide-react";
+import { DayPicker } from "react-day-picker";
+import { format, isSameDay } from "date-fns";
+import "react-day-picker/dist/style.css";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
 import { getProvider } from "../../../services/discoveryApi";
 
+// ── Skeleton Components ──
+
+function ProviderCardSkeleton() {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
+      <div className="flex items-center gap-4">
+        <div className="h-16 w-16 rounded-full bg-gray-200" />
+        <div className="flex-1">
+          <div className="h-5 w-40 bg-gray-200 rounded" />
+          <div className="mt-2 h-4 w-24 bg-gray-200 rounded" />
+          <div className="mt-1 h-4 w-20 bg-gray-200 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormSkeleton() {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
+      <div className="h-7 w-40 bg-gray-200 rounded mb-6" />
+      <div className="space-y-4">
+        <div>
+          <div className="h-4 w-32 bg-gray-200 rounded mb-2" />
+          <div className="h-12 w-full bg-gray-200 rounded-xl" />
+        </div>
+        <div>
+          <div className="h-4 w-32 bg-gray-200 rounded mb-2" />
+          <div className="h-64 w-full bg-gray-200 rounded-xl" />
+        </div>
+        <div>
+          <div className="h-4 w-32 bg-gray-200 rounded mb-2" />
+          <div className="h-12 w-full bg-gray-200 rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SidebarSkeleton() {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
+      <div className="h-6 w-32 bg-gray-200 rounded mb-4" />
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <div className="h-4 w-24 bg-gray-200 rounded" />
+          <div className="h-4 w-20 bg-gray-200 rounded" />
+        </div>
+        <div className="flex justify-between">
+          <div className="h-4 w-24 bg-gray-200 rounded" />
+          <div className="h-4 w-20 bg-gray-200 rounded" />
+        </div>
+        <div className="flex justify-between border-t border-gray-200 pt-3">
+          <div className="h-5 w-20 bg-gray-200 rounded" />
+          <div className="h-5 w-24 bg-gray-200 rounded" />
+        </div>
+      </div>
+      <div className="mt-4 h-12 w-full bg-gray-200 rounded-xl" />
+      <div className="mt-2 h-12 w-full bg-gray-200 rounded-xl" />
+    </div>
+  );
+}
+
+// ── Time Slot Component ──
+
+function TimeSlot({ time, label, isSelected, isAvailable, onSelect }) {
+  return (
+    <button
+      onClick={() => isAvailable && onSelect(time)}
+      disabled={!isAvailable}
+      className={`relative rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+        isSelected
+          ? "bg-[#056db3] text-white shadow-md shadow-[#056db3]/25 scale-105"
+          : isAvailable
+          ? "bg-gray-50 text-gray-700 hover:bg-blue-50 border-2 border-transparent hover:border-[#056db3]"
+          : "bg-gray-100 text-gray-400 cursor-not-allowed opacity-60"
+      }`}
+    >
+      {label}
+      {isSelected && (
+        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-[10px] text-white">
+          ✓
+        </span>
+      )}
+    </button>
+  );
+}
+
+// ── Duration Preset Button ──
+
+function DurationButton({ value, label, isSelected, onSelect }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(value)}
+      className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-all border-2 ${
+        isSelected
+          ? "bg-[#056db3] text-white border-[#056db3] shadow-md shadow-[#056db3]/20"
+          : "bg-gray-50 text-gray-700 border-transparent hover:border-[#056db3] hover:bg-blue-50"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+// ── Main Component ──
+
 function CreateBooking() {
-    const navigate = useNavigate();
-    const { providerId: routeProviderId } = useParams();
-    const [serviceType, setServiceType] = useState("");
-    const [preferredDate, setPreferredDate] = useState("");
-    const [preferredTime, setPreferredTime] = useState("");
-    const [serviceLocation, setServiceLocation] = useState("");
-    const [jobDescription, setJobDescription] = useState("");
-    const [urgency, setUrgency] = useState("normal");
-    const [providerId, setProviderId] = useState(null);
-    const [providerName, setProviderName] = useState("");
-    const [providerTrade, setProviderTrade] = useState("");
-    const [providerRate, setProviderRate] = useState(0);
-    const [durationHours, setDurationHours] = useState(1);
-    const [submitting, setSubmitting] = useState(false);
-    const [providers, setProviders] = useState([]);
-    const [providerAvailability, setProviderAvailability] = useState(null);
-    const [error, setError] = useState("");
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [showCancelModal, setShowCancelModal] = useState(false);
+  const navigate = useNavigate();
+  const { providerId: routeProviderId } = useParams();
 
-    // open confirmation modal instead of submitting immediately
-    const handleSubmit = (event) => {
-        event && event.preventDefault();
-        setShowConfirmModal(true);
-    };
+  const [serviceType, setServiceType] = useState("");
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
+  const [serviceLocation, setServiceLocation] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [urgency, setUrgency] = useState("normal");
+  const [providerId, setProviderId] = useState(null);
+  const [providerName, setProviderName] = useState("");
+  const [providerTrade, setProviderTrade] = useState("");
+  const [providerRate, setProviderRate] = useState(0);
+  const [providerRating, setProviderRating] = useState(0);
+  const [providerJobsCompleted, setProviderJobsCompleted] = useState(0);
+  const [durationHours, setDurationHours] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [nextAvailableError, setNextAvailableError] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [providerAvailability, setProviderAvailability] = useState([]);
+  const [availableDates, setAvailableDates] = useState([]);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
-    const doCreateBooking = async () => {
-        setShowConfirmModal(false);
-        setSubmitting(true);
+  const DURATION_PRESETS = [
+    { value: 1, label: "1 hr" },
+    { value: 2, label: "2 hrs" },
+    { value: 3, label: "3 hrs" },
+    { value: 4, label: "4 hrs" },
+    { value: 6, label: "6 hrs" },
+    { value: 8, label: "Full day" },
+  ];
+
+  // Fetch provider data on mount
+  useEffect(() => {
+    if (!routeProviderId) {
+      setError("No provider selected. Please go back and choose a provider.");
+      setLoading(false);
+      return;
+    }
+
+    const selectedProviderId = Number(routeProviderId);
+    setProviderId(selectedProviderId);
+
+    const fetchProviderData = async () => {
+      try {
+        setLoading(true);
+
+        const provider = await getProvider(selectedProviderId);
+
+        if (provider) {
+          setProviderName(
+            `${provider.first_name || ""} ${provider.last_name || ""}`.trim() || "Provider"
+          );
+          setProviderTrade(provider.service_category || "");
+          setProviderRate(Number(provider.hourly_rate) || 0);
+          setServiceType(provider.service_category || "Service");
+          setProviderRating(provider.average_rating || 0);
+          setProviderJobsCompleted(provider.total_jobs_completed || 0);
+        }
+
         try {
-            const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-            const clientId = Number(
-                localStorage.getItem("userId") || storedUser.id || storedUser.user_id,
-            );
-            if (!clientId || !providerId) {
-                throw new Error("A client and service provider are required.");
-            }
-            // compute end time from preferredTime and durationHours
-            let endTime = null;
-            if (preferredTime) {
-                // preferredTime may be like '09:00' or '9:00'
-                const [h, m] = preferredTime.split(":").map((s) => Number(s));
-                const base = new Date();
-                base.setHours(h, m || 0, 0, 0);
-                const ms = base.getTime() + (Number(durationHours) || 0) * 60 * 60 * 1000;
-                const end = new Date(ms);
-                const pad = (n) => n.toString().padStart(2, "0");
-                endTime = `${pad(end.getHours())}:${pad(end.getMinutes())}:00`;
-            }
+          const availability = await bookingService.getProviderAvailability(selectedProviderId);
+          setProviderAvailability(availability || []);
 
-            const payload = {
-                client_id: clientId,
-                service_provider_id: providerId,
-                service_name: serviceType,
-                description: jobDescription,
-                scheduled_date: preferredDate || null,
-                scheduled_start_time: preferredTime ? `${preferredTime}:00` : null,
-                scheduled_end_time: endTime,
-                location: serviceLocation,
-                amount: providerRate ? Math.round(providerRate * Number(durationHours || 1)) : undefined,
-            };
-
-            await bookingService.createBooking(payload);
-
-            navigate("/client/my-bookings");
-        } catch (bookingError) {
-            setError(bookingError.message || "Unable to create booking.");
-        } finally {
-            setSubmitting(false);
+          if (availability && availability.length > 0) {
+            generateAvailableDates(availability);
+          }
+        } catch (err) {
+          console.warn("Could not fetch availability:", err);
+          setProviderAvailability([]);
         }
+      } catch (err) {
+        console.error("Error fetching provider:", err);
+        setError("Unable to load provider details. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const handleCancel = () => {
-        setServiceType("");
-        setPreferredDate("");
-        setPreferredTime("");
-        setServiceLocation("");
-        setJobDescription("");
-        setUrgency("normal");
-        setProviderId(null);
-        setProviderName("");
-        setProviderTrade("");
-        setProviderRate(0);
-        setDurationHours(1);
-        setShowCancelModal(false);
-    };
+    fetchProviderData();
+  }, [routeProviderId]);
 
-    useEffect(() => {
-        if (!routeProviderId) return undefined;
+  // Generate available dates based on provider's availability
+  const generateAvailableDates = (availability) => {
+    const dates = [];
+    const today = new Date();
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-        let mounted = true;
-        const selectedProviderId = Number(routeProviderId);
-        setProviderId(selectedProviderId);
+    const availableDays = availability
+      .filter((a) => a.is_available)
+      .map((a) => a.day_of_week);
 
-        getProvider(selectedProviderId)
-            .then((provider) => {
-                if (!mounted) return;
-                setProviderName(
-                    `${provider.first_name || ""} ${provider.last_name || ""}`.trim(),
-                );
-                setProviderTrade(provider.service_category || "");
-                setProviderRate(Number(provider.hourly_rate) || 0);
-                setServiceType(provider.service_category || "");
-            })
-            .catch(() => {
-                if (mounted) setError("Unable to load this provider.");
-            });
+    for (let i = 0; i < 60; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const dayName = days[date.getDay()];
 
-        return () => {
-            mounted = false;
-        };
-    }, [routeProviderId]);
+      if (availableDays.includes(dayName)) {
+        dates.push(date);
+      }
+    }
 
-    useEffect(() => {
-        let mounted = true;
-        bookingService.listProviders().then((list) => {
-            if (!mounted) return;
-            setProviders(list);
-        }).catch(() => {});
-        return () => { mounted = false; };
-    }, []);
+    setAvailableDates(dates);
+  };
 
-    useEffect(() => {
-        let mounted = true;
-        if (providerId) {
-            bookingService.getProviderAvailability(providerId).then((av)=>{
-                if (!mounted) return;
-                setProviderAvailability(av);
-            }).catch(()=>setProviderAvailability(null));
-        } else {
-            setProviderAvailability(null);
-        }
-        return () => { mounted = false; };
-    }, [providerId]);
+  // Update time slots when date changes
+  useEffect(() => {
+    if (!selectedDate || providerAvailability.length === 0) {
+      setAvailableTimeSlots([]);
+      setSelectedTime(null);
+      return;
+    }
 
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dayName = days[selectedDate.getDay()];
+
+    const dayAvailability = providerAvailability.find(
+      (avail) => avail.day_of_week === dayName && avail.is_available
+    );
+
+    if (dayAvailability) {
+      const startHour = parseInt(dayAvailability.start_time.split(":")[0]);
+      const endHour = parseInt(dayAvailability.end_time.split(":")[0]);
+      const slots = [];
+
+      for (let hour = startHour; hour < endHour; hour++) {
+        const hourStr = hour.toString().padStart(2, "0");
+        const ampm = hour >= 12 ? "PM" : "AM";
+        const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+        const timeValue = `${hourStr}:00`;
+        slots.push({
+          value: timeValue,
+          label: `${displayHour}:00 ${ampm}`,
+          time: timeValue,
+        });
+      }
+      setAvailableTimeSlots(slots);
+      setSelectedTime(null);
+    } else {
+      setAvailableTimeSlots([]);
+      setSelectedTime(null);
+    }
+  }, [selectedDate, providerAvailability]);
+
+  // Check if a date is available
+  const isDateAvailable = (date) => {
+    return availableDates.some((d) => isSameDay(d, date));
+  };
+
+  // Handle date selection
+  const handleDateSelect = (date) => {
+    if (date && isDateAvailable(date)) {
+      setSelectedDate(date);
+      setSelectedTime(null);
+      setNextAvailableError("");
+    }
+  };
+
+  // Handle "Next Available" button
+  const handleNextAvailable = () => {
+    const today = new Date();
+    let nextDate = null;
+
+    for (const date of availableDates) {
+      if (date >= today) {
+        nextDate = date;
+        break;
+      }
+    }
+
+    if (nextDate) {
+      setSelectedDate(nextDate);
+      setSelectedTime(null);
+      setNextAvailableError("");
+    } else {
+      setNextAvailableError("No available dates found in the next 60 days.");
+    }
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    if (!selectedDate) {
+      setError("Please select a date.");
+      return;
+    }
+    if (!selectedTime) {
+      setError("Please select a time.");
+      return;
+    }
+    if (!serviceLocation) {
+      setError("Please enter your location.");
+      return;
+    }
+
+    setError("");
+    setShowConfirmModal(true);
+  };
+
+  const doCreateBooking = async () => {
+    setShowConfirmModal(false);
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const clientId = Number(
+        localStorage.getItem("userId") || storedUser.id || storedUser.user_id
+      );
+
+      if (!clientId || !providerId) {
+        throw new Error("A client and service provider are required.");
+      }
+
+      const formattedDate = format(selectedDate, "yyyy-MM-dd");
+      let endTime = null;
+      if (selectedTime) {
+        const [h, m] = selectedTime.split(":").map((s) => Number(s));
+        const base = new Date();
+        base.setHours(h, m || 0, 0, 0);
+        const ms = base.getTime() + (Number(durationHours) || 0) * 60 * 60 * 1000;
+        const end = new Date(ms);
+        const pad = (n) => n.toString().padStart(2, "0");
+        endTime = `${pad(end.getHours())}:${pad(end.getMinutes())}:00`;
+      }
+
+      const payload = {
+        client_id: clientId,
+        service_provider_id: providerId,
+        service_name: serviceType || "Service",
+        description: jobDescription || "",
+        scheduled_date: formattedDate,
+        scheduled_start_time: selectedTime ? `${selectedTime}:00` : null,
+        scheduled_end_time: endTime,
+        location: serviceLocation || "",
+        amount: providerRate ? Math.round(providerRate * Number(durationHours || 1)) : 0,
+      };
+
+      await bookingService.createBooking(payload);
+      navigate("/client/my-bookings");
+    } catch (bookingError) {
+      setError(bookingError.message || "Unable to create booking. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    navigate("/client/find-services");
+  };
+
+  // ── Cost calculations ──
+  // Platform fee is deducted from the provider's payment — not added to what the client pays.
+  // The client pays only the service fee (rate × duration × urgency multiplier).
+  const baseCost = providerRate ? providerRate * Number(durationHours || 1) : 0;
+  const urgencyMultiplier =
+    urgency === "emergency" ? 1.3 : urgency === "urgent" ? 1.15 : 1;
+  const urgencySurcharge =
+    urgency !== "normal" ? Math.round(baseCost * (urgencyMultiplier - 1)) : 0;
+  const totalCost = providerRate ? Math.round(baseCost * urgencyMultiplier) : 0;
+
+  // Determine if confirm button should be disabled
+  const canSubmit = selectedDate && selectedTime && serviceLocation && !submitting;
+  const missingFields = [];
+  if (!selectedDate) missingFields.push("a date");
+  if (!selectedTime) missingFields.push("a time");
+  if (!serviceLocation) missingFields.push("your location");
+
+  // Custom calendar modifiers
+  const modifiers = {
+    available: (date) => isDateAvailable(date),
+    unavailable: (date) => !isDateAvailable(date) && date >= new Date(),
+    past: (date) => date < new Date(),
+  };
+
+  const modifiersStyles = {
+    available: {
+      backgroundColor: "#e8f5e9",
+      color: "#2e7d32",
+      borderRadius: "50%",
+      fontWeight: "600",
+    },
+    unavailable: {
+      color: "#bdbdbd",
+      textDecoration: "line-through",
+      cursor: "not-allowed",
+    },
+    past: {
+      color: "#e0e0e0",
+      cursor: "not-allowed",
+    },
+  };
+
+  // ── Loading State ──
+  if (loading) {
     return (
-        <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="flex min-h-screen bg-[#f8fafc]">
+        <Sidebar role="client" />
+        <div className="flex-1 ml-0 lg:ml-72">
+          <Navbar />
+          <main className="pt-24 px-4 sm:px-6 pb-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="mb-6">
+                <div className="h-8 w-40 bg-gray-200 rounded animate-pulse" />
+                <div className="mt-2 h-4 w-64 bg-gray-200 rounded animate-pulse" />
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                  <ProviderCardSkeleton />
+                  <FormSkeleton />
+                </div>
+                <div className="lg:col-span-1">
+                  <SidebarSkeleton />
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
-            <Sidebar role="client" />
-            <div className="flex-1 ml-0 lg:ml-72">
-                <Navbar />
-            <main className="pt-24 px-6 pb-6">
-                {error && (
-                    <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                        {error}
-                    </div>
-                )}
-                <section className="mb-8">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-800">Create Booking</h1>
-                            <p className="text-gray-600 mt-2">Fill in the details to book a service.</p>
+  // ── Error State ──
+  if (error && !providerName) {
+    return (
+      <div className="flex min-h-screen bg-[#f8fafc]">
+        <Sidebar role="client" />
+        <div className="flex-1 ml-0 lg:ml-72">
+          <Navbar />
+          <main className="pt-24 px-4 sm:px-6 pb-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-xl shadow-sm border border-red-200 p-8 text-center">
+                <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600">
+                  <AlertCircle className="h-8 w-8" />
+                </div>
+                <h2 className="mt-4 text-xl font-bold text-gray-800">Unable to load provider</h2>
+                <p className="mt-2 text-gray-600">{error}</p>
+                <button
+                  onClick={() => navigate("/client/find-services")}
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#056db3] px-6 py-3 font-semibold text-white transition hover:bg-[#045a94]"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back to Find Services
+                </button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen bg-[#f8fafc]">
+      <Sidebar role="client" />
+      <div className="flex-1 ml-0 lg:ml-72">
+        <Navbar />
+        <main className="pt-24 px-4 sm:px-6 pb-6">
+          <div className="max-w-7xl mx-auto">
+
+            {/* ── Header ── */}
+            <div className="mb-6">
+              <button
+                onClick={() => navigate("/client/find-services")}
+                className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#056db3] transition-colors group mb-2"
+              >
+                <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                Back to Find Services
+              </button>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Create Booking</h1>
+              <p className="text-gray-600 mt-1">Book {providerName} for your service needs</p>
+            </div>
+
+            {/* ── Global Error Banner ── */}
+            {error && (
+              <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {error}
+              </div>
+            )}
+
+            {/* ── Main Grid ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+              {/* ── Left Column ── */}
+              <div className="lg:col-span-2 space-y-6">
+
+                {/* ── Provider Card ── */}
+                <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="p-6 border-b border-gray-100">
+                    <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                      <User className="h-5 w-5 text-[#056db3]" />
+                      Service Provider
+                    </h2>
+                  </div>
+                  <div className="p-6">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#056db3] to-[#034d80] text-2xl font-bold text-white shadow-md">
+                        {providerName
+                          ? providerName.split(" ").map((s) => s[0]).slice(0, 2).join("")
+                          : "--"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-lg font-semibold text-gray-800">
+                            {providerName || "Provider"}
+                          </p>
+                          {providerRating > 0 && (
+                            <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                              <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                              {providerRating.toFixed(1)}
+                            </span>
+                          )}
+                          {providerJobsCompleted > 0 && (
+                            <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                              <Briefcase className="h-3 w-3" />
+                              {providerJobsCompleted} jobs
+                            </span>
+                          )}
                         </div>
+                        <p className="text-sm text-gray-600 flex items-center gap-1">
+                          <Wrench className="h-3.5 w-3.5" />
+                          {providerTrade || "Professional"}
+                        </p>
+                        <p className="text-sm font-semibold text-[#056db3] mt-1">
+                          {providerRate
+                            ? `KES ${providerRate.toLocaleString()} / hour`
+                            : "Rate not set"}
+                        </p>
+                      </div>
                     </div>
+                  </div>
                 </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Service Provider Card */}
-                    <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-6">Service Provider</h2>
-                        <div className="border-b border-gray-200 pb-6">
-                            <div className="flex items-center gap-4">
-                                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-2xl font-bold text-white">
-                                    {(() => (providerName ? providerName.split(" ").map(s => s[0]).slice(0,2).join("") : "--"))()}
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-lg font-semibold text-gray-800">{providerName || "Select a provider"}</p>
-                                    </div>
-                                    <p className="text-sm text-gray-600">{providerTrade || "Trade / speciality"}</p>
-                                    <p className="text-sm text-gray-600 mt-1">{providerRate ? `KES ${providerRate} / hr` : "Rate not set"}</p>
-                                </div>
-                            </div>
+                {/* ── Booking Form ── */}
+                <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="p-6 border-b border-gray-100">
+                    <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-[#056db3]" />
+                      Booking Details
+                    </h2>
+                  </div>
+                  <div className="p-6">
+                    <form onSubmit={handleSubmit} className="space-y-6">
 
-                            <div className="mt-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Choose Provider</label>
-                                <select
-                                    value={providerId || ""}
-                                    disabled={Boolean(routeProviderId)}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (!val) {
-                                            setProviderId(null); setProviderName(""); setProviderTrade(""); setProviderRate(0);
-                                            return;
-                                        }
-                                        const pid = Number(val);
-                                        const p = providers.find((x) => Number(x.id) === pid) || {};
-                                        setProviderId(pid);
-                                        setProviderName(p.name || p.full_name || p.provider_full_name || "");
-                                        setProviderTrade(p.service_type || p.trade || "");
-                                        setProviderRate(p.rate || p.hourly_rate || p.default_rate || 0);
-                                    }}
-                                    className="w-full rounded-xl border border-gray-300 bg-gray-100 px-4 py-3 text-gray-800  focus:outline-none focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3]"
-                                >
-                                    <option value="">Select provider</option>
-                                    {routeProviderId && (
-                                        <option value={providerId}>
-                                            {providerName || `Provider #${providerId}`}
-                                        </option>
-                                    )}
-                                    {providers.map((p) => (
-                                        <option key={p.id} value={p.id}>{p.name || p.full_name || p.provider_full_name || `Provider #${p.id}`}</option>
-                                    ))}
-                                </select>
-                            </div>
+                      {/* Service Type - Fixed */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Service Type
+                        </label>
+                        <div className="w-full rounded-xl border border-gray-300 bg-gray-100 px-4 py-2.5 text-gray-700 cursor-not-allowed flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <Wrench className="h-4 w-4 text-gray-400" />
+                            {serviceType || "Loading..."}
+                          </span>
+                          <Lock className="h-4 w-4 text-gray-400" />
                         </div>
-                    </section>
+                        <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                          <Lock className="h-3 w-3" />
+                          Fixed to what this provider offers
+                        </p>
+                      </div>
 
-                    {/* Booking Form Card */}
-                    <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-6">Booking Details</h2>
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="serviceType">
-                                    Service Type *
-                                </label>
-                                <select
-                                    id="serviceType"
-                                    value={serviceType}
-                                    onChange={(e) => setServiceType(e.target.value)}
-                                    className="w-full rounded-xl border border-gray-300 bg-gray-100 px-4 py-3 text-gray-800  focus:outline-none focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3]"
-                                >
-                                    <option value="">Select a service</option>
-                                    <option value="plumbing">Plumbing</option>
-                                    <option value="electrical">Electrical</option>
-                                    <option value="cleaning">Cleaning</option>
-                                </select>
-                            </div>
+                      {/* Date Selection */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                            <CalendarIcon className="h-4 w-4 text-[#056db3]" />
+                            Select Date
+                          </label>
+                          <div className="flex flex-col items-end gap-1">
+                            <button
+                              type="button"
+                              onClick={handleNextAvailable}
+                              className="text-xs font-medium text-[#056db3] hover:text-[#045a94] transition-colors flex items-center gap-1"
+                            >
+                              Next Available
+                              <ChevronRight className="h-3 w-3" />
+                            </button>
+                            {/* Next available error shown close to the button */}
+                            {nextAvailableError && (
+                              <p className="text-xs text-red-500 flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                {nextAvailableError}
+                              </p>
+                            )}
+                          </div>
+                        </div>
 
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <div>
-                                    {/* Date icon on the same line as the label */}
-                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2" htmlFor="preferredDate">
-                                        <Calendar className="w-4 h-4 text-[#056db3]" />
-                                        Preferred Date *
-                                    </label>
-                                    <input
-                                        id="preferredDate"
-                                        type="date"
-                                        value={preferredDate}
-                                        onChange={(e) => setPreferredDate(e.target.value)}
-                                        className="w-full rounded-xl border border-gray-300  px-4 py-3 text-gray-800 bg-gray-100 focus:outline-none focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3]"
-                                    />
+                        <div className="rounded-xl border border-gray-200 p-4 bg-gray-50/50">
+                          <DayPicker
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={handleDateSelect}
+                            month={currentMonth}
+                            onMonthChange={setCurrentMonth}
+                            modifiers={modifiers}
+                            modifiersStyles={modifiersStyles}
+                            disabled={[
+                              { before: new Date() },
+                              (date) => !isDateAvailable(date),
+                            ]}
+                            footer={
+                              <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-4">
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="inline-block h-3 w-3 rounded-full bg-green-200" />
+                                    Available
+                                  </span>
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="inline-block h-3 w-3 rounded-full bg-gray-200" />
+                                    Unavailable
+                                  </span>
                                 </div>
+                                {selectedDate && (
+                                  <span className="text-[#056db3] font-medium">
+                                    {format(selectedDate, "EEE, MMM d")}
+                                  </span>
+                                )}
+                              </div>
+                            }
+                            className="m-0!"
+                          />
+                        </div>
+                      </div>
 
-                                <div>
-                                    {/* clock icon on the same line as the label */}
-                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2" htmlFor="preferredTime">
-                                        <Clock3 className="w-4 h-4 text-[#056db3]" />
-                                        Preferred Time *
-                                    </label>
-                                    <select
-                                        id="preferredTime"
-                                        value={preferredTime}
-                                        onChange={(e) => setPreferredTime(e.target.value)}
-                                        className="w-full rounded-xl border border-gray-300 bg-gray-100 px-4 py-3 text-gray-800  focus:outline-none focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3]"
-                                    >
-                                        <option value="">Select a time slot</option>
-                                        <option value="9:00">09:00 AM</option>
-                                        <option value="10:00">10:00 AM</option>
-                                        <option value="12:00">12:00 PM</option>
-                                        <option value="14:00">02:00 PM</option>
-                                    </select>
+                      {/* Time Selection */}
+                      <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                          <Clock3 className="h-4 w-4 text-[#056db3]" />
+                          Select Time
+                        </label>
+
+                        {!selectedDate ? (
+                          <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                            <Clock3 className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                            <p className="text-sm text-gray-400">Select a date first</p>
+                          </div>
+                        ) : availableTimeSlots.length === 0 ? (
+                          <div className="text-center py-6 bg-amber-50 rounded-xl border border-amber-200">
+                            <AlertCircle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                            <p className="text-sm text-amber-600">No slots available for this date</p>
+                            <p className="text-xs text-amber-500 mt-1">Try a different date</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {availableTimeSlots.some(
+                              (slot) => parseInt(slot.time.split(":")[0]) < 12
+                            ) && (
+                              <div>
+                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+                                  Morning
+                                </p>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                  {availableTimeSlots
+                                    .filter((slot) => parseInt(slot.time.split(":")[0]) < 12)
+                                    .map((slot) => (
+                                      <TimeSlot
+                                        key={slot.value}
+                                        time={slot.value}
+                                        label={slot.label}
+                                        isSelected={selectedTime === slot.value}
+                                        isAvailable={true}
+                                        onSelect={setSelectedTime}
+                                      />
+                                    ))}
                                 </div>
-                            </div>
+                              </div>
+                            )}
 
-                            <div>
-                                {/* location icon on the same line as the label */}
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2" htmlFor="serviceLocation">
-                                    <MapPin className="w-4 h-4 text-[#056db3]" />
-                                    Service Location *
-                                </label>
-                                <input
-                                    id="serviceLocation"
-                                    type="text"
-                                    placeholder="Enter your location"
-                                    value={serviceLocation}
-                                    onChange={(e) => setServiceLocation(e.target.value)}
-                                    className="w-full rounded-xl border border-gray-300 bg-gray-100 px-4 py-3 text-black  focus:outline-none focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3]"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2" htmlFor="jobDescription">
-                                    <FileText className="w-4 h-4 text-[#056db3]" />
-                                    Job Description
-                                </label>
-                                <textarea
-                                    id="jobDescription"
-                                    rows="4"
-                                    placeholder="Describe what needs to be done"
-                                    value={jobDescription}
-                                    onChange={(e) => setJobDescription(e.target.value)}
-                                    className="w-full rounded-xl border border-gray-300 bg-gray-100 px-4 py-3 text-gray-800  focus:outline-none focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3]"
-                                ></textarea>
-                            </div>
-
-                            <div className="space-y-4">
-                                <h3 className="text-base font-semibold text-gray-800">Urgency Level</h3>
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                    <label className="rounded-xl border-2 border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-[#056db3] cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="urgency"
-                                            value="normal"
-                                            checked={urgency === "normal"}
-                                            onChange={(e) => setUrgency(e.target.value)}
-                                            className="mr-3 text-[#056db3] bg-[#056db3]"
-                                        />
-                                        <span className="font-semibold text-gray-800">Normal</span>
-                                        <p className="text-sm text-gray-600 mt-1">Within 2-3 days</p>
-                                    </label>
-                                    <label className="rounded-2xl border-2 border-gray-100 bg-white p-4 text-left shadow-sm transition hover:border-[#056db3] cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="urgency"
-                                            value="urgent"
-                                            checked={urgency === "urgent"}
-                                            onChange={(e) => setUrgency(e.target.value)}
-                                            className="mr-3 text-[#056db3]"
-                                        />
-                                        <span className="font-semibold text-gray-800">Urgent</span>
-                                        <p className="text-sm text-gray-600 mt-1">Within 24hrs</p>
-                                    </label>
-                                    <label className="rounded-2xl border-2 border-gray-100 bg-white p-4 text-left shadow-sm transition hover:border-[#056db3] cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="urgency"
-                                            value="emergency"
-                                            checked={urgency === "emergency"}
-                                            onChange={(e) => setUrgency(e.target.value)}
-                                            className="mr-3 text-[#056db3]"
-                                        />
-                                        <span className="font-semibold text-gray-800">Emergency</span>
-                                        <p className="text-sm text-gray-600 mt-1">ASAP (+30% fee)</p>
-                                    </label>
+                            {availableTimeSlots.some(
+                              (slot) => parseInt(slot.time.split(":")[0]) >= 12
+                            ) && (
+                              <div>
+                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+                                  Afternoon
+                                </p>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                  {availableTimeSlots
+                                    .filter((slot) => parseInt(slot.time.split(":")[0]) >= 12)
+                                    .map((slot) => (
+                                      <TimeSlot
+                                        key={slot.value}
+                                        time={slot.value}
+                                        label={slot.label}
+                                        isSelected={selectedTime === slot.value}
+                                        isAvailable={true}
+                                        onSelect={setSelectedTime}
+                                      />
+                                    ))}
                                 </div>
-                            </div>
-                            {/* Duration input */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Estimated Duration (hours)</label>
-                                <input
-                                    type="number"
-                                    min="0.5"
-                                    step="0.5"
-                                    value={durationHours}
-                                    onChange={(e) => setDurationHours(e.target.value)}
-                                    className="w-32 rounded-xl border border-gray-300 bg-gray-100 px-4 py-3 text-gray-800  focus:outline-none focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3]"
-                                />
-                            </div>
-                        </form>
-                    </section>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
-                </div>
+                      {/* Duration — preset buttons replacing plain number input */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Estimated Duration
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {DURATION_PRESETS.map((preset) => (
+                            <DurationButton
+                              key={preset.value}
+                              value={preset.value}
+                              label={preset.label}
+                              isSelected={durationHours === preset.value}
+                              onSelect={setDurationHours}
+                            />
+                          ))}
+                        </div>
+                      </div>
 
-                {/* Sidebar */}
-                <aside className="lg:col-span-1">
-                    <div className="sticky top-6 space-y-6">
-                        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            {/* Price Breakdown Section */}
-                            <div className="mb-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div>
-                                        <h2 className="text-lg font-bold text-gray-800">Price Breakdown</h2>
-                                        <p className="text-xs text-gray-600 mt-1">See the estimated cost before confirming.</p>
-                                    </div>
-                                </div>
+                      {/* Location */}
+                      <div>
+                        <label
+                          className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5"
+                          htmlFor="serviceLocation"
+                        >
+                          <MapPin className="h-4 w-4 text-[#056db3]" />
+                          Service Location *
+                        </label>
+                        <input
+                          id="serviceLocation"
+                          type="text"
+                          placeholder="Enter your address"
+                          value={serviceLocation}
+                          onChange={(e) => setServiceLocation(e.target.value)}
+                          className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-800 focus:outline-none focus:border-[#056db3] focus:ring-2 focus:ring-[#056db3]/20 transition-colors"
+                          required
+                        />
+                      </div>
 
-                                <div className="space-y-3">
-                                        <div className="flex justify-between items-center py-2 border-gray-100">
-                                            <span className="font-light text-sm text-gray-700">Estimated Service Cost</span>
-                                            <span className="text-gray-800 font-semibold text-sm">{providerRate ? `KES ${providerRate * Number(durationHours || 1)}` : "KES 0"}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 border-b border-gray-300">
-                                            <span className="font-light text-sm text-gray-700">Platform Fee</span>
-                                            <span className="text-gray-800 font-semibold text-sm">{providerRate ? `KES ${Math.round((providerRate * Number(durationHours || 1)) * 0.1)}` : "KES 0"}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2">
-                                            <span className="font-semibold text-sm text-gray-700">Total Amount</span>
-                                            <span className="text-green-600 font-semibold text-lg">{providerRate ? `KES ${Math.round((providerRate * Number(durationHours || 1)) * 1.1)}` : "KES 0"}</span>
-                                        </div>
-                                </div>
-                            </div>
+                      {/* Job Description */}
+                      <div>
+                        <label
+                          className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5"
+                          htmlFor="jobDescription"
+                        >
+                          <FileText className="h-4 w-4 text-[#056db3]" />
+                          Job Description
+                        </label>
+                        <textarea
+                          id="jobDescription"
+                          rows="3"
+                          placeholder="Describe what needs to be done"
+                          value={jobDescription}
+                          onChange={(e) => setJobDescription(e.target.value)}
+                          className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-800 focus:outline-none focus:border-[#056db3] focus:ring-2 focus:ring-[#056db3]/20 transition-colors"
+                        />
+                      </div>
 
-                            {/* Buttons */}
-                            <div className="space-y-3 mb-6">
-                                <button
-                                    type="button"
-                                    onClick={handleSubmit}
-                                    className="w-full rounded-xl bg-[#056db3] px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-900"
-                                >
-                                    Confirm Booking
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleCancel}
-                                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#056db3] bg-white px-6 py-3 text-sm font-semibold text-gray-700 transition hover:bg-blue-50"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
+                      {/* Urgency */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Urgency Level
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <label
+                            className={`rounded-xl border-2 p-3 text-left transition-all cursor-pointer ${
+                              urgency === "normal"
+                                ? "border-[#056db3] bg-blue-50"
+                                : "border-gray-200 bg-white hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="urgency"
+                              value="normal"
+                              checked={urgency === "normal"}
+                              onChange={(e) => setUrgency(e.target.value)}
+                              className="mr-2 accent-[#056db3]"
+                            />
+                            <span className="font-semibold text-gray-800">Normal</span>
+                            <p className="text-xs text-gray-500 mt-0.5">Within 2–3 days</p>
+                          </label>
+                          <label
+                            className={`rounded-xl border-2 p-3 text-left transition-all cursor-pointer ${
+                              urgency === "urgent"
+                                ? "border-[#f59e0b] bg-amber-50"
+                                : "border-gray-200 bg-white hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="urgency"
+                              value="urgent"
+                              checked={urgency === "urgent"}
+                              onChange={(e) => setUrgency(e.target.value)}
+                              className="mr-2 accent-[#f59e0b]"
+                            />
+                            <span className="font-semibold text-gray-800">Urgent</span>
+                            <p className="text-xs text-gray-500 mt-0.5">Within 24 hours (+15%)</p>
+                          </label>
+                          <label
+                            className={`rounded-xl border-2 p-3 text-left transition-all cursor-pointer ${
+                              urgency === "emergency"
+                                ? "border-red-500 bg-red-50"
+                                : "border-gray-200 bg-white hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="urgency"
+                              value="emergency"
+                              checked={urgency === "emergency"}
+                              onChange={(e) => setUrgency(e.target.value)}
+                              className="mr-2 accent-red-500"
+                            />
+                            <span className="font-semibold text-gray-800">Emergency</span>
+                            <p className="text-xs text-gray-500 mt-0.5">ASAP (+30%)</p>
+                          </label>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </section>
+              </div>
 
+              {/* ── Right Column (Sticky Sidebar) ── */}
+              <div className="lg:col-span-1">
+                <div className="sticky top-6 space-y-6">
 
-                            {/* Separator */}
-                            <div className="border-t border-gray-300 my-6"></div>
-
-                            {/* Booking Terms Section */}
-                            <div className="mb-6">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <ShieldCheck className="w-5 h-5 text-[#056db3]" />
-                                    <h2 className="text-lg font-bold text-gray-800">Booking Terms</h2>
-                                </div>
-                                <ul className="space-y-2 text-xs text-gray-700">
-                                    <li className="flex gap-2">
-                                        <span className="mt-0.5 text-[#056db3] font-bold">•</span>
-                                        <span>Payment is processed after job completion.</span>
-                                    </li>
-                                    <li className="flex gap-2">
-                                        <span className="mt-0.5 text-[#056db3] font-bold">•</span>
-                                        <span>Free cancellation is available up to 24 hours before.</span>
-                                    </li>
-                                    <li className="flex gap-2">
-                                        <span className="mt-0.5 text-[#056db3] font-bold">•</span>
-                                        <span>Worker will confirm your booking within 2 hours.</span>
-                                    </li>
-                                    <li className="flex gap-2">
-                                        <span className="mt-0.5 text-[#056db3] font-bold">•</span>
-                                        <span>100% satisfaction guarantee applies.</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </section>
+                  {/* Price Summary */}
+                  <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-6 border-b border-gray-100">
+                      <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <DollarSign className="h-5 w-5 text-[#056db3]" />
+                        Price Summary
+                      </h2>
                     </div>
-                </aside>
+                    <div className="p-6">
+                      <div className="space-y-2.5">
+
+                        {/* Base cost */}
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">
+                            {providerRate
+                              ? `KES ${providerRate.toLocaleString()} × ${durationHours} hr${durationHours > 1 ? "s" : ""}`
+                              : "Service fee"}
+                          </span>
+                          <span className="text-gray-800 font-medium">
+                            KES {baseCost.toLocaleString()}
+                          </span>
+                        </div>
+
+                        {/* Urgency surcharge — show KES amount, not just % */}
+                        {urgency !== "normal" && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">
+                              {urgency === "urgent" ? "Urgent surcharge (15%)" : "Emergency surcharge (30%)"}
+                            </span>
+                            <span className="text-amber-600 font-medium">
+                              + KES {urgencySurcharge.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="border-t border-gray-200 pt-3 mt-2">
+                          <div className="flex justify-between">
+                            <span className="font-bold text-gray-800">Total</span>
+                            <span className="text-xl font-bold text-[#056db3]">
+                              KES {totalCost.toLocaleString()}
+                            </span>
+                          </div>
+                          {/* Note clarifying the platform fee arrangement */}
+                          <p className="text-xs text-gray-400 mt-1">
+                            Payment is collected after job completion. A service fee is deducted from the provider's payout.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-2.5">
+                        <button
+                          type="button"
+                          onClick={handleSubmit}
+                          disabled={!canSubmit}
+                          className="w-full rounded-xl bg-[#056db3] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#045a94] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          {submitting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Creating Booking...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="h-4 w-4" />
+                              Confirm Booking
+                            </>
+                          )}
+                        </button>
+
+                        {/* Hint text explaining why button is disabled */}
+                        {!canSubmit && !submitting && missingFields.length > 0 && (
+                          <p className="text-xs text-center text-gray-400">
+                            Please select{" "}
+                            {missingFields.length === 1
+                              ? missingFields[0]
+                              : missingFields.slice(0, -1).join(", ") +
+                                " and " +
+                                missingFields[missingFields.length - 1]}{" "}
+                            to continue
+                          </p>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={handleCancel}
+                          disabled={submitting}
+                          className="w-full rounded-xl border-2 border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Booking Terms */}
+                  <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-6 border-b border-gray-100">
+                      <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <ShieldCheck className="h-5 w-5 text-[#056db3]" />
+                        Booking Terms
+                      </h2>
+                    </div>
+                    <div className="p-6">
+                      <ul className="space-y-2 text-sm text-gray-600">
+                        <li className="flex gap-2">
+                          <span className="text-[#056db3] font-bold">•</span>
+                          <span>Payment is collected after job completion</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <span className="text-[#056db3] font-bold">•</span>
+                          <span>Free cancellation up to 24 hours before</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <span className="text-[#056db3] font-bold">•</span>
+                          <span>Provider confirms within 2 hours</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <span className="text-[#056db3] font-bold">•</span>
+                          <span>100% satisfaction guarantee</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </section>
+                </div>
+              </div>
             </div>
-            </main>
+          </div>
+        </main>
+      </div>
+
+      {/* ── Confirmation Modal ── */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 transform transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-800">Confirm Booking</h3>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
+
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-600">Service</span>
+                <span className="font-medium text-gray-800">{serviceType || "Not specified"}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-600">Provider</span>
+                <span className="font-medium text-gray-800">{providerName}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-600">Date & Time</span>
+                <span className="font-medium text-gray-800">
+                  {selectedDate && format(selectedDate, "EEE, MMM d")} at {selectedTime}
+                </span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-600">Duration</span>
+                <span className="font-medium text-gray-800">
+                  {durationHours} hour{durationHours > 1 ? "s" : ""}
+                </span>
+              </div>
+              {urgency !== "normal" && (
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">
+                    {urgency === "urgent" ? "Urgent surcharge" : "Emergency surcharge"}
+                  </span>
+                  <span className="font-medium text-amber-600">
+                    + KES {urgencySurcharge.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">Total</span>
+                <span className="text-lg font-bold text-[#056db3]">
+                  KES {totalCost.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 rounded-xl border-2 border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                Go back
+              </button>
+              <button
+                onClick={doCreateBooking}
+                disabled={submitting}
+                className="flex-1 rounded-xl bg-[#056db3] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#045a94] disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    Confirm
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-    );
+      )}
+    </div>
+  );
 }
 
 export default CreateBooking;

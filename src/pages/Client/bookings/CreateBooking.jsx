@@ -538,7 +538,7 @@ function CreateBooking() {
                   </div>
                   <div className="p-6">
                     <div className="flex flex-wrap items-center gap-4">
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#056db3] to-[#034d80] text-2xl font-bold text-white shadow-md">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#056db3] to-[#034d80] text-2xl font-bold text-white shadow-md">
                         {providerName
                           ? providerName.split(" ").map((s) => s[0]).slice(0, 2).join("")
                           : "--"}

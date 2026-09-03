@@ -193,7 +193,7 @@ function Sidebar({ role = "client" }) {
         `}
       >
         {/* Logo */}
-        <div className="h-24 flex items-center px-8 border-b border-gray-100 flex-shrink-0">
+        <div className="h-24 flex items-center px-8 border-b border-gray-100 shrink-0">
           <h1 className="text-3xl font-bold tracking-tight text-[#056db3]">
             SasaFix
           </h1>
@@ -243,8 +243,8 @@ function Sidebar({ role = "client" }) {
 
         {/* Upgrade Card */}
         {role === "provider" && (
-          <div className="border-t border-gray-100 p-4 flex-shrink-0">
-            <div className="rounded-2xl bg-gradient-to-br from-[#056db3] to-[#0b86d5] p-4 text-white">
+          <div className="border-t border-gray-100 p-4 shrink-0">
+            <div className="rounded-2xl bg-linear-to-br from-[#056db3] to-[#0b86d5] p-4 text-white">
               <div className="flex items-center gap-2 mb-2">
                 <ShieldCheck size={18} />
 

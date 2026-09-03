@@ -1,4 +1,4 @@
-// src/pages/Client/bookings/MyBookings.jsx - With Skeleton Loader & Dynamic Routing
+// src/pages/Client/bookings/MyBookings.jsx
 
 import { useState, useEffect } from "react";
 import {
@@ -13,15 +13,15 @@ import {
   CheckCircle,
   Clock,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
 
-// ── Updated Tabs - Removed "All Bookings", Added "Paid" at the end ──
+// ── Tabs ──
 const tabs = ["Upcoming", "In Progress", "Completed", "Rescheduled", "Cancelled", "Paid"];
 
-// ── Updated Status Colors ──
+// ── Status Colors ──
 const statusStyles = {
   "New Requests": "bg-amber-100 text-amber-800",
   "Pending": "bg-amber-100 text-amber-800",
@@ -30,6 +30,9 @@ const statusStyles = {
   "In Progress": "bg-indigo-100 text-indigo-800",
   "Completed": "bg-green-100 text-green-800",
   "Rescheduled": "bg-purple-100 text-purple-800",
+  "Reschedule Requested": "bg-purple-100 text-purple-800",
+  "Reschedule Proposed": "bg-purple-100 text-purple-800",
+  "Reschedule Confirmed": "bg-purple-100 text-purple-800",
   "Paid": "bg-emerald-100 text-emerald-800",
   "Cancelled": "bg-red-100 text-red-800",
 };
@@ -217,22 +220,131 @@ function EmptyState({ icon: Icon, title, description, color, iconColor }) {
 // GET ROUTE FOR BOOKING STATUS
 // ─────────────────────────────────────────────
 
-function getBookingRoute(booking) {
-  const status = booking.status || "Pending";
+function normalizeBookingStatus(statusValue) {
+  const rawStatus = (statusValue || "").toString().trim();
+  if (!rawStatus) return "";
 
-  const routeMap = {
-    "Upcoming": `/client/my-bookings/upcoming/${booking.id}`,
-    "Pending": `/client/my-bookings/upcoming/${booking.id}`,
-    "Accepted": `/client/my-bookings/upcoming/${booking.id}`,
-    "New Requests": `/client/my-bookings/upcoming/${booking.id}`,
-    "In Progress": `/client/my-bookings/in-progress/${booking.id}`,
-    "Completed": `/client/my-bookings/completed/${booking.id}`,
-    "Rescheduled": `/client/my-bookings/rescheduled/${booking.id}`,
-    "Paid": `/client/my-bookings/paid/${booking.id}`,
-    "Cancelled": `/client/my-bookings/cancelled/${booking.id}`,
+  const normalized = rawStatus.toLowerCase().replace(/\s+/g, "_");
+  const statusMap = {
+    pending: "Pending",
+    accepted: "Accepted",
+    in_progress: "In Progress",
+    completed: "Completed",
+    paid: "Paid",
+    cancelled: "Cancelled",
+    rescheduled: "Rescheduled",
+    reschedule_requested: "Reschedule Requested",
+    reschedule_proposed: "Reschedule Proposed",
+    reschedule_confirmed: "Reschedule Confirmed",
   };
 
-  return routeMap[status] || `/client/my-bookings/${booking.id}`;
+  return statusMap[normalized] || rawStatus;
+}
+
+function getRescheduleInitiator(booking) {
+  const rawInitiator = (
+    booking?.rescheduleInitiatedBy ||
+    booking?.raw?.reschedule_initiated_by ||
+    booking?.initiated_by ||
+    booking?.raw?.initiated_by ||
+    ""
+  ).toString().trim().toLowerCase();
+
+  return rawInitiator;
+}
+
+function getBookingRoute(booking) {
+  const rawStatus = (booking?.raw?.status ?? booking?.status ?? "pending")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+
+  const initiator = getRescheduleInitiator(booking);
+  const isProviderInitiated = ["provider", "service_provider", "service-provider"].includes(initiator);
+  const isClientInitiated = ["client", "customer"].includes(initiator);
+
+  // Check if this is a reschedule state
+  const isRescheduleState = [
+    "reschedule_requested", 
+    "reschedule_proposed", 
+    "reschedule_confirmed",
+    "rescheduled"
+  ].includes(rawStatus);
+
+  if (isRescheduleState) {
+    // Client initiated reschedule → show "Requested" page (waiting for provider)
+    if (isClientInitiated) {
+      return `/client/my-bookings/reschedule-requested/${booking.id}`;
+    }
+    // Provider initiated reschedule → show "Proposed" page (client needs to respond)
+    if (isProviderInitiated) {
+      return `/client/my-bookings/reschedule-proposed/${booking.id}`;
+    }
+    // Fallback: if initiator is not set, use status
+    if (rawStatus === "reschedule_proposed" || rawStatus === "reschedule_confirmed") {
+      return `/client/my-bookings/reschedule-proposed/${booking.id}`;
+    }
+    return `/client/my-bookings/reschedule-requested/${booking.id}`;
+  }
+
+  // Regular status routes
+  const routeMap = {
+    "upcoming": `/client/my-bookings/upcoming/${booking.id}`,
+    "pending": `/client/my-bookings/upcoming/${booking.id}`,
+    "accepted": `/client/my-bookings/upcoming/${booking.id}`,
+    "new requests": `/client/my-bookings/upcoming/${booking.id}`,
+    "in_progress": `/client/my-bookings/in-progress/${booking.id}`,
+    "completed": `/client/my-bookings/completed/${booking.id}`,
+    "paid": `/client/my-bookings/paid/${booking.id}`,
+    "cancelled": `/client/my-bookings/cancelled/${booking.id}`,
+  };
+
+  return routeMap[rawStatus] || `/client/my-bookings/${booking.id}`;
+}
+
+// ─────────────────────────────────────────────
+// GET DISPLAY STATUS FOR RESCHEDULE
+// ─────────────────────────────────────────────
+
+function getDisplayStatus(booking) {
+  const status = booking.status || "Pending";
+  
+  // All reschedule statuses show as "Rescheduled" in the table
+  if (status === "Reschedule Requested" || 
+      status === "Reschedule Proposed" || 
+      status === "Reschedule Confirmed") {
+    return "Rescheduled";
+  }
+  return status;
+}
+
+// ─────────────────────────────────────────────
+// GET STATUS SUBTEXT (client-facing)
+// ─────────────────────────────────────────────
+
+function getStatusSubtext(booking) {
+  const status = booking.status || "Pending";
+  const initiator = getRescheduleInitiator(booking);
+  
+  if (status === "Reschedule Requested") {
+    return initiator === "client" 
+      ? " Waiting for provider approval" 
+      : " Provider requested reschedule";
+  }
+  
+  if (status === "Reschedule Proposed") {
+    return initiator === "provider" || initiator === "service_provider"
+      ? " Please review new time" 
+      : "Provider proposed new time";
+  }
+  
+  if (status === "Reschedule Confirmed") {
+    return " Reschedule confirmed";
+  }
+  
+  return null;
 }
 
 // ─────────────────────────────────────────────
@@ -246,6 +358,8 @@ function MyBookings() {
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // ── Fetch Bookings ──
   const fetchBookings = async (showRefresh = false) => {
@@ -276,30 +390,63 @@ function MyBookings() {
     fetchBookings();
   }, []);
 
+  // Refresh when returning from reschedule action
+  useEffect(() => {
+    if (location.state?.rescheduleUpdated) {
+      fetchBookings();
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
+
   // ── Filter bookings based on active tab ──
   const filteredBookings = bookings.filter((booking) => {
+    const status = booking.status || "Pending";
+    
     if (activeTab === "Upcoming") {
-      return booking.status === "Upcoming" ||
-             booking.status === "Pending" ||
-             booking.status === "Accepted" ||
-             booking.status === "New Requests";
+      return status === "Upcoming" ||
+             status === "Pending" ||
+             status === "Accepted" ||
+             status === "New Requests";
     }
-    return booking.status === activeTab;
+    
+    if (activeTab === "Rescheduled") {
+      return status === "Rescheduled" ||
+             status === "Reschedule Requested" ||
+             status === "Reschedule Proposed" ||
+             status === "Reschedule Confirmed";
+    }
+    
+    return status === activeTab;
   });
 
   const tabCounts = {
-    Upcoming: bookings.filter((booking) =>
-      booking.status === "Upcoming" ||
-      booking.status === "Pending" ||
-      booking.status === "Accepted" ||
-      booking.status === "New Requests"
-    ).length,
+    Upcoming: bookings.filter((booking) => {
+      const status = booking.status || "Pending";
+      return status === "Upcoming" ||
+             status === "Pending" ||
+             status === "Accepted" ||
+             status === "New Requests";
+    }).length,
     "In Progress": bookings.filter((booking) => booking.status === "In Progress").length,
-    Completed: bookings.filter((booking) => booking.status === "Completed").length,
-    Rescheduled: bookings.filter((booking) => booking.status === "Rescheduled").length,
-    Cancelled: bookings.filter((booking) => booking.status === "Cancelled").length,
-    Paid: bookings.filter((booking) => booking.status === "Paid").length,
+    "Completed": bookings.filter((booking) => booking.status === "Completed").length,
+    "Rescheduled": bookings.filter((booking) => {
+      const status = booking.status || "Pending";
+      return status === "Rescheduled" ||
+             status === "Reschedule Requested" ||
+             status === "Reschedule Proposed" ||
+             status === "Reschedule Confirmed";
+    }).length,
+    "Cancelled": bookings.filter((booking) => booking.status === "Cancelled").length,
+    "Paid": bookings.filter((booking) => booking.status === "Paid").length,
   };
+
+  // Count pending client actions (client needs to respond to provider proposals)
+  const pendingClientActions = bookings.filter((b) => {
+    const status = b.status || "Pending";
+    const initiator = getRescheduleInitiator(b);
+    return status === "Reschedule Proposed" && 
+           ["provider", "service_provider", "service-provider"].includes(initiator);
+  }).length;
 
   const getEmptyState = (tab) => {
     return emptyStateConfigs[tab] || emptyStateConfigs["Upcoming"];
@@ -332,13 +479,15 @@ function MyBookings() {
             <div className="flex min-w-max">
               {tabs.map((tab) => {
                 const count = tabCounts[tab] || 0;
+                const isRescheduledTab = tab === "Rescheduled";
+                const needsAction = isRescheduledTab && pendingClientActions > 0;
 
                 return (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`flex items-center gap-2 border-b-[3px] px-6 py-3.5 text-base font-semibold transition-colors ${
+                    className={`flex items-center gap-2 border-b-[3px] px-6 py-3.5 text-base font-semibold transition-colors whitespace-nowrap ${
                       activeTab === tab
                         ? "border-[#056db3] bg-blue-50 text-[#056db3]"
                         : "border-transparent text-gray-600 hover:bg-gray-50"
@@ -354,6 +503,11 @@ function MyBookings() {
                     >
                       {count}
                     </span>
+                    {needsAction && (
+                      <span className="ml-1 text-xs text-purple-600 font-medium">
+                        ({pendingClientActions} need action)
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -405,11 +559,18 @@ function MyBookings() {
                       const providerName = getProviderName(booking);
                       const providerInitials = getProviderInitials(booking);
                       const bookingRoute = getBookingRoute(booking);
+                      const displayStatus = getDisplayStatus(booking);
+                      const statusSubtext = getStatusSubtext(booking);
+                      const isRescheduleState = ["Reschedule Requested", "Reschedule Proposed", "Reschedule Confirmed"].includes(booking.status);
+                      
+                      // Check if client needs to respond (provider initiated)
+                      const initiator = getRescheduleInitiator(booking);
+                      const needsClientResponse = booking.status === "Reschedule Proposed" && 
+                                                   ["provider", "service_provider", "service-provider"].includes(initiator);
 
                       return (
                         <tr key={booking.id} className="border-b border-gray-100 align-middle hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-5">
-                            {/* ── Fixed width for service column ── */}
                             <div className="max-w-50">
                               <p className="text-base font-semibold text-gray-800 truncate">{booking.service}</p>
                               <p className="mt-1 text-sm leading-6 text-gray-500 truncate">{booking.details}</p>
@@ -444,13 +605,27 @@ function MyBookings() {
                             </div>
                           </td>
                           <td className="px-4 py-5 whitespace-nowrap">
-                            <span
-                              className={`inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ${
-                                statusStyles[booking.status] || "bg-gray-100 text-gray-700"
-                              }`}
-                            >
-                              {booking.status}
-                            </span>
+                            <div className="flex flex-col items-start gap-0.5">
+                              <span
+                                className={`inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ${
+                                  statusStyles[displayStatus] || "bg-gray-100 text-gray-700"
+                                }`}
+                              >
+                                {displayStatus}
+                              </span>
+                              {statusSubtext && (
+                                <span className={`text-xs font-medium ${
+                                  needsClientResponse ? "text-purple-600" : "text-gray-500"
+                                }`}>
+                                  {statusSubtext}
+                                </span>
+                              )}
+                              {isRescheduleState && booking.raw?.proposed_scheduled_date && (
+                                <span className="text-xs text-gray-400 mt-0.5">
+                                  Proposed: {formatBookingDate(booking.raw.proposed_scheduled_date)}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-5">
                             <div>
@@ -467,9 +642,13 @@ function MyBookings() {
                             <div className="flex items-center gap-4 whitespace-nowrap">
                               <Link
                                 to={bookingRoute}
-                                className="rounded-xl border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50"
+                                className={`rounded-xl border-2 px-4 py-2 text-sm font-semibold transition-colors ${
+                                  needsClientResponse
+                                    ? "border-purple-800  text-purple-800 hover:bg-purple-50 "
+                                    : "border-[#056db3] text-[#056db3] hover:bg-blue-50"
+                                }`}
                               >
-                                View
+                                {needsClientResponse ? "Respond" : "View"}
                               </Link>
                               <button
                                 onClick={() => setOpenMenuId(openMenuId === booking.id ? null : booking.id)}
@@ -492,6 +671,9 @@ function MyBookings() {
                                 {booking.status !== "Completed" &&
                                  booking.status !== "Paid" &&
                                  booking.status !== "Rescheduled" &&
+                                 booking.status !== "Reschedule Requested" &&
+                                 booking.status !== "Reschedule Proposed" &&
+                                 booking.status !== "Reschedule Confirmed" &&
                                  booking.status !== "Cancelled" && (
                                   <button
                                     onClick={async () => {
@@ -518,6 +700,16 @@ function MyBookings() {
                                   >
                                     Cancel
                                   </button>
+                                )}
+                                {booking.status === "Reschedule Requested" && (
+                                  <div className="px-3 py-2 text-sm text-purple-600 bg-purple-50">
+                                    {getStatusSubtext(booking)}
+                                  </div>
+                                )}
+                                {booking.status === "Reschedule Proposed" && (
+                                  <div className="px-3 py-2 text-sm text-purple-600 bg-purple-50">
+                                    {getStatusSubtext(booking)}
+                                  </div>
                                 )}
                               </div>
                             )}

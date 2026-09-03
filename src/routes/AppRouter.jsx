@@ -40,8 +40,10 @@ import UpcomingBookingDetails from "../pages/Client/bookings/UpComingBookingDeta
 import CancelledBookingDetails from "../pages/Client/bookings/CancelledBookingDetails";
 import CompletedBookingDetails from "../pages/Client/bookings/CompletedBookingDetails";
 import InProgressBookingDetails from "../pages/Client/bookings/InProgressBookingDetails";
-import RescheduledJobDetails from "../pages/ServiceProvider/Jobs/RescheduledJobDetails";
-import RescheduledBookingDetails from "../pages/Client/bookings/RescheduledBookingDetails";
+import RescheduleProposedDetails from "../pages/Client/bookings/RescheduleProposedDetails";
+import RescheduleRequestedDetails from "../pages/Client/bookings/RescheduleRequestedDetails";
+import RescheduleProposedJobDetails from "../pages/ServiceProvider/Jobs/RescheduleProposedJobDetails";
+import RescheduleRequestedJobDetails from "../pages/ServiceProvider/Jobs/RescheduleRequestedJobDetails";
 import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
 import ServiceProvidersManagement from "../pages/Admin/ServiceProvidersManagement";
@@ -117,8 +119,12 @@ export default function AppRouter() {
           element={<UpcomingBookingDetails />}
         />
         <Route
-          path="/client/my-bookings/rescheduled/:bookingId"
-          element={<RescheduledBookingDetails />}
+          path="/client/my-bookings/reschedule-requested/:bookingId"
+          element={<RescheduleRequestedDetails />}
+        />
+        <Route
+          path="/client/my-bookings/reschedule-proposed/:bookingId"
+          element={<RescheduleProposedDetails />}
         />
         <Route
           path="/client/my-bookings/paid/:bookingId"
@@ -135,18 +141,7 @@ export default function AppRouter() {
           element={<ProviderNotification />}
         />
         <Route path="/provider/my-reviews" element={<Reviews />} />
-        <Route path="/provider/my-jobs/rescheduled/:id" element={<RescheduledJobDetails />}/>
         <Route path="/provider/subscription" element={<Subscription />} />
-
-        <Route
-          path="/provider/my-jobs/rescheduled/:id"
-          element={<RescheduledJobDetails />}
-        />
-
-        <Route
-          path="/provider/my-jobs/rescheduled/:id"
-          element={<RescheduledJobDetails />}
-        />
         <Route path="/provider/ai-assistant" element={<AIAssistant />} />
 
         <Route
@@ -181,7 +176,8 @@ export default function AppRouter() {
           path="/provider/my-jobs/cancelled/:id"
           element={<CancelledJobDetails />}
         />
-      
+        <Route path="/provider/my-jobs/reschedule-requested/:id" element={<RescheduleRequestedJobDetails />} />
+        <Route path="/provider/my-jobs/reschedule-proposed/:id" element={<RescheduleProposedJobDetails />} />
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Home />} />

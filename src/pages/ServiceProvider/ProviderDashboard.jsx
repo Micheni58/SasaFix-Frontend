@@ -1,4 +1,4 @@
-// src/pages/ServiceProvider/ProviderDashboard.jsx - With consistent earnings logic
+// src/pages/ServiceProvider/ProviderDashboard.jsx
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -17,6 +17,7 @@ import {
   DollarSign,
   Sparkles,
   Receipt,
+  Inbox,
 } from "lucide-react";
 import bookingService from "../../api/bookingService";
 import { getProviderTransactions } from "../../api/transactionService";
@@ -37,6 +38,11 @@ const STATUS_STYLES = {
   "Rejected": "bg-red-100 text-red-800",
   "Cancelled": "bg-red-100 text-red-800",
   "Paid": "bg-emerald-100 text-emerald-800",
+  // Reschedule statuses
+  "Rescheduled": "bg-purple-100 text-purple-800",
+  "Reschedule Requested": "bg-purple-100 text-purple-800",
+  "Reschedule Proposed": "bg-purple-100 text-purple-800",
+  "Reschedule Confirmed": "bg-purple-100 text-purple-800",
 };
 
 const TIER_COLORS = { gold: "#CA8A04", blue: "#056db3", gray: "#9CA3AF" };
@@ -114,8 +120,93 @@ function isToday(dateString) {
   }
 }
 
+function normalizeStatus(statusValue) {
+  const rawStatus = (statusValue || "").toString().trim();
+  if (!rawStatus) return "";
+
+  const normalized = rawStatus.toLowerCase().replace(/\s+/g, "_");
+  const statusMap = {
+    pending: "Pending",
+    accepted: "Accepted",
+    in_progress: "In Progress",
+    completed: "Completed",
+    paid: "Paid",
+    cancelled: "Cancelled",
+    rescheduled: "Rescheduled",
+    reschedule_requested: "Reschedule Requested",
+    reschedule_proposed: "Reschedule Proposed",
+    reschedule_confirmed: "Reschedule Confirmed",
+  };
+
+  return statusMap[normalized] || rawStatus;
+}
+
+// ── FIXED: Correct reschedule routing logic ──
 function getBookingRoute(booking) {
   const status = booking.status || "Pending";
+  const rawStatus = (booking.raw?.status ?? booking.status ?? "pending")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+
+  const initiator = (booking.rescheduleInitiatedBy || booking.raw?.reschedule_initiated_by || "")
+    .toString()
+    .trim()
+    .toLowerCase();
+
+  const isProviderInitiated = ["provider", "service_provider", "service-provider"].includes(initiator);
+  const isClientInitiated = ["client", "customer"].includes(initiator);
+
+  // Check if this booking has reschedule history
+  const hasRescheduleHistory = !!(booking.raw?.original_scheduled_date || booking.originalDate);
+
+  // ── IF STATUS IS ACCEPTED, IN_PROGRESS, COMPLETED, or PAID → GO TO REGULAR DETAILS PAGE ──
+  const regularStatuses = ["Accepted", "accepted", "In Progress", "in_progress", "Completed", "completed", "Paid", "paid"];
+  if (regularStatuses.includes(status)) {
+    if (status === "Accepted" || status === "accepted") {
+      return `/provider/my-jobs/accepted/${booking.id}`;
+    }
+    if (status === "In Progress" || status === "in_progress") {
+      return `/provider/my-jobs/in-progress/${booking.id}`;
+    }
+    if (status === "Completed" || status === "completed") {
+      return `/provider/my-jobs/completed/${booking.id}`;
+    }
+    if (status === "Paid" || status === "paid") {
+      return `/provider/my-jobs/paid/${booking.id}`;
+    }
+  }
+
+  // ── PROVIDER INITIATED RESCHEDULE (PENDING) ──
+  if (isProviderInitiated && rawStatus === "reschedule_proposed") {
+    return `/provider/my-jobs/reschedule-proposed/${booking.id}`;
+  }
+
+  // ── CLIENT INITIATED RESCHEDULE (PENDING) ──
+  if (isClientInitiated && rawStatus === "reschedule_requested") {
+    return `/provider/my-jobs/reschedule-requested/${booking.id}`;
+  }
+
+  // ── PENDING RESCHEDULE STATES (fallback) ──
+  if (rawStatus === "reschedule_proposed") {
+    return `/provider/my-jobs/reschedule-proposed/${booking.id}`;
+  }
+  if (rawStatus === "reschedule_requested") {
+    return `/provider/my-jobs/reschedule-requested/${booking.id}`;
+  }
+
+  // ── RESCHEDULED / CONFIRMED (without clear initiator) ──
+  if (rawStatus === "rescheduled" || rawStatus === "reschedule_confirmed") {
+    // If status is Accepted, go to accepted page
+    if (status === "Accepted" || status === "accepted") {
+      return `/provider/my-jobs/accepted/${booking.id}`;
+    }
+    return `/provider/my-jobs/reschedule-proposed/${booking.id}`;
+  }
+
+  // ── REGULAR STATUS ROUTES ──
   const routeMap = {
     "New Requests": `/provider/my-jobs/new/${booking.id}`,
     "Pending": `/provider/my-jobs/new/${booking.id}`,
@@ -127,8 +218,41 @@ function getBookingRoute(booking) {
     "Rejected": `/provider/my-jobs/rejected/${booking.id}`,
     "Cancelled": `/provider/my-jobs/cancelled/${booking.id}`,
     "Paid": `/provider/my-jobs/paid/${booking.id}`,
+    "Reschedule Requested": `/provider/my-jobs/reschedule-requested/${booking.id}`,
+    "Reschedule Proposed": `/provider/my-jobs/reschedule-proposed/${booking.id}`,
   };
   return routeMap[status] || `/provider/my-jobs/${booking.id}`;
+}
+
+function getDisplayStatus(booking) {
+  const status = booking.status || "Pending";
+  
+  // All reschedule statuses show as "Rescheduled" in the dashboard
+  if (status === "Reschedule Requested" || 
+      status === "Reschedule Proposed" || 
+      status === "Reschedule Confirmed") {
+    return "Rescheduled";
+  }
+  return status;
+}
+
+function getStatusSubtext(booking) {
+  const status = booking.status || "Pending";
+  const initiator = (booking.rescheduleInitiatedBy || booking.raw?.reschedule_initiated_by || "")
+    .toString()
+    .trim()
+    .toLowerCase();
+  
+  if (status === "Reschedule Requested") {
+    return initiator === "client" ? "⏳ Awaiting your approval" : "⏳ Client requested reschedule";
+  }
+  if (status === "Reschedule Proposed") {
+    return initiator === "provider" ? "⏳ Awaiting client approval" : "⏳ Provider proposed reschedule";
+  }
+  if (status === "Reschedule Confirmed") {
+    return "✅ Reschedule confirmed";
+  }
+  return null;
 }
 
 // ─────────────────────────────────────────────
@@ -383,7 +507,6 @@ function ProviderDashboard() {
       "Provider"
     : "Provider";
 
-  // ✅ Get provider ID correctly
   const providerId = Number(
     storedUser?.provider_id || 
     storedUser?.service_provider_id || 
@@ -474,7 +597,6 @@ function ProviderDashboard() {
   }, [providerId]);
 
   // ── Fetch month-to-date earnings from transaction history ──
-  // ✅ Fixed: Use providerId instead of userId
   useEffect(() => {
     let mounted = true;
     if (!providerId) { 
@@ -484,7 +606,6 @@ function ProviderDashboard() {
 
     const fetchMonthEarnings = async () => {
       try {
-        // ✅ Use providerId for transactions
         const txRes = await getProviderTransactions(providerId);
         const txList = Array.isArray(txRes)
           ? txRes
@@ -492,23 +613,19 @@ function ProviderDashboard() {
 
         if (!mounted) return;
 
-        // Get current month date range
         const now = new Date();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-        // Filter transactions to current month only
         const monthTransactions = txList.filter(tx => {
           const txDate = new Date(tx.paid_at || tx.paidAt || tx.created_at || tx.createdAt || tx.date);
           if (isNaN(txDate.getTime())) return false;
           return txDate >= monthStart && txDate <= monthEnd;
         });
 
-        // Calculate total for this month (using net_amount for provider earnings)
         const total = monthTransactions
           .filter(tx => {
             const status = (tx.status || "").toUpperCase();
-            // Only include successful/completed transactions
             return status === "COMPLETED" || status === "SUCCESS" || status === "PAID";
           })
           .reduce((sum, tx) => {
@@ -532,7 +649,7 @@ function ProviderDashboard() {
 
     fetchMonthEarnings();
     return () => { mounted = false; };
-  }, [providerId]);  // ✅ Use providerId as dependency
+  }, [providerId]);
 
   // ── AI Insight Generation ──
   const generateAIInsight = async () => {
@@ -555,10 +672,27 @@ function ProviderDashboard() {
   // ── Derived stats ──
   const today = new Date();
 
+  // Get new requests (Pending status)
+  const newRequests = bookings.filter((b) => {
+    const status = b.status || "Pending";
+    return status === "Pending" || status === "New Requests";
+  });
+
+  // Get today's bookings (including new requests and accepted)
   const todaysBookings = bookings.filter((b) => {
-    if (b.status === "New Requests" || b.status === "Pending") {
+    const status = b.status || "Pending";
+    
+    // Always show New Requests and Pending in Today's Jobs
+    if (status === "Pending" || status === "New Requests") {
       return true;
     }
+    
+    // Show reschedule requests
+    if (status === "Reschedule Requested" || status === "Reschedule Proposed") {
+      return true;
+    }
+    
+    // Check if the booking date is today
     const bookingDate = b.date || b.scheduled_date || b.booking_date;
     if (!bookingDate) return false;
     try {
@@ -572,10 +706,29 @@ function ProviderDashboard() {
     }
   });
 
-  const displayedJobs = todaysBookings.slice(0, 5);
+  // Sort: New Requests first, then by date
+  const sortedTodaysBookings = [...todaysBookings].sort((a, b) => {
+    const aIsNew = a.status === "Pending" || a.status === "New Requests";
+    const bIsNew = b.status === "Pending" || b.status === "New Requests";
+    if (aIsNew && !bIsNew) return -1;
+    if (!aIsNew && bIsNew) return 1;
+    return 0;
+  });
 
+  const displayedJobs = sortedTodaysBookings.slice(0, 5);
+
+  // Active jobs (Accepted, In Progress, and reschedule proposals waiting for client)
   const activeStatuses = ["Accepted", "In Progress"];
-  const activeJobs = bookings.filter((b) => activeStatuses.includes(b.status));
+  const activeJobs = bookings.filter((b) => {
+    const status = b.status || "Pending";
+    // Include Accepted, In Progress, and Reschedule Proposed (waiting for client)
+    if (status === "Accepted" || status === "In Progress") return true;
+    if (status === "Reschedule Proposed") {
+      const initiator = (b.rescheduleInitiatedBy || b.raw?.reschedule_initiated_by || "").toString().trim().toLowerCase();
+      return initiator === "provider" || initiator === "service_provider";
+    }
+    return false;
+  });
   const activeCount = activeJobs.length;
 
   const completedCount = bookings.filter(
@@ -727,6 +880,31 @@ function ProviderDashboard() {
             </section>
           )}
 
+          {/* ── New Requests Alert ── */}
+          {newRequests.length > 0 && (
+            <section className="mb-8">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Inbox className="h-6 w-6 text-amber-600" />
+                  <div>
+                    <p className="font-semibold text-amber-800">
+                      {newRequests.length} New Request{newRequests.length > 1 ? 's' : ''}
+                    </p>
+                    <p className="text-sm text-amber-700">
+                      {newRequests.length} job{newRequests.length > 1 ? 's' : ''} waiting for your response
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  to="/provider/my-jobs"
+                  className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 transition-colors"
+                >
+                  View Requests
+                </Link>
+              </div>
+            </section>
+          )}
+
           {/* ── Side by Side: Active Jobs & Today's Jobs ── */}
           <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Active Jobs Card */}
@@ -746,6 +924,18 @@ function ProviderDashboard() {
                         <Clock className="h-3.5 w-3.5 text-gray-400" />
                         <span className="text-xs text-gray-500">{formatDateToWords(activeJob.date)}</span>
                       </div>
+                      {activeJob.status === "Reschedule Proposed" && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Clock className="h-3 w-3 text-purple-500" />
+                          <span className="text-xs text-purple-600 font-medium">⏳ Awaiting client approval</span>
+                        </div>
+                      )}
+                      {activeJob.status === "Reschedule Requested" && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Clock className="h-3 w-3 text-amber-500" />
+                          <span className="text-xs text-amber-600 font-medium">⏳ Client requested reschedule</span>
+                        </div>
+                      )}
                     </div>
                     <Link to={getBookingRoute(activeJob)} className="flex items-center gap-1 rounded-lg bg-[#056db3] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#045a94] transition-colors">
                       <Eye className="h-3.5 w-3.5" />
@@ -789,6 +979,12 @@ function ProviderDashboard() {
                     <ChevronRight className="h-4 w-4" />
                   </Link>
                 </div>
+                {newRequests.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-amber-600">
+                    <Inbox className="h-4 w-4" />
+                    <span>{newRequests.length} new request{newRequests.length > 1 ? 's' : ''}</span>
+                  </div>
+                )}
               </div>
               <div className="border-t border-gray-200">
                 {loading ? (
@@ -813,28 +1009,48 @@ function ProviderDashboard() {
                   </div>
                 ) : (
                   <ul className="divide-y divide-gray-100">
-                    {displayedJobs.map((job) => (
-                      <li key={job.id} className="flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <ClientAvatar name={job.client || job.clientName || `Client #${job.clientId}`} size={44} />
-                          <div className="min-w-0">
-                            <p className="truncate font-semibold text-gray-800">{job.service || "Service unavailable"}</p>
-                            <p className="truncate text-sm text-gray-500">{job.client || job.clientName || "Client"}</p>
+                    {displayedJobs.map((job) => {
+                      const displayStatus = getDisplayStatus(job);
+                      const statusSubtext = getStatusSubtext(job);
+                      const isNewRequest = job.status === "Pending" || job.status === "New Requests";
+                      const isReschedulePending = job.status === "Reschedule Requested" || job.status === "Reschedule Proposed";
+                      
+                      return (
+                        <li key={job.id} className={`flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between ${isNewRequest ? "bg-amber-50/50" : ""}`}>
+                          <div className="flex min-w-0 items-center gap-3">
+                            <ClientAvatar name={job.client || job.clientName || `Client #${job.clientId}`} size={44} />
+                            <div className="min-w-0">
+                              <p className="truncate font-semibold text-gray-800">{job.service || "Service unavailable"}</p>
+                              <p className="truncate text-sm text-gray-500">{job.client || job.clientName || "Client"}</p>
+                              {isNewRequest && (
+                                <span className="inline-block mt-0.5 text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
+                                  New Request
+                                </span>
+                              )}
+                              {isReschedulePending && (
+                                <span className="inline-block mt-0.5 text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
+                                  Reschedule Pending
+                                </span>
+                              )}
+                              {statusSubtext && !isNewRequest && !isReschedulePending && (
+                                <p className="text-xs text-purple-600 font-medium mt-0.5">{statusSubtext}</p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-4 sm:justify-end">
-                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[job.status] || "bg-gray-100 text-gray-700"}`}>
-                            {job.status}
-                          </span>
-                          <span className="font-mono text-sm font-semibold text-gray-800">
-                            {job.amount || formatAmount(job.amountRaw)}
-                          </span>
-                          <Link to={getBookingRoute(job)} className="text-sm font-medium text-[#056db3] hover:underline">
-                            View
-                          </Link>
-                        </div>
-                      </li>
-                    ))}
+                          <div className="flex items-center justify-between gap-4 sm:justify-end">
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[displayStatus] || "bg-gray-100 text-gray-700"}`}>
+                              {displayStatus}
+                            </span>
+                            <span className="font-mono text-sm font-semibold text-gray-800">
+                              {job.amount || formatAmount(job.amountRaw)}
+                            </span>
+                            <Link to={getBookingRoute(job)} className={`text-sm font-medium hover:underline ${isNewRequest ? "text-amber-600" : "text-[#056db3]"}`}>
+                              {isNewRequest ? "Respond" : "View"}
+                            </Link>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>

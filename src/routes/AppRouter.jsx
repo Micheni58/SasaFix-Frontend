@@ -52,6 +52,7 @@ import VerifyEmail from "../pages/VerifyEmail";
 import EmailVerificationSent from "../pages/EmailVerificationSent";
 import ProviderEarnings from "../pages/ServiceProvider/Earnings";
 import AIAssistant from "../pages/ServiceProvider/AIAssistant";
+import AdminReportsDisputes from "../pages/Admin/AdminReportsDisputes";
 
 export default function AppRouter() {
   return (
@@ -85,6 +86,8 @@ export default function AppRouter() {
         <Route path="/admin/users" element={<Users />} />
         <Route path="/admin/service-providers" element={<ServiceProviders />} />
         <Route path="/admin/transactions" element={<AdminTransactions />} />
+        <Route path="/admin/reports-disputes" element={<AdminReportsDisputes />} />
+        <Route path="/admin/analytics" element={<ReportAndAnalytics />} />
         {/* Client Routes */}
 
         <Route path="/client" element={<ClientDashboard />} />

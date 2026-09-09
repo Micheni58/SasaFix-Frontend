@@ -4,9 +4,7 @@ import { useState, useEffect } from "react";
 import {
   Flag,
   Search,
-  Filter,
   ChevronDown,
-  Eye,
   AlertTriangle,
   CheckCircle2,
   Clock3,
@@ -15,19 +13,18 @@ import {
   Loader2,
   RefreshCw,
   ShieldAlert,
-  TrendingDown,
-  Users,
   Timer,
   MessageSquare,
   Ban,
   Mail,
-  FileText,
   ChevronRight,
   AlertCircle,
   Inbox,
+  FileText,
 } from "lucide-react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
+import reportService from "../../api/reportService";
 
 // ─────────────────────────────────────────────
 // CONSTANTS
@@ -41,6 +38,10 @@ const REPORT_CATEGORIES = [
   "Unprofessional behaviour",
   "Safety concern",
   "Fraud or scam",
+  "Client no-show",
+  "Client refused to pay",
+  "Abusive behaviour",
+  "Fake or malicious booking",
   "Other",
 ];
 
@@ -77,117 +78,6 @@ const PRIORITY_CONFIG = {
 };
 
 // ─────────────────────────────────────────────
-// MOCK DATA — replace with API calls
-// ─────────────────────────────────────────────
-
-const MOCK_REPORTS = [
-  {
-    id: "RPT-001",
-    bookingId: 1042,
-    clientName: "Aisha Mwangi",
-    clientEmail: "aisha.m@gmail.com",
-    providerName: "James Otieno",
-    providerEmail: "james.o@gmail.com",
-    providerId: 24,
-    category: "Provider no-show",
-    description:
-      "The provider confirmed the booking but never arrived. I waited for 2 hours and tried calling multiple times with no response.",
-    status: "Submitted",
-    priority: "High",
-    submittedAt: "2026-09-06T09:14:00Z",
-    resolutionNote: null,
-    previousReports: 2,
-  },
-  {
-    id: "RPT-002",
-    bookingId: 1038,
-    clientName: "Kevin Njoroge",
-    clientEmail: "kevin.n@gmail.com",
-    providerName: "Grace Wanjiku",
-    providerEmail: "grace.w@gmail.com",
-    providerId: 17,
-    category: "Overcharging / wrong amount",
-    description:
-      "I was quoted KES 2,500 for the job but was charged KES 4,000 at completion. The provider claimed extra materials were used but gave no receipt.",
-    status: "Under Review",
-    priority: "Medium",
-    submittedAt: "2026-09-05T14:30:00Z",
-    resolutionNote: null,
-    previousReports: 0,
-  },
-  {
-    id: "RPT-003",
-    bookingId: 1031,
-    clientName: "Fatuma Hassan",
-    clientEmail: "fatuma.h@gmail.com",
-    providerName: "Peter Kamau",
-    providerEmail: "peter.k@gmail.com",
-    providerId: 9,
-    category: "Poor service quality",
-    description:
-      "The plumbing repair was done poorly. The pipe started leaking again within 24 hours and the provider is not responding to my messages.",
-    status: "Resolved",
-    priority: "Medium",
-    submittedAt: "2026-09-03T11:00:00Z",
-    resolutionNote:
-      "Provider was issued a formal warning. Client offered a partial refund of KES 800 from the commission reserve.",
-    previousReports: 1,
-  },
-  {
-    id: "RPT-004",
-    bookingId: 1029,
-    clientName: "Brian Ochieng",
-    clientEmail: "brian.o@gmail.com",
-    providerName: "Samuel Mwenda",
-    providerEmail: "samuel.m@gmail.com",
-    providerId: 33,
-    category: "Fraud or scam",
-    description:
-      "The provider asked me to pay directly via M-Pesa outside the platform to avoid the commission. I refused but want this reported.",
-    status: "Under Review",
-    priority: "High",
-    submittedAt: "2026-09-04T16:45:00Z",
-    resolutionNote: null,
-    previousReports: 3,
-  },
-  {
-    id: "RPT-005",
-    bookingId: 1021,
-    clientName: "Mercy Wambua",
-    clientEmail: "mercy.w@gmail.com",
-    providerName: "David Ngugi",
-    providerEmail: "david.n@gmail.com",
-    providerId: 41,
-    category: "Unprofessional behaviour",
-    description:
-      "The provider was rude and dismissive during the job. He made inappropriate comments and left the work area extremely messy.",
-    status: "Dismissed",
-    priority: "Low",
-    submittedAt: "2026-09-01T08:20:00Z",
-    resolutionNote:
-      "Report reviewed. Provider's account of events was corroborated by booking chat logs. No policy violation found.",
-    previousReports: 0,
-  },
-  {
-    id: "RPT-006",
-    bookingId: 1055,
-    clientName: "Cynthia Akinyi",
-    clientEmail: "cynthia.a@gmail.com",
-    providerName: "James Otieno",
-    providerEmail: "james.o@gmail.com",
-    providerId: 24,
-    category: "Safety concern",
-    description:
-      "The electrician worked without proper safety equipment and left exposed wires after the job. This is a serious hazard.",
-    status: "Submitted",
-    priority: "High",
-    submittedAt: "2026-09-07T07:55:00Z",
-    resolutionNote: null,
-    previousReports: 2,
-  },
-];
-
-// ─────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────
 
@@ -217,6 +107,12 @@ function getInitials(name) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 }
 
+function getFullName(user) {
+  if (!user) return "Unknown User";
+  if (typeof user === 'string') return user;
+  return `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email || "Unknown User";
+}
+
 // ─────────────────────────────────────────────
 // SKELETON
 // ─────────────────────────────────────────────
@@ -233,18 +129,33 @@ function SkeletonRow() {
   );
 }
 
+function SkeletonStatCard() {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gray-200" />
+      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-gray-200 animate-pulse" />
+      <div className="h-8 w-20 animate-pulse rounded bg-gray-200" />
+      <div className="mt-1 h-4 w-24 animate-pulse rounded bg-gray-200" />
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────
 // STAT CARD
 // ─────────────────────────────────────────────
 
-function StatCard({ icon: Icon, value, label, sub, accent, iconBg }) {
+function StatCard({ icon: Icon, value, label, sub, accent, iconBg, isLoading }) {
   return (
     <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
       <div className={`absolute inset-x-0 top-0 h-1 ${accent}`} />
       <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${iconBg}`}>
         <Icon className="h-5 w-5" />
       </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
+      {isLoading ? (
+        <div className="h-8 w-20 animate-pulse rounded bg-gray-200" />
+      ) : (
+        <p className="text-2xl font-bold text-gray-900">{value}</p>
+      )}
       <p className="mt-1 text-sm font-medium text-gray-500">{label}</p>
       {sub && <p className="mt-0.5 text-xs text-gray-400">{sub}</p>}
     </div>
@@ -281,12 +192,12 @@ function PriorityBadge({ priority }) {
 // ─────────────────────────────────────────────
 
 function ReportDetailModal({ report, onClose, onStatusChange, onPriorityChange, onResolve, onDismiss, actionLoading }) {
-  const [resolveNote, setResolveNote] = useState(report?.resolutionNote || "");
+  const [resolveNote, setResolveNote] = useState(report?.resolution_note || "");
   const [dismissNote, setDismissNote] = useState("");
   const [activeTab, setActiveTab] = useState("details");
 
   useEffect(() => {
-    setResolveNote(report?.resolutionNote || "");
+    setResolveNote(report?.resolution_note || "");
     setDismissNote("");
     setActiveTab("details");
   }, [report?.id]);
@@ -295,6 +206,9 @@ function ReportDetailModal({ report, onClose, onStatusChange, onPriorityChange, 
 
   const canResolve = report.status !== "Resolved" && report.status !== "Dismissed";
   const canDismiss = report.status !== "Resolved" && report.status !== "Dismissed";
+
+  const reporterName = getFullName(report.reporter);
+  const reportedName = getFullName(report.reported_user);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
@@ -309,8 +223,8 @@ function ReportDetailModal({ report, onClose, onStatusChange, onPriorityChange, 
               <Flag className="h-4 w-4 text-red-500" />
             </div>
             <div>
-              <p className="font-bold text-gray-900 text-sm">{report.id}</p>
-              <p className="text-xs text-gray-400">Booking #{report.bookingId}</p>
+              <p className="font-bold text-gray-900 text-sm">Report #{report.id}</p>
+              <p className="text-xs text-gray-400">Booking #{report.booking_id}</p>
             </div>
           </div>
           <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-gray-100 transition-colors">
@@ -322,7 +236,7 @@ function ReportDetailModal({ report, onClose, onStatusChange, onPriorityChange, 
         <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-100 bg-gray-50 shrink-0 flex-wrap">
           <StatusBadge status={report.status} />
           <PriorityBadge priority={report.priority} />
-          {report.previousReports >= 3 && (
+          {report.previous_reports >= 3 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
               <AlertTriangle className="h-3 w-3" />
               Repeat offender
@@ -362,7 +276,7 @@ function ReportDetailModal({ report, onClose, onStatusChange, onPriorityChange, 
               {/* Description */}
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                  Client's description
+                  Reporter's description
                 </p>
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                   <p className="text-sm text-gray-700 leading-relaxed">{report.description}</p>
@@ -375,63 +289,64 @@ function ReportDetailModal({ report, onClose, onStatusChange, onPriorityChange, 
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Reported by</p>
                   <div className="flex items-center gap-2.5 mb-2">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-[#056db3]">
-                      {getInitials(report.clientName)}
+                      {getInitials(reporterName)}
                     </div>
-                    <p className="text-sm font-semibold text-gray-800">{report.clientName}</p>
+                    <p className="text-sm font-semibold text-gray-800">{reporterName}</p>
                   </div>
-                  <p className="text-xs text-gray-400 break-all">{report.clientEmail}</p>
+                  <p className="text-xs text-gray-400 break-all">{report.reporter?.email || "No email"}</p>
+                  <p className="text-xs text-gray-400 capitalize">Role: {report.reporter_role}</p>
                 </div>
                 <div className="rounded-xl border border-gray-200 p-4">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Reported against</p>
                   <div className="flex items-center gap-2.5 mb-2">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-100 text-xs font-bold text-purple-600">
-                      {getInitials(report.providerName)}
+                      {getInitials(reportedName)}
                     </div>
-                    <p className="text-sm font-semibold text-gray-800">{report.providerName}</p>
+                    <p className="text-sm font-semibold text-gray-800">{reportedName}</p>
                   </div>
-                  <p className="text-xs text-gray-400 break-all">{report.providerEmail}</p>
+                  <p className="text-xs text-gray-400 break-all">{report.reported_user?.email || "No email"}</p>
                 </div>
               </div>
 
               {/* Timeline */}
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Submitted</p>
-                <p className="text-sm text-gray-700">{formatDate(report.submittedAt)}</p>
+                <p className="text-sm text-gray-700">{formatDate(report.created_at)}</p>
               </div>
 
               {/* Previous reports warning */}
-              {report.previousReports > 0 && (
+              {report.previous_reports > 0 && (
                 <div className={`rounded-xl border px-4 py-3 flex items-start gap-3 ${
-                  report.previousReports >= 3
+                  report.previous_reports >= 3
                     ? "border-red-200 bg-red-50"
                     : "border-amber-200 bg-amber-50"
                 }`}>
                   <AlertTriangle className={`h-4 w-4 mt-0.5 shrink-0 ${
-                    report.previousReports >= 3 ? "text-red-500" : "text-amber-500"
+                    report.previous_reports >= 3 ? "text-red-500" : "text-amber-500"
                   }`} />
                   <div>
                     <p className={`text-sm font-semibold ${
-                      report.previousReports >= 3 ? "text-red-800" : "text-amber-800"
+                      report.previous_reports >= 3 ? "text-red-800" : "text-amber-800"
                     }`}>
-                      {report.previousReports} previous report{report.previousReports > 1 ? "s" : ""} against this provider
+                      {report.previous_reports} previous report{report.previous_reports > 1 ? "s" : ""} against this user
                     </p>
                     <p className={`text-xs mt-0.5 ${
-                      report.previousReports >= 3 ? "text-red-600" : "text-amber-600"
+                      report.previous_reports >= 3 ? "text-red-600" : "text-amber-600"
                     }`}>
-                      {report.previousReports >= 3
+                      {report.previous_reports >= 3
                         ? "Account flagged — consider suspension"
-                        : "Review provider's history before resolving"}
+                        : "Review user's history before resolving"}
                     </p>
                   </div>
                 </div>
               )}
 
               {/* Resolution note if already resolved/dismissed */}
-              {report.resolutionNote && (
+              {report.resolution_note && (
                 <div>
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Resolution note</p>
                   <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-                    <p className="text-sm text-green-800 leading-relaxed">{report.resolutionNote}</p>
+                    <p className="text-sm text-green-800 leading-relaxed">{report.resolution_note}</p>
                   </div>
                 </div>
               )}
@@ -489,18 +404,18 @@ function ReportDetailModal({ report, onClose, onStatusChange, onPriorityChange, 
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Quick actions</p>
                 <div className="space-y-2">
                   <a
-                    href={`mailto:${report.clientEmail}?subject=Regarding your report ${report.id}`}
+                    href={`mailto:${report.reporter?.email}?subject=Regarding your report #${report.id}`}
                     className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-600 hover:border-[#056db3] hover:text-[#056db3] hover:bg-blue-50 transition-all"
                   >
                     <Mail className="h-4 w-4 shrink-0" />
-                    Email the client
+                    Email the reporter
                   </a>
                   <a
-                    href={`mailto:${report.providerEmail}?subject=Report filed against your account - ${report.id}`}
+                    href={`mailto:${report.reported_user?.email}?subject=Report filed against your account #${report.id}`}
                     className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-600 hover:border-[#056db3] hover:text-[#056db3] hover:bg-blue-50 transition-all"
                   >
                     <MessageSquare className="h-4 w-4 shrink-0" />
-                    Email the provider
+                    Email the reported user
                   </a>
                   <button
                     onClick={() => onStatusChange(report.id, "Under Review")}
@@ -511,11 +426,11 @@ function ReportDetailModal({ report, onClose, onStatusChange, onPriorityChange, 
                     Mark as under review
                   </button>
                   <button
-                    onClick={() => window.open(`/admin/users?provider=${report.providerId}`, "_blank")}
+                    onClick={() => window.open(`/admin/users?userId=${report.reported_user?.id}`, "_blank")}
                     className="w-full flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 hover:bg-red-100 transition-all"
                   >
                     <Ban className="h-4 w-4 shrink-0" />
-                    Go to provider account
+                    Go to user account
                     <ChevronRight className="h-3.5 w-3.5 ml-auto" />
                   </button>
                 </div>
@@ -529,7 +444,7 @@ function ReportDetailModal({ report, onClose, onStatusChange, onPriorityChange, 
                     value={resolveNote}
                     onChange={(e) => setResolveNote(e.target.value)}
                     rows={3}
-                    placeholder="Describe the action taken (e.g. refund issued, provider warned)..."
+                    placeholder="Describe the action taken (e.g. refund issued, warning issued)..."
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-[#056db3]/20 transition-colors resize-none"
                   />
                   <button
@@ -585,10 +500,12 @@ function ReportDetailModal({ report, onClose, onStatusChange, onPriorityChange, 
 // ─────────────────────────────────────────────
 
 function AdminReportsDisputes() {
-  const [reports, setReports] = useState(MOCK_REPORTS);
-  const [loading, setLoading] = useState(false);
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isFiltering, setIsFiltering] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [summary, setSummary] = useState(null);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
@@ -604,37 +521,62 @@ function AdminReportsDisputes() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ── Fetch reports (replace mock with real API) ──
-  const fetchReports = async (showRefresh = false) => {
-    if (showRefresh) setRefreshing(true);
-    // TODO: replace with real API call
-    // const data = await reportService.getAllReports();
-    // setReports(data);
+  // ── Fetch reports and summary ──
+  const fetchData = async (showRefresh = false) => {
     if (showRefresh) {
-      setTimeout(() => setRefreshing(false), 600);
+      setRefreshing(true);
+    } else {
+      setIsFiltering(true);
+    }
+    setError(null);
+
+    try {
+      const filters = {};
+      if (statusFilter !== "All Status") filters.status = statusFilter;
+      if (priorityFilter !== "All Priority") filters.priority = priorityFilter;
+      if (categoryFilter !== "All Categories") filters.category = categoryFilter;
+
+      const [reportsData, summaryData] = await Promise.all([
+        reportService.getAllReports(filters),
+        reportService.getReportSummary(),
+      ]);
+
+      // Log the data to debug
+      console.log("📊 Reports data:", reportsData);
+      console.log("📊 Summary data:", summaryData);
+
+      setReports(reportsData || []);
+      setSummary(summaryData);
+    } catch (err) {
+      console.error("Error fetching reports:", err);
+      setError("Unable to load reports. Please try again later.");
+      setReports([]);
+    } finally {
+      setLoading(false);
+      setIsFiltering(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchReports();
+    fetchData();
   }, []);
 
-  // ── Filter ──
+  // ── Filter reports (client-side search) ──
   const filtered = reports.filter((r) => {
     const q = search.toLowerCase();
+    const reporterName = getFullName(r.reporter).toLowerCase();
+    const reportedName = getFullName(r.reported_user).toLowerCase();
+
     const matchSearch =
       !search ||
-      r.id.toLowerCase().includes(q) ||
-      r.clientName.toLowerCase().includes(q) ||
-      r.providerName.toLowerCase().includes(q) ||
-      String(r.bookingId).includes(q) ||
-      r.category.toLowerCase().includes(q);
+      String(r.id).includes(q) ||
+      String(r.booking_id).includes(q) ||
+      reporterName.includes(q) ||
+      reportedName.includes(q) ||
+      r.category?.toLowerCase().includes(q);
 
-    const matchStatus = statusFilter === "All Status" || r.status === statusFilter;
-    const matchPriority = priorityFilter === "All Priority" || r.priority === priorityFilter;
-    const matchCategory = categoryFilter === "All Categories" || r.category === categoryFilter;
-
-    return matchSearch && matchStatus && matchPriority && matchCategory;
+    return matchSearch;
   });
 
   const hasFilters =
@@ -645,46 +587,62 @@ function AdminReportsDisputes() {
     setStatusFilter("All Status");
     setPriorityFilter("All Priority");
     setCategoryFilter("All Categories");
+    fetchData();
+  };
+
+  // ── Handle filter changes ──
+  const handleStatusChange = (value) => {
+    setStatusFilter(value);
+    fetchData();
+  };
+
+  const handlePriorityChange = (value) => {
+    setPriorityFilter(value);
+    fetchData();
+  };
+
+  const handleCategoryChange = (value) => {
+    setCategoryFilter(value);
+    fetchData();
   };
 
   // ── Stats ──
-  const openCount = reports.filter((r) => r.status === "Submitted").length;
-  const reviewCount = reports.filter((r) => r.status === "Under Review").length;
-  const resolvedCount = reports.filter((r) => r.status === "Resolved").length;
-  const highPriorityCount = reports.filter((r) => r.priority === "High" && r.status !== "Resolved" && r.status !== "Dismissed").length;
+  const openCount = summary?.submitted || 0;
+  const reviewCount = summary?.under_review || 0;
+  const resolvedCount = summary?.resolved || 0;
+  const highPriorityCount = summary?.high_priority_open || 0;
+  const totalReports = summary?.total || 0;
 
   // ── Actions ──
-  const handleStatusChange = async (id, newStatus) => {
+  const handleStatusUpdate = async (id, newStatus) => {
     setActionLoading(true);
     try {
-      // TODO: await reportService.updateStatus(id, newStatus);
-      setReports((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
-      );
+      const updated = await reportService.updateStatus(id, newStatus);
+      setReports((prev) => prev.map((r) => (r.id === id ? updated : r)));
       if (selectedReport?.id === id) {
-        setSelectedReport((prev) => ({ ...prev, status: newStatus }));
+        setSelectedReport(updated);
       }
+      const newSummary = await reportService.getReportSummary();
+      setSummary(newSummary);
       showToast(`Status updated to "${newStatus}"`);
-    } catch {
-      showToast("Failed to update status", false);
+    } catch (err) {
+      showToast(err.message || "Failed to update status", false);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handlePriorityChange = async (id, newPriority) => {
+  const handlePriorityUpdate = async (id, newPriority) => {
     setActionLoading(true);
     try {
-      // TODO: await reportService.updatePriority(id, newPriority);
-      setReports((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, priority: newPriority } : r))
-      );
+      const updated = await reportService.updatePriority(id, newPriority);
+      setReports((prev) => prev.map((r) => (r.id === id ? updated : r)));
       if (selectedReport?.id === id) {
-        setSelectedReport((prev) => ({ ...prev, priority: newPriority }));
+        setSelectedReport(updated);
       }
       showToast(`Priority set to "${newPriority}"`);
-    } catch {
-      showToast("Failed to update priority", false);
+    } catch (err) {
+      showToast(err.message || "Failed to update priority", false);
     } finally {
       setActionLoading(false);
     }
@@ -693,18 +651,16 @@ function AdminReportsDisputes() {
   const handleResolve = async (id, note) => {
     setActionLoading(true);
     try {
-      // TODO: await reportService.resolve(id, note);
-      setReports((prev) =>
-        prev.map((r) =>
-          r.id === id ? { ...r, status: "Resolved", resolutionNote: note } : r
-        )
-      );
+      const updated = await reportService.resolveReport(id, note);
+      setReports((prev) => prev.map((r) => (r.id === id ? updated : r)));
       if (selectedReport?.id === id) {
-        setSelectedReport((prev) => ({ ...prev, status: "Resolved", resolutionNote: note }));
+        setSelectedReport(updated);
       }
+      const newSummary = await reportService.getReportSummary();
+      setSummary(newSummary);
       showToast("Report marked as resolved");
-    } catch {
-      showToast("Failed to resolve report", false);
+    } catch (err) {
+      showToast(err.message || "Failed to resolve report", false);
     } finally {
       setActionLoading(false);
     }
@@ -713,22 +669,81 @@ function AdminReportsDisputes() {
   const handleDismiss = async (id, note) => {
     setActionLoading(true);
     try {
-      // TODO: await reportService.dismiss(id, note);
-      setReports((prev) =>
-        prev.map((r) =>
-          r.id === id ? { ...r, status: "Dismissed", resolutionNote: note } : r
-        )
-      );
+      const updated = await reportService.dismissReport(id, note);
+      setReports((prev) => prev.map((r) => (r.id === id ? updated : r)));
       if (selectedReport?.id === id) {
-        setSelectedReport((prev) => ({ ...prev, status: "Dismissed", resolutionNote: note }));
+        setSelectedReport(updated);
       }
+      const newSummary = await reportService.getReportSummary();
+      setSummary(newSummary);
       showToast("Report dismissed");
-    } catch {
-      showToast("Failed to dismiss report", false);
+    } catch (err) {
+      showToast(err.message || "Failed to dismiss report", false);
     } finally {
       setActionLoading(false);
     }
   };
+
+  // ── Empty State Component ──
+  const EmptyState = ({ icon: Icon, title, description, color, iconColor }) => {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+        <div className={`rounded-full ${color} p-6 mb-6`}>
+          <Icon className={`h-16 w-16 ${iconColor}`} />
+        </div>
+        <h3 className="text-2xl font-bold text-gray-800 mb-3">{title}</h3>
+        <p className="text-gray-500 max-w-md">{description}</p>
+      </div>
+    );
+  };
+
+  // ── Loading state ──
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-[#f8fafc]">
+        <Sidebar role="admin" />
+        <div className="flex-1 ml-0 lg:ml-72 min-w-0">
+          <Navbar />
+          <main className="pt-24 px-4 sm:px-6 pb-10 max-w-7xl mx-auto">
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="h-10 w-10 rounded-xl bg-gray-200 animate-pulse" />
+                <div className="h-9 w-56 animate-pulse rounded bg-gray-200" />
+              </div>
+              <div className="h-5 w-72 animate-pulse rounded bg-gray-200 mt-1" />
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              {[...Array(4)].map((_, i) => (
+                <SkeletonStatCard key={i} />
+              ))}
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-200">
+                  <thead className="border-b border-gray-200 bg-gray-50">
+                    <tr>
+                      {["Report", "Booking", "Reporter", "Reported", "Category", "Priority", "Status", "Submitted", ""].map((h) => (
+                        <th key={h} className="px-4 py-3.5 text-left">
+                          <div className="h-3 w-16 animate-pulse rounded bg-gray-200" />
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...Array(5)].map((_, i) => (
+                      <SkeletonRow key={i} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  const isUpdating = isFiltering || refreshing;
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
@@ -752,15 +767,19 @@ function AdminReportsDisputes() {
                 )}
               </div>
               <p className="text-gray-500 ml-13 pl-0.5">
-                Review and resolve client reports against service providers.
+                Review and resolve reports filed by clients and service providers.
               </p>
             </div>
             <button
-              onClick={() => fetchReports(true)}
-              disabled={refreshing}
+              onClick={() => fetchData(true)}
+              disabled={isUpdating}
               className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:border-[#056db3] hover:text-[#056db3] transition-colors disabled:opacity-50"
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
               Refresh
             </button>
           </div>
@@ -774,6 +793,7 @@ function AdminReportsDisputes() {
               sub="Need attention"
               accent="bg-blue-500"
               iconBg="bg-blue-50 text-blue-600"
+              isLoading={isUpdating}
             />
             <StatCard
               icon={Timer}
@@ -782,6 +802,7 @@ function AdminReportsDisputes() {
               sub="In progress"
               accent="bg-amber-500"
               iconBg="bg-amber-50 text-amber-600"
+              isLoading={isUpdating}
             />
             <StatCard
               icon={CheckCircle2}
@@ -790,6 +811,7 @@ function AdminReportsDisputes() {
               sub="This month"
               accent="bg-green-500"
               iconBg="bg-green-50 text-green-600"
+              isLoading={isUpdating}
             />
             <StatCard
               icon={ShieldAlert}
@@ -798,11 +820,12 @@ function AdminReportsDisputes() {
               sub="Needs same-day response"
               accent="bg-red-500"
               iconBg="bg-red-50 text-red-600"
+              isLoading={isUpdating}
             />
           </div>
 
           {/* ── Filters ── */}
-          <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-opacity duration-200">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
 
               {/* Search */}
@@ -822,8 +845,9 @@ function AdminReportsDisputes() {
                 <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-[#f8fafc] pl-4 pr-9 text-sm text-gray-700 outline-none focus:border-[#056db3] focus:border-2 focus:bg-white transition-colors"
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  disabled={isUpdating}
+                  className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-[#f8fafc] pl-4 pr-9 text-sm text-gray-700 outline-none focus:border-[#056db3] focus:border-2 focus:bg-white transition-colors disabled:opacity-50"
                 >
                   {STATUS_OPTIONS.map((o) => <option key={o}>{o}</option>)}
                 </select>
@@ -834,8 +858,9 @@ function AdminReportsDisputes() {
                 <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <select
                   value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-[#f8fafc] pl-4 pr-9 text-sm text-gray-700 outline-none focus:border-[#056db3] focus:border-2 focus:bg-white transition-colors"
+                  onChange={(e) => handlePriorityChange(e.target.value)}
+                  disabled={isUpdating}
+                  className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-[#f8fafc] pl-4 pr-9 text-sm text-gray-700 outline-none focus:border-[#056db3] focus:border-2 focus:bg-white transition-colors disabled:opacity-50"
                 >
                   {PRIORITY_OPTIONS.map((o) => <option key={o}>{o}</option>)}
                 </select>
@@ -846,8 +871,9 @@ function AdminReportsDisputes() {
                 <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <select
                   value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-[#f8fafc] pl-4 pr-9 text-sm text-gray-700 outline-none focus:border-[#056db3] focus:border-2 focus:bg-white transition-colors"
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  disabled={isUpdating}
+                  className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-[#f8fafc] pl-4 pr-9 text-sm text-gray-700 outline-none focus:border-[#056db3] focus:border-2 focus:bg-white transition-colors disabled:opacity-50"
                 >
                   {REPORT_CATEGORIES.map((o) => <option key={o}>{o}</option>)}
                 </select>
@@ -856,61 +882,74 @@ function AdminReportsDisputes() {
               {hasFilters && (
                 <button
                   onClick={clearFilters}
-                  className="shrink-0 flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-[#056db3] hover:bg-blue-50 transition-colors"
+                  disabled={isUpdating}
+                  className="shrink-0 flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-[#056db3] hover:bg-blue-50 transition-colors disabled:opacity-50"
                 >
                   <X className="h-3.5 w-3.5" />
                   Clear
                 </button>
               )}
+
+              {/* Loading indicator for filters */}
+              {isFiltering && (
+                <div className="flex items-center gap-2 text-sm text-[#056db3]">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Updating...</span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Result count */}
-          <p className="mb-4 px-1 text-sm text-gray-500">
-            Showing{" "}
-            <span className="font-semibold text-gray-700">{filtered.length}</span> of{" "}
-            <span className="font-semibold text-gray-700">{reports.length}</span> reports
-          </p>
+          {/* Result count with loading state */}
+          <div className="mb-4 px-1 flex items-center justify-between">
+            <p className="text-sm text-gray-500">
+              Showing{" "}
+              <span className="font-semibold text-gray-700">{filtered.length}</span> of{" "}
+              <span className="font-semibold text-gray-700">{reports.length}</span> reports
+            </p>
+            {isFiltering && (
+              <span className="text-xs text-[#056db3] animate-pulse">Loading...</span>
+            )}
+          </div>
 
           {/* ── Table ── */}
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden transition-opacity duration-200">
             {error ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <AlertCircle className="h-12 w-12 text-red-400 mb-3" />
-                <p className="text-gray-700 font-medium">{error}</p>
+              <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                <div className="rounded-full bg-red-50 p-6 mb-6">
+                  <AlertCircle className="h-16 w-16 text-red-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-3">Unable to load reports</h3>
+                <p className="text-gray-500 max-w-md mb-4">{error}</p>
                 <button
-                  onClick={() => fetchReports()}
-                  className="mt-4 rounded-xl bg-[#056db3] px-4 py-2 text-sm text-white hover:bg-[#045a94]"
+                  onClick={() => fetchData()}
+                  className="rounded-xl bg-[#056db3] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#045a94] transition-colors"
                 >
                   Try again
                 </button>
               </div>
+            ) : reports.length === 0 ? (
+              <EmptyState
+                icon={FileText}
+                title="No reports found"
+                description="No reports have been submitted yet. They'll appear here when users flag issues."
+                color="bg-blue-50"
+                iconColor="text-blue-500"
+              />
             ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-                <div className="rounded-full bg-gray-100 p-6 mb-4">
-                  <Flag className="h-10 w-10 text-gray-300" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-700 mb-1">No reports found</h3>
-                <p className="text-sm text-gray-400 max-w-sm">
-                  {hasFilters
-                    ? "No reports match your filters. Try adjusting your search."
-                    : "No reports have been submitted yet. They'll appear here when clients flag issues."}
-                </p>
-                {hasFilters && (
-                  <button
-                    onClick={clearFilters}
-                    className="mt-4 text-sm text-[#056db3] hover:underline"
-                  >
-                    Clear filters
-                  </button>
-                )}
-              </div>
+              <EmptyState
+                icon={Search}
+                title="No reports match your filters"
+                description="Try adjusting your search or clear the filters to see all reports."
+                color="bg-amber-50"
+                iconColor="text-amber-500"
+              />
             ) : (
-              <div className="overflow-x-auto">
+              <div className={`overflow-x-auto transition-opacity duration-200 ${isFiltering ? 'opacity-60' : 'opacity-100'}`}>
                 <table className="w-full min-w-200">
                   <thead className="border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      {["Report", "Booking", "Client", "Provider", "Category", "Priority", "Status", "Submitted", ""].map((h) => (
+                      {["Report", "Booking", "Reporter", "Reported", "Category", "Priority", "Status", "Submitted", ""].map((h) => (
                         <th
                           key={h}
                           className="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 tracking-wide whitespace-nowrap"
@@ -921,87 +960,91 @@ function AdminReportsDisputes() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {loading
-                      ? [...Array(5)].map((_, i) => <SkeletonRow key={i} />)
-                      : filtered.map((r) => (
-                          <tr
-                            key={r.id}
-                            onClick={() => setSelectedReport(r)}
-                            className="hover:bg-blue-50/40 transition-colors cursor-pointer"
-                          >
-                            {/* Report ID */}
-                            <td className="px-4 py-4">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-mono font-semibold text-gray-700">
-                                  {r.id}
-                                </span>
-                                {r.previousReports >= 3 && (
-                                  <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" title="Repeat offender" />
-                                )}
-                              </div>
-                            </td>
+                    {filtered.map((r) => {
+                      const reporterName = getFullName(r.reporter);
+                      const reportedName = getFullName(r.reported_user);
+                      const isRepeatOffender = r.previous_reports >= 3;
 
-                            {/* Booking */}
-                            <td className="px-4 py-4">
-                              <span className="text-sm font-mono text-[#056db3] font-medium">
-                                #{r.bookingId}
+                      return (
+                        <tr
+                          key={r.id}
+                          onClick={() => setSelectedReport(r)}
+                          className="hover:bg-blue-50/40 transition-colors cursor-pointer"
+                        >
+                          {/* Report ID */}
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-mono font-semibold text-gray-700">
+                                #{r.id}
                               </span>
-                            </td>
+                              {isRepeatOffender && (
+                                <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" title="Repeat offender" />
+                              )}
+                            </div>
+                          </td>
 
-                            {/* Client */}
-                            <td className="px-4 py-4">
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-[#056db3]">
-                                  {getInitials(r.clientName)}
-                                </div>
-                                <span className="text-sm text-gray-800 font-medium whitespace-nowrap">
-                                  {r.clientName}
-                                </span>
+                          {/* Booking */}
+                          <td className="px-4 py-4">
+                            <span className="text-sm font-mono text-[#056db3] font-medium">
+                              #{r.booking_id}
+                            </span>
+                          </td>
+
+                          {/* Reporter */}
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-[#056db3]">
+                                {getInitials(reporterName)}
                               </div>
-                            </td>
+                              <span className="text-sm text-gray-800 font-medium whitespace-nowrap">
+                                {reporterName}
+                              </span>
+                            </div>
+                          </td>
 
-                            {/* Provider */}
-                            <td className="px-4 py-4">
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-100 text-[10px] font-bold text-purple-600">
-                                  {getInitials(r.providerName)}
-                                </div>
-                                <span className="text-sm text-gray-800 font-medium whitespace-nowrap">
-                                  {r.providerName}
-                                </span>
+                          {/* Reported */}
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-100 text-[10px] font-bold text-purple-600">
+                                {getInitials(reportedName)}
                               </div>
-                            </td>
-
-                            {/* Category */}
-                            <td className="px-4 py-4">
-                              <span className="text-sm text-gray-600 whitespace-nowrap">
-                                {r.category}
+                              <span className="text-sm text-gray-800 font-medium whitespace-nowrap">
+                                {reportedName}
                               </span>
-                            </td>
+                            </div>
+                          </td>
 
-                            {/* Priority */}
-                            <td className="px-4 py-4">
-                              <PriorityBadge priority={r.priority} />
-                            </td>
+                          {/* Category */}
+                          <td className="px-4 py-4">
+                            <span className="text-sm text-gray-600 whitespace-nowrap">
+                              {r.category}
+                            </span>
+                          </td>
 
-                            {/* Status */}
-                            <td className="px-4 py-4">
-                              <StatusBadge status={r.status} />
-                            </td>
+                          {/* Priority */}
+                          <td className="px-4 py-4">
+                            <PriorityBadge priority={r.priority} />
+                          </td>
 
-                            {/* Submitted */}
-                            <td className="px-4 py-4">
-                              <span className="text-sm text-gray-400 whitespace-nowrap">
-                                {timeAgo(r.submittedAt)}
-                              </span>
-                            </td>
+                          {/* Status */}
+                          <td className="px-4 py-4">
+                            <StatusBadge status={r.status} />
+                          </td>
 
-                            {/* Arrow */}
-                            <td className="px-4 py-4">
-                              <ChevronRight className="h-4 w-4 text-gray-300" />
-                            </td>
-                          </tr>
-                        ))}
+                          {/* Submitted */}
+                          <td className="px-4 py-4">
+                            <span className="text-sm text-gray-400 whitespace-nowrap">
+                              {timeAgo(r.created_at)}
+                            </span>
+                          </td>
+
+                          {/* Arrow */}
+                          <td className="px-4 py-4">
+                            <ChevronRight className="h-4 w-4 text-gray-300" />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1015,8 +1058,8 @@ function AdminReportsDisputes() {
         <ReportDetailModal
           report={selectedReport}
           onClose={() => setSelectedReport(null)}
-          onStatusChange={handleStatusChange}
-          onPriorityChange={handlePriorityChange}
+          onStatusChange={handleStatusUpdate}
+          onPriorityChange={handlePriorityUpdate}
           onResolve={handleResolve}
           onDismiss={handleDismiss}
           actionLoading={actionLoading}

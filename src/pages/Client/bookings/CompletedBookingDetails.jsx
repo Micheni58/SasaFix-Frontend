@@ -1,4 +1,4 @@
-// src/pages/Client/bookings/CompletedBookingDetails.jsx - WITH PAYMENT & REVIEWS (FIXED)
+// src/pages/Client/bookings/CompletedBookingDetails.jsx - WITH PAYMENT & REVIEWS (UPDATED)
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import bookingService from "../../../api/bookingService";
 import paymentsService from "../../../api/paymentsService";
+import reportService from "../../../api/reportService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
 import { ProviderInfoCard } from "../../../components/cards/ProviderInfoCard";
@@ -64,6 +65,20 @@ function formatTimeRange(timeStr) {
   }
   return formatTime(timeStr);
 }
+
+// ─────────────────────────────────────────────
+// REPORT CATEGORIES (Client reporting provider)
+// ─────────────────────────────────────────────
+
+const REPORT_CATEGORIES = [
+  { value: "Poor service quality", label: "Poor service quality" },
+  { value: "Provider no-show", label: "Provider no-show" },
+  { value: "Overcharging / wrong amount", label: "Overcharging / wrong amount" },
+  { value: "Unprofessional behaviour", label: "Unprofessional behaviour" },
+  { value: "Safety concern", label: "Safety concern" },
+  { value: "Fraud or scam", label: "Fraud or scam" },
+  { value: "Other", label: "Other" },
+];
 
 // ─────────────────────────────────────────────
 // SKELETON LOADER COMPONENTS
@@ -207,6 +222,142 @@ function SkeletonSidebar() {
 }
 
 // ─────────────────────────────────────────────
+// REPORT MODAL
+// ─────────────────────────────────────────────
+
+function ReportModal({ isOpen, onClose, onSubmit, loading, booking }) {
+  const [category, setCategory] = useState("");
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState(null);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!category) {
+      setError("Please select a category");
+      return;
+    }
+
+    if (!description || description.length < 10) {
+      setError("Please provide a detailed description (minimum 10 characters)");
+      return;
+    }
+
+    onSubmit({
+      category,
+      description,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-xl bg-white shadow-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="border-b border-gray-200 px-6 py-4">
+          <h3 className="text-lg font-bold text-gray-800">Report Issue</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Report a problem with this booking or provider
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+          {/* Booking info */}
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">Booking:</span> {booking?.service || "N/A"}
+            </p>
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">Provider:</span> {booking?.providerName || "N/A"}
+            </p>
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200 flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={category}
+              onChange={(e) => {
+                setError(null);
+                setCategory(e.target.value);
+              }}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-blue-100"
+              required
+            >
+              <option value="">Select a category...</option>
+              {REPORT_CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => {
+                setError(null);
+                setDescription(e.target.value);
+              }}
+              rows={4}
+              placeholder="Please describe the issue in detail..."
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-blue-100"
+              required
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Minimum 10 characters
+            </p>
+          </div>
+
+          {/* Info note */}
+          <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">What happens next?</p>
+              <p className="text-xs mt-1">Our admin team will review your report and take appropriate action. You'll be notified of any updates.</p>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+            >
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Submit Report"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 
@@ -218,7 +369,7 @@ function CompletedBookingDetails() {
     const [actionLoading, setActionLoading] = useState(false);
     const [transactionStatus, setTransactionStatus] = useState(null);
     const [reportOpen, setReportOpen] = useState(false);
-    const [reportText, setReportText] = useState("");
+    const [reportLoading, setReportLoading] = useState(false);
 
     // ── Payment States ──
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -315,6 +466,29 @@ function CompletedBookingDetails() {
         };
     }, [transactionId, transactionStatus, bookingId, navigate]);
 
+    // ── Handle Report Submission ──
+    // The backend derives who is being reported from the booking + authenticated user.
+    // No reported_user_id is sent from the frontend — it's resolved server-side.
+    const handleSubmitReport = async (reportData) => {
+        setReportLoading(true);
+        try {
+            await reportService.createOrUpdateReport({
+                booking_id: booking.id,
+                category: reportData.category,
+                description: reportData.description,
+            });
+            
+            setReportOpen(false);
+            alert("✅ Report submitted successfully. Our team will review it shortly.");
+        } catch (err) {
+            console.error("Error submitting report:", err);
+            const errorMsg = err.response?.data?.detail || err.message || "Failed to submit report. Please try again.";
+            alert("❌ " + errorMsg);
+        } finally {
+            setReportLoading(false);
+        }
+    };
+
     // ── Handle Payment ──
     const handlePayment = async () => {
         const phone = paymentData.phone_number.trim();
@@ -394,17 +568,6 @@ function CompletedBookingDetails() {
         navigate(`/client/messages?provider=${booking?.serviceProviderId}`);
     };
 
-    // ── Submit Report ──
-    const submitReport = async () => {
-        if (!reportText) {
-            window.alert("Please add a reason for the report.");
-            return;
-        }
-        setReportText("");
-        setReportOpen(false);
-        window.alert("Report submitted. Our team will review it.");
-    };
-
     // ── Handle Back ──
     const handleBack = () => {
         navigate("/client/my-bookings");
@@ -480,14 +643,16 @@ function CompletedBookingDetails() {
         commission: `KES ${Math.round((booking.amountRaw || 0) * 0.1).toLocaleString()}`,
         totalPaid: `KES ${Math.round(booking.amountRaw || 0).toLocaleString()}`,
         commissionRate: 0.1,
+        providerName: booking.providerName || booking.worker || "Provider",
         worker: {
             id: booking.serviceProviderId || booking.raw?.service_provider_id,
             name: booking.providerName || booking.worker || "Provider",
             initials: booking.initials || "--",
-            trade: booking.raw?.service_provider?.service_type || null,
-            rating: booking.raw?.service_provider?.rating || null,
+            trade: booking.raw?.service_provider?.service_category || null,
+            rating: booking.raw?.service_provider?.average_rating || null,
             phone: booking.raw?.service_provider?.contact_phone || null,
             email: booking.raw?.service_provider?.contact_email || null,
+            user_id: booking.providerUserId || booking.raw?.provider_user_id,
         },
         timeline: [
             { task: "Booking Requested", completed: true },
@@ -619,7 +784,7 @@ function CompletedBookingDetails() {
 
                                 <button
                                     onClick={() => setReportOpen(true)}
-                                    className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] py-2 px-2 rounded-lg hover:bg-blue-50 transition-colors"
+                                    className="w-full flex items-center justify-center gap-2 border-2 border-red-500 text-red-500 py-2 px-2 rounded-lg hover:bg-red-50 transition-colors"
                                 >
                                     <Flag className="w-5 h-5" />
                                     Report Issue
@@ -758,34 +923,13 @@ function CompletedBookingDetails() {
                     )}
 
                     {/* ── Report Modal ── */}
-                    {reportOpen && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-                            <div className="w-full max-w-lg rounded-2xl bg-white shadow-lg p-6">
-                                <h3 className="text-lg font-semibold text-gray-800 mb-2">Report Issue</h3>
-                                <textarea
-                                    value={reportText}
-                                    onChange={(e) => setReportText(e.target.value)}
-                                    rows={6}
-                                    className="w-full rounded-xl border border-blue-200 p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                    placeholder="Describe the issue..."
-                                />
-                                <div className="flex gap-3 justify-end">
-                                    <button
-                                        onClick={() => setReportOpen(false)}
-                                        className="px-4 py-2 rounded-lg border border-gray-300"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={submitReport}
-                                        className="px-4 py-2 rounded-lg bg-[#056db3] text-white"
-                                    >
-                                        Submit Report
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    <ReportModal
+                        isOpen={reportOpen}
+                        onClose={() => setReportOpen(false)}
+                        onSubmit={handleSubmitReport}
+                        loading={reportLoading}
+                        booking={ui}
+                    />
                 </main>
             </div>
         </div>

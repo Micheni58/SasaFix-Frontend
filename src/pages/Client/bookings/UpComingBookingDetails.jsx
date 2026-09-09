@@ -271,8 +271,6 @@ function UpcomingBookingDetails() {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reportText, setReportText] = useState("");
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [rescheduleError, setRescheduleError] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -353,16 +351,6 @@ function UpcomingBookingDetails() {
 
   const handleMessage = () => {
     navigate(`/client/messages?provider=${booking?.serviceProviderId}`);
-  };
-
-  const submitReport = async () => {
-    if (!reportText) {
-      alert("Please add a reason for the report.");
-      return;
-    }
-    setReportText("");
-    setReportOpen(false);
-    alert("Report submitted. Our team will review it.");
   };
 
   const handleBack = () => {
@@ -611,14 +599,6 @@ function UpcomingBookingDetails() {
                   </>
                 )}
 
-                <button
-                  onClick={() => setReportOpen(true)}
-                  className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] py-3 px-2 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  <Flag className="w-5 h-5" />
-                  Report Issue
-                </button>
-
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <p className="text-sm font-semibold text-gray-800 mb-3">Booking Status</p>
                   <ul className="space-y-2 text-sm text-gray-700">
@@ -691,45 +671,6 @@ function UpcomingBookingDetails() {
                       className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center"
                     >
                       {actionLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Yes, Cancel"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── Report Modal ── */}
-          {reportOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4">
-              <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
-                <div className="border-b border-gray-200 px-6 py-4">
-                  <h3 className="text-lg font-bold text-gray-800">Report Issue</h3>
-                </div>
-                <div className="px-6 py-4">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Please describe the issue you're experiencing with this booking:
-                  </p>
-                  <textarea
-                    rows={4}
-                    value={reportText}
-                    onChange={(e) => setReportText(e.target.value)}
-                    placeholder="Describe the issue in detail..."
-                    className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3] outline-none"
-                  />
-                </div>
-                <div className="border-t border-gray-200 px-6 py-4">
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setReportOpen(false)}
-                      className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={submitReport}
-                      className="flex-1 rounded-lg bg-[#056db3] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900 transition-colors"
-                    >
-                      Submit Report
                     </button>
                   </div>
                 </div>

@@ -53,7 +53,9 @@ function normalizeBooking(apiBooking) {
         clientName: clientName,
         clientId: apiBooking.client_id || null,
         serviceProviderId: apiBooking.service_provider_id || null,
-        clientBookingCount: apiBooking.client_booking_count || 0, // ✅ Added: Total bookings for client
+        // ✅ Add provider user ID from the API response
+        providerUserId: apiBooking.provider_user_id || null,
+        clientBookingCount: apiBooking.client_booking_count || 0,
         initials: providerName
             .split(" ")
             .map((s) => s[0])

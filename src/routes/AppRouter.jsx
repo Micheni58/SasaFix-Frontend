@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Navigate,
+  Routes,
+  Route,
+} from "react-router-dom";
 
 import Home from "../pages/Home";
 import Login from "../pages/Login";
@@ -53,6 +58,28 @@ import EmailVerificationSent from "../pages/EmailVerificationSent";
 import ProviderEarnings from "../pages/ServiceProvider/Earnings";
 import AIAssistant from "../pages/ServiceProvider/AIAssistant";
 import AdminReportsDisputes from "../pages/Admin/AdminReportsDisputes";
+import NotFound from "../pages/NotFound";
+import NotAuthorized from "../pages/NotAuthorized";
+import { getStoredUserRole } from "../utils/sidebarRole";
+
+function RoleGuard({ allowedRoles, children }) {
+  const token = localStorage.getItem("access_token");
+  const userRole = getStoredUserRole();
+
+  if (!token || !userRole) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!allowedRoles.includes(userRole)) {
+    return <NotAuthorized />;
+  }
+
+  return children;
+}
+
+const protectedRoute = (role, element) => (
+  <RoleGuard allowedRoles={[role]}>{element}</RoleGuard>
+);
 
 export default function AppRouter() {
   return (
@@ -71,119 +98,119 @@ export default function AppRouter() {
         />
 
         {/* Protected/Dashboard Routes */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/settings" element={<AdminSettings />} />
-        <Route path="/admin/notifications" element={<AdminNotification />} />
+        <Route path="/admin" element={protectedRoute("admin", <AdminDashboard />)} />
+        <Route path="/admin/settings" element={protectedRoute("admin", <AdminSettings />)} />
+        <Route path="/admin/notifications" element={protectedRoute("admin", <AdminNotification />)} />
         <Route
           path="/admin/bookings-payments"
-          element={<BookingsAndPayments />}
+          element={protectedRoute("admin", <BookingsAndPayments />)}
         />
         <Route
           path="/admin/bookings-payments/:bookingId"
-          element={<BookingsAndPaymentsDetails />}
+          element={protectedRoute("admin", <BookingsAndPaymentsDetails />)}
         />
-        <Route path="/admin/payouts/:payoutId" element={<PayoutDetails />} />
-        <Route path="/admin/users" element={<Users />} />
-        <Route path="/admin/service-providers" element={<ServiceProviders />} />
-        <Route path="/admin/transactions" element={<AdminTransactions />} />
-        <Route path="/admin/reports-disputes" element={<AdminReportsDisputes />} />
-        <Route path="/admin/analytics" element={<ReportAndAnalytics />} />
+        <Route path="/admin/payouts/:payoutId" element={protectedRoute("admin", <PayoutDetails />)} />
+        <Route path="/admin/users" element={protectedRoute("admin", <Users />)} />
+        <Route path="/admin/service-providers" element={protectedRoute("admin", <ServiceProviders />)} />
+        <Route path="/admin/transactions" element={protectedRoute("admin", <AdminTransactions />)} />
+        <Route path="/admin/reports-disputes" element={protectedRoute("admin", <AdminReportsDisputes />)} />
+        <Route path="/admin/analytics" element={protectedRoute("admin", <ReportAndAnalytics />)} />
         {/* Client Routes */}
 
-        <Route path="/client" element={<ClientDashboard />} />
-        <Route path="/client/find-services" element={<FindServices />} />
+        <Route path="/client" element={protectedRoute("client", <ClientDashboard />)} />
+        <Route path="/client/find-services" element={protectedRoute("client", <FindServices />)} />
         <Route
           path="/providers/:providerId"
           element={<ProviderProfilePage />}
         />
-        <Route path="/client/messages" element={<ClientMessages />} />
-        <Route path="/client/transactions" element={<ClientTransactions />} />
-        <Route path="/client/notifications" element={<ClientNotification />} />
-        <Route path="/client/profile" element={<ClientProfile />} />
-        <Route path="/client/my-bookings" element={<MyBookings />} />
+        <Route path="/client/messages" element={protectedRoute("client", <ClientMessages />)} />
+        <Route path="/client/transactions" element={protectedRoute("client", <ClientTransactions />)} />
+        <Route path="/client/notifications" element={protectedRoute("client", <ClientNotification />)} />
+        <Route path="/client/profile" element={protectedRoute("client", <ClientProfile />)} />
+        <Route path="/client/my-bookings" element={protectedRoute("client", <MyBookings />)} />
         <Route
           path="/client/bookings/create/:providerId"
-          element={<CreateBooking />}
+          element={protectedRoute("client", <CreateBooking />)}
         />
         <Route
           path="/client/my-bookings/in-progress/:bookingId"
-          element={<InProgressBookingDetails />}
+          element={protectedRoute("client", <InProgressBookingDetails />)}
         />
         <Route
           path="/client/my-bookings/completed/:bookingId"
-          element={<CompletedBookingDetails />}
+          element={protectedRoute("client", <CompletedBookingDetails />)}
         />
         <Route
           path="/client/my-bookings/cancelled/:bookingId"
-          element={<CancelledBookingDetails />}
+          element={protectedRoute("client", <CancelledBookingDetails />)}
         />
         <Route
           path="/client/my-bookings/upcoming/:bookingId"
-          element={<UpcomingBookingDetails />}
+          element={protectedRoute("client", <UpcomingBookingDetails />)}
         />
         <Route
           path="/client/my-bookings/reschedule-requested/:bookingId"
-          element={<RescheduleRequestedDetails />}
+          element={protectedRoute("client", <RescheduleRequestedDetails />)}
         />
         <Route
           path="/client/my-bookings/reschedule-proposed/:bookingId"
-          element={<RescheduleProposedDetails />}
+          element={protectedRoute("client", <RescheduleProposedDetails />)}
         />
         <Route
           path="/client/my-bookings/paid/:bookingId"
-          element={<PaidBookingDetails />}
+          element={protectedRoute("client", <PaidBookingDetails />)}
         />
 
-        <Route path="/provider" element={<ProviderDashboard />} />
-        <Route path="/provider/messages" element={<ClientMessages />} />
-        <Route path="/provider/earnings" element={<ProviderEarnings />} />
-        <Route path="/provider/profile" element={<Profile />} />
-        <Route path="/provider/availability" element={<Availability />} />
+        <Route path="/provider" element={protectedRoute("provider", <ProviderDashboard />)} />
+        <Route path="/provider/messages" element={protectedRoute("provider", <ClientMessages />)} />
+        <Route path="/provider/earnings" element={protectedRoute("provider", <ProviderEarnings />)} />
+        <Route path="/provider/profile" element={protectedRoute("provider", <Profile />)} />
+        <Route path="/provider/availability" element={protectedRoute("provider", <Availability />)} />
         <Route
           path="/provider/notifications"
-          element={<ProviderNotification />}
+          element={protectedRoute("provider", <ProviderNotification />)}
         />
-        <Route path="/provider/my-reviews" element={<Reviews />} />
-        <Route path="/provider/subscription" element={<Subscription />} />
-        <Route path="/provider/ai-assistant" element={<AIAssistant />} />
+        <Route path="/provider/my-reviews" element={protectedRoute("provider", <Reviews />)} />
+        <Route path="/provider/subscription" element={protectedRoute("provider", <Subscription />)} />
+        <Route path="/provider/ai-assistant" element={protectedRoute("provider", <AIAssistant />)} />
 
         <Route
           path="/provider/subscription"
-          element={<Subscription />}
+          element={protectedRoute("provider", <Subscription />)}
         />
 
         <Route path="/profile" element={<Profile />} />
 
-        <Route path="/provider/my-jobs" element={<MyJobs />} />
+        <Route path="/provider/my-jobs" element={protectedRoute("provider", <MyJobs />)} />
         <Route
           path="/provider/my-jobs/new/:id"
-          element={<NewJobRequestDetails />}
+          element={protectedRoute("provider", <NewJobRequestDetails />)}
         />
         <Route
           path="/provider/my-jobs/accepted/:id"
-          element={<AcceptedJobDetails />}
+          element={protectedRoute("provider", <AcceptedJobDetails />)}
         />
         <Route
           path="/provider/my-jobs/in-progress/:id"
-          element={<InProgressJobDetails />}
+          element={protectedRoute("provider", <InProgressJobDetails />)}
         />
         <Route
           path="/provider/my-jobs/completed/:id"
-          element={<CompletedJobDetails />}
+          element={protectedRoute("provider", <CompletedJobDetails />)}
         />
         <Route
           path="/provider/my-jobs/paid/:id"
-          element={<PaidJobDetails />}
+          element={protectedRoute("provider", <PaidJobDetails />)}
         />
         <Route
           path="/provider/my-jobs/cancelled/:id"
-          element={<CancelledJobDetails />}
+          element={protectedRoute("provider", <CancelledJobDetails />)}
         />
-        <Route path="/provider/my-jobs/reschedule-requested/:id" element={<RescheduleRequestedJobDetails />} />
-        <Route path="/provider/my-jobs/reschedule-proposed/:id" element={<RescheduleProposedJobDetails />} />
+        <Route path="/provider/my-jobs/reschedule-requested/:id" element={protectedRoute("provider", <RescheduleRequestedJobDetails />)} />
+        <Route path="/provider/my-jobs/reschedule-proposed/:id" element={protectedRoute("provider", <RescheduleProposedJobDetails />)} />
 
         {/* Catch all - redirect to home */}
-        <Route path="*" element={<Home />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   );

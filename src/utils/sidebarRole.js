@@ -2,6 +2,11 @@ export function getSidebarRole(pathname = "") {
   if (pathname.startsWith("/provider")) return "provider";
   if (pathname.startsWith("/admin")) return "admin";
 
+  const storedRole = getStoredUserRole();
+  return storedRole || "client";
+}
+
+export function getStoredUserRole() {
   try {
     const rawUser = localStorage.getItem("user");
     const user = rawUser ? JSON.parse(rawUser) : null;
@@ -12,8 +17,8 @@ export function getSidebarRole(pathname = "") {
       return role;
     }
   } catch {
-    // Fall back to client navigation when stored user data is unavailable.
+    return null;
   }
 
-  return "client";
+  return null;
 }

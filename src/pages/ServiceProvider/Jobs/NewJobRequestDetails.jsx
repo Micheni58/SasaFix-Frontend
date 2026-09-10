@@ -182,8 +182,6 @@ function NewJobRequestDetails() {
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [modalType, setModalType] = useState(null);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState("");
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [rescheduleError, setRescheduleError] = useState(null);
   const [rescheduleData, setRescheduleData] = useState({
@@ -366,35 +364,6 @@ function NewJobRequestDetails() {
     } catch (err) {
       const errorMsg = err.response?.data?.detail || err.message || "Failed to propose reschedule";
       setRescheduleError(errorMsg);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleReportIssue = async () => {
-    if (!reportReason.trim()) {
-      alert("Please describe the issue");
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: 1,
-          type: "report",
-          title: `Issue Report: Booking #${bookingId}`,
-          body: `Provider reported: ${reportReason}`,
-          related_booking_id: bookingId
-        })
-      });
-      alert("✅ Issue reported to admin");
-      setShowReportModal(false);
-      setReportReason("");
-    } catch (err) {
-      alert("Failed to report issue: " + err.message);
     } finally {
       setActionLoading(false);
     }
@@ -612,14 +581,6 @@ function NewJobRequestDetails() {
                   Propose New Time
                 </button>
 
-                <button
-                  onClick={() => setShowReportModal(true)}
-                  className="w-full flex items-center justify-center gap-2 border-2 border-red-200 text-red-600 font-semibold py-2 px-2 rounded-lg hover:bg-red-50 transition-colors"
-                >
-                  <Flag className="w-5 h-5" />
-                  Report Issue
-                </button>
-
                 {/* Important Notes */}
                 <div className="mt-6 pt-6 border-t border-gray-200 bg-[#fdffe9] rounded-2xl p-4">
                   <p className="text-sm font-semibold text-gray-800 mb-3">Important Notes</p>
@@ -689,49 +650,6 @@ function NewJobRequestDetails() {
                       } disabled:opacity-50`}
                     >
                       {actionLoading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : (modalType === "accept" ? "Yes, Accept" : "Yes, Decline")}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── Report Issue Modal ── */}
-          {showReportModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4">
-              <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
-                <div className="border-b border-gray-200 px-6 py-4">
-                  <h3 className="text-lg font-bold text-gray-800">Report Issue</h3>
-                </div>
-                <div className="px-6 py-4">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Please describe the issue you're experiencing with this booking:
-                  </p>
-                  <textarea
-                    rows={4}
-                    value={reportReason}
-                    onChange={(e) => setReportReason(e.target.value)}
-                    placeholder="Describe the issue in detail..."
-                    className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3] outline-none"
-                  />
-                </div>
-                <div className="border-t border-gray-200 px-6 py-4">
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => {
-                        setShowReportModal(false);
-                        setReportReason("");
-                      }}
-                      className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleReportIssue}
-                      disabled={actionLoading}
-                      className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50"
-                    >
-                      {actionLoading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Submit Report"}
                     </button>
                   </div>
                 </div>

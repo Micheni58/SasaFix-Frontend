@@ -18,6 +18,7 @@ import {
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ── Tabs - Clean structure ──
 const tabs = ["New Requests", "Accepted", "In Progress", "Completed", "Rescheduled", "Paid", "Cancelled"];
@@ -117,8 +118,6 @@ function getJobDetailsPath(job) {
     const isClientInitiated = ["client", "customer"].includes(initiator);
 
     // Check if this booking has reschedule history
-    const hasRescheduleHistory = !!(job.raw?.original_scheduled_date || job.originalDate);
-
     // ── IF STATUS IS ACCEPTED, IN_PROGRESS, COMPLETED, or PAID → GO TO REGULAR DETAILS PAGE ──
     const regularStatuses = ["Accepted", "accepted", "In Progress", "in_progress", "Completed", "completed", "Paid", "paid"];
     if (regularStatuses.includes(status)) {
@@ -299,11 +298,11 @@ function getStatusSubtext(job) {
     return null;
 }
 
-function EmptyState({ icon: Icon, title, description, color, iconColor }) {
+function EmptyState({ icon: _Icon, title, description, color, iconColor }) {
     return (
         <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
             <div className={`rounded-full ${color} p-6 mb-6`}>
-                <Icon className={`h-16 w-16 ${iconColor}`} />
+                <_Icon className={`h-16 w-16 ${iconColor}`} />
             </div>
             <h3 className="text-2xl font-bold text-gray-800 mb-3">{title}</h3>
             <p className="text-gray-500 max-w-md">{description}</p>
@@ -359,6 +358,7 @@ function JobsSkeleton() {
 }
 
 function RescheduleModal({ job, onConfirm, onCancel }) {
+    const toast = useToast();
     const [date, setDate] = useState(job.date || "");
     const [startTime, setStartTime] = useState(
         job.time ? job.time.split(" - ")[0] || "" : ""
@@ -371,7 +371,7 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!date || !startTime || !endTime) {
-            alert("Please fill in all fields");
+            toast.warning("Missing reschedule details", "Please fill in all fields.");
             return;
         }
         onConfirm(date, startTime, endTime, reason);
@@ -476,6 +476,7 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
 }
 
 function MyJobs() {
+    const toast = useToast();
     const [activeTab, setActiveTab] = useState("New Requests");
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -583,24 +584,6 @@ function MyJobs() {
         return acc;
     }, {});
 
-    const handleAccept = (job) => {
-        setSelectedJob(job);
-        setModalType("accept");
-        setError(null);
-    };
-
-    const handleDecline = (job) => {
-        setSelectedJob(job);
-        setModalType("decline");
-        setError(null);
-    };
-
-    const handleReschedule = (job) => {
-        setSelectedJob(job);
-        setModalType("reschedule");
-        setError(null);
-    };
-
     const handleRescheduleConfirm = async (newDate, newStartTime, newEndTime, reason) => {
         if (!selectedJob) return;
         setError(null);
@@ -618,7 +601,7 @@ function MyJobs() {
             console.error(" Reschedule failed:", err);
             const errorMessage = err.response?.data?.detail || err.message || "Failed to reschedule. Please try again.";
             setError(errorMessage);
-            alert(errorMessage);
+            toast.error("Failed to reschedule", errorMessage);
         }
     };
 
@@ -637,7 +620,7 @@ function MyJobs() {
             console.error(" Action failed:", err);
             const errorMessage = err.response?.data?.detail || err.message || "Action failed. Please try again.";
             setError(errorMessage);
-            alert(errorMessage);
+            toast.error("Action failed", errorMessage);
         } finally {
             setModalType(null);
             setSelectedJob(null);
@@ -770,7 +753,6 @@ function MyJobs() {
                                             const clientName = getClientName(job);
                                             const clientInitials = getClientInitials(job);
                                             const statusSubtext = getStatusSubtext(job);
-                                            const isRescheduled = isRescheduleRelated(job);
                                             const hasRescheduleHistory = !!(job.raw?.original_scheduled_date || job.originalDate);
                                             const isProviderInitiated = ["provider", "service_provider", "service-provider"].includes(
                                                 (job.rescheduleInitiatedBy || job.raw?.reschedule_initiated_by || "").toString().trim().toLowerCase()
@@ -885,7 +867,7 @@ function MyJobs() {
                                                                 to={getJobDetailsPath(job)}
                                                                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                                                                     isNewRequest
-                                                                        ? "border-2 border-amber-500 text-white hover:bg-amber-600"
+                                                                        ? "border-2 border-amber-500 text-amber-700 "
                                                                         : isPendingClientRequest
                                                                         ? "border-2 border-amber-500 text-amber-700 hover:bg-amber-200"
                                                                         : isPendingProviderProposal
@@ -1000,7 +982,7 @@ function MyJobs() {
                                                                                 await fetchJobs(true);
                                                                             } catch (e) {
                                                                                 console.error(e);
-                                                                                alert('Failed to cancel');
+                                                                                toast.error("Failed to cancel booking", "Please try again.");
                                                                             } finally {
                                                                                 setOpenMenuId(null);
                                                                             }

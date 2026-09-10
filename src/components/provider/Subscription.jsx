@@ -7,6 +7,7 @@ import Navbar from "../../components/Navbar";
 
 import subscriptionService from "../../services/subscriptionService";
 import SubscriptionSkeleton from "../../components/provider/SubscriptionSkeleton";
+import { useToast } from "../ui/ToastProvider";
 
 const formatCurrency = (amount) => {
   return `KES ${Number(amount || 0).toLocaleString("en-KE", {
@@ -113,6 +114,7 @@ const Subscription = () => {
   const [showMpesaModal, setShowMpesaModal] = useState(false);
 
   const [mpesaPhone, setMpesaPhone] = useState("");
+  const toast = useToast();
 
   const loadSubscription = async () => {
     try {
@@ -139,6 +141,7 @@ const Subscription = () => {
     setError("");
     setPaymentMessage("");
     setShowMpesaModal(true);
+    toast.info("Upgrade to Premium", "Enter your M-Pesa number to continue.");
   };
 
   const handleMpesaUpgrade = async () => {
@@ -146,6 +149,7 @@ const Subscription = () => {
 
     if (!phone) {
       setError("Please enter your M-Pesa phone number.");
+      toast.warning("Phone number required", "Enter your M-Pesa number to continue.");
       return;
     }
 
@@ -158,6 +162,7 @@ const Subscription = () => {
       !/^01\d{8}$/.test(normalizedPhone)
     ) {
       setError("Please enter a valid Kenyan M-Pesa number.");
+      toast.warning("Invalid phone number", "Enter a valid Kenyan M-Pesa number.");
       return;
     }
 
@@ -173,6 +178,7 @@ const Subscription = () => {
       setPaymentMessage(
         result.message || "M-Pesa payment request sent. Check your phone.",
       );
+      toast.info("Payment request sent", "Check your phone and approve the M-Pesa prompt.");
 
       setMpesaPhone("");
 
@@ -197,6 +203,7 @@ const Subscription = () => {
             setPaymentMessage(
               "Payment successful. Your Premium subscription is now active.",
             );
+            toast.success("Premium activated", "Your subscription is now active.");
 
             setUpgrading(false);
 
@@ -205,6 +212,7 @@ const Subscription = () => {
 
           if (status.status === "failed") {
             setError("The M-Pesa payment was not completed.");
+            toast.error("Payment not completed", "The M-Pesa payment was not completed.");
 
             setUpgrading(false);
 
@@ -217,6 +225,7 @@ const Subscription = () => {
             setPaymentMessage(
               "Payment is still being processed. Refresh the page once M-Pesa confirms the payment.",
             );
+            toast.info("Payment processing", "Refresh the page once M-Pesa confirms payment.");
 
             setUpgrading(false);
           }
@@ -240,6 +249,7 @@ const Subscription = () => {
           err.message ||
           "Unable to start the Premium payment.",
       );
+      toast.error("Upgrade failed", err?.response?.data?.detail || err.message || "Unable to start the Premium payment.");
 
       setUpgrading(false);
     }

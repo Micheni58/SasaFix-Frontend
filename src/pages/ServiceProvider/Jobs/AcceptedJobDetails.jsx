@@ -10,6 +10,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
@@ -106,8 +107,9 @@ function AcceptedJobSkeleton() {
 function AcceptedJobDetails() {
   const { id: bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [job, setJob] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedBookingId, setLoadedBookingId] = useState(null);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [modalType, setModalType] = useState(null);
@@ -122,7 +124,6 @@ function AcceptedJobDetails() {
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
     bookingService.getBooking(bookingId)
       .then((b) => {
         if (!mounted) return;
@@ -209,19 +210,22 @@ function AcceptedJobDetails() {
         if (!mounted) return;
         setError(e.message || 'Failed to load booking');
       })
-      .finally(() => mounted && setLoading(false));
+      .finally(() => mounted && setLoadedBookingId(bookingId));
 
     return () => { mounted = false; };
   }, [bookingId]);
+
+  const loading = loadedBookingId !== bookingId;
+  const visibleError = loadedBookingId === bookingId ? error : null;
 
   const handleStartWork = async () => {
     setActionLoading(true);
     try {
       await bookingService.updateBookingStatus(bookingId, "in_progress");
-      alert("✅ Work started!");
+      toast.success("Work started", "The job has been moved to in progress.");
       navigate("/provider/my-jobs");
     } catch (err) {
-      alert("Failed to start work: " + err.message);
+      toast.error("Failed to start work", err.message);
     } finally {
       setActionLoading(false);
       setModalType(null);
@@ -261,7 +265,10 @@ function AcceptedJobDetails() {
         scheduled_end_time: rescheduleData.endTime,
         reason: rescheduleData.reason || "Provider proposed new time"
       });
-      alert("✅ Reschedule proposal sent to client for approval!");
+      toast.success(
+        "Reschedule proposal sent",
+        "The client will review the proposed time.",
+      );
       setShowRescheduleModal(false);
       navigate("/provider/my-jobs");
     } catch (err) {
@@ -278,14 +285,14 @@ function AcceptedJobDetails() {
     return <AcceptedJobSkeleton />;
   }
 
-  if (error) {
+  if (visibleError) {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
         <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 flex items-center justify-center">
-            <p className="text-red-500">Error: {error}</p>
+            <p className="text-red-500">Error: {visibleError}</p>
           </main>
         </div>
       </div>

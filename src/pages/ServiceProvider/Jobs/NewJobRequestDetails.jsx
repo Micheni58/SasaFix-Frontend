@@ -10,6 +10,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
@@ -177,6 +178,7 @@ function NewJobRequestSkeleton() {
 function NewJobRequestDetails() {
   const { id: bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -301,10 +303,10 @@ function NewJobRequestDetails() {
     setActionLoading(true);
     try {
       await bookingService.updateBookingStatus(bookingId, "accepted");
-      alert("✅ Job accepted successfully!");
+      toast.success("Job accepted", "The job has been added to your accepted jobs.");
       navigate("/provider/my-jobs");
     } catch (err) {
-      alert("Failed to accept job: " + err.message);
+      toast.error("Failed to accept job", err.message);
     } finally {
       setActionLoading(false);
       setModalType(null);
@@ -315,10 +317,10 @@ function NewJobRequestDetails() {
     setActionLoading(true);
     try {
       await bookingService.cancelBooking(bookingId);
-      alert("❌ Job declined");
+      toast.info("Job declined", "The job request has been declined.");
       navigate("/provider/my-jobs");
     } catch (err) {
-      alert("Failed to decline job: " + err.message);
+      toast.error("Failed to decline job", err.message);
     } finally {
       setActionLoading(false);
       setModalType(null);
@@ -358,7 +360,7 @@ function NewJobRequestDetails() {
         scheduled_end_time: rescheduleData.endTime,
         reason: rescheduleData.reason || "Provider proposed new time"
       });
-      alert("✅ Reschedule proposal sent to client for approval!");
+      toast.success("Reschedule proposal sent", "The client will review the proposed time.");
       setShowRescheduleModal(false);
       navigate("/provider/my-jobs");
     } catch (err) {

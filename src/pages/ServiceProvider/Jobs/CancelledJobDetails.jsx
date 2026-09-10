@@ -11,6 +11,7 @@ import bookingService from "../../../api/bookingService";
 import reportService from "../../../api/reportService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
@@ -338,15 +339,15 @@ function ReportModal({ isOpen, onClose, onSubmit, loading, job }) {
 function CancelledJobDetails() {
   const { id: bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [job, setJob] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedBookingId, setLoadedBookingId] = useState(null);
   const [error, setError] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
 
     bookingService.getBooking(bookingId)
       .then((b) => {
@@ -421,10 +422,13 @@ function CancelledJobDetails() {
         if (!mounted) return;
         setError(e.message || 'Failed to load booking');
       })
-      .finally(() => mounted && setLoading(false));
+      .finally(() => mounted && setLoadedBookingId(bookingId));
 
     return () => { mounted = false; };
   }, [bookingId]);
+
+  const loading = loadedBookingId !== bookingId;
+  const visibleError = loadedBookingId === bookingId ? error : null;
 
   // ── Handle View More Jobs ──
   const handleViewMoreJobs = () => {
@@ -449,11 +453,14 @@ function CancelledJobDetails() {
       });
 
       setReportOpen(false);
-      alert("✅ Report submitted successfully. Our team will review it shortly.");
+      toast.success(
+        "Report submitted",
+        "Our team will review it shortly.",
+      );
     } catch (err) {
       console.error("Error submitting report:", err);
       const errorMsg = err.response?.data?.detail || err.message || "Failed to submit report. Please try again.";
-      alert("❌ " + errorMsg);
+      toast.error("Report submission failed", errorMsg);
     } finally {
       setReportLoading(false);
     }
@@ -461,7 +468,7 @@ function CancelledJobDetails() {
 
   // ── Handle Get Support ──
   const handleGetSupport = () => {
-    alert("📞 Support feature coming soon!");
+    toast.info("Support coming soon", "The support feature is not available yet.");
   };
 
   // ── Loading state with skeleton ──
@@ -469,14 +476,14 @@ function CancelledJobDetails() {
     return <CancelledJobSkeleton />;
   }
 
-  if (error) {
+  if (visibleError) {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
         <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 flex items-center justify-center">
-            <p className="text-red-500">Error: {error}</p>
+            <p className="text-red-500">Error: {visibleError}</p>
           </main>
         </div>
       </div>

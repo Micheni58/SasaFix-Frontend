@@ -21,6 +21,7 @@ import { getSidebarRole } from "../../utils/sidebarRole";
 import transactionService from "../../api/transactionService";
 import { TransactionSummaryPDF } from "../../components/TransactionSummaryPDF";
 import { PDFDownloadLink } from "@react-pdf/renderer";
+import { useToast } from "../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // HELPERS
@@ -87,6 +88,7 @@ function getDateRange(filter) {
             end.setHours(23, 59, 59, 999);
             break;
         case "week":
+        {
             const day = now.getDay();
             const diff = now.getDate() - day + (day === 0 ? -6 : 1);
             start.setDate(diff);
@@ -94,6 +96,7 @@ function getDateRange(filter) {
             end.setDate(start.getDate() + 6);
             end.setHours(23, 59, 59, 999);
             break;
+        }
         case "month":
             start.setDate(1);
             start.setHours(0, 0, 0, 0);
@@ -179,6 +182,7 @@ function TransactionRowSkeleton() {
 
 function TransactionSummary({ transactions, filter, periodLabel }) {
     const [isGeneratingCSV, setIsGeneratingCSV] = useState(false);
+    const toast = useToast();
 
     // Filter to only completed/successful transactions
     const completedTransactions = transactions.filter(tx => {
@@ -188,11 +192,12 @@ function TransactionSummary({ transactions, filter, periodLabel }) {
 
     const generateCSV = () => {
         if (completedTransactions.length === 0) {
-            alert("No completed transactions to summarize for this period.");
+            toast.info("No transactions available", "There are no completed transactions for this period.");
             return;
         }
 
         setIsGeneratingCSV(true);
+        toast.info("Preparing earnings CSV", "Your download will begin shortly.");
 
         try {
             // Calculate totals
@@ -276,12 +281,22 @@ function TransactionSummary({ transactions, filter, periodLabel }) {
             a.download = `earnings_summary_${new Date().toISOString().split("T")[0]}.csv`;
             a.click();
             URL.revokeObjectURL(url);
+            toast.success("CSV downloaded", "Your earnings summary is ready.");
         } catch (error) {
             console.error("Error generating CSV:", error);
-            alert("Failed to generate CSV. Please try again.");
+            toast.error("CSV generation failed", "Please try again.");
         } finally {
             setIsGeneratingCSV(false);
         }
+    };
+
+    const handlePdfDownload = (error) => {
+        if (error) {
+            toast.error("PDF generation failed", "Please try again.");
+            return;
+        }
+
+        toast.info("Preparing earnings PDF", "Your download will begin shortly.");
     };
 
     return (
@@ -290,7 +305,7 @@ function TransactionSummary({ transactions, filter, periodLabel }) {
             <button
                 onClick={generateCSV}
                 disabled={isGeneratingCSV || completedTransactions.length === 0}
-                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex h-8 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-xs font-medium leading-none text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
                 {isGeneratingCSV ? (
                     <>
@@ -317,10 +332,13 @@ function TransactionSummary({ transactions, filter, periodLabel }) {
                         />
                     }
                     fileName={`earnings_summary_${new Date().toISOString().split("T")[0]}.pdf`}
-                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex h-8 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-xs font-medium leading-none text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                    {({ loading }) => (
-                        <>
+                    {({ loading, error }) => (
+                        <span
+                            onClick={() => handlePdfDownload(error)}
+                            className="flex h-full items-center gap-2"
+                        >
                             {loading ? (
                                 <>
                                     <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -332,7 +350,7 @@ function TransactionSummary({ transactions, filter, periodLabel }) {
                                     PDF
                                 </>
                             )}
-                        </>
+                        </span>
                     )}
                 </PDFDownloadLink>
             ) : (

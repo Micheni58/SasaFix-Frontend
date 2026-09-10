@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, memo, useCallback } from "react";
 import Sidebar from "../layout/Sidebar";
 import Navbar from "../components/Navbar";
 import { useLocation } from "react-router-dom";
-import { getSidebarRole } from "../utils/sidebarRole";
+import { getSidebarRole, getStoredProviderId } from "../utils/sidebarRole";
 import authService from "../services/api";
+import { useToast } from "../components/ui/ToastProvider";
 
 const BRAND = "#056db3";
 const BRAND_DARK = "#04599a";
@@ -95,13 +96,27 @@ const Label = ({ children }) => (
   </label>
 );
 
-const Toast = ({ msg, ok }) => (
-  <div
-    className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium text-white flex items-center gap-2 ${
-      ok ? "bg-green-500" : "bg-red-500"
-    }`}
-  >
-    {ok ? "✓" : "✕"} {msg}
+const PasswordField = ({ label, value, onChange, show, toggleShow, placeholder }) => (
+  <div className="mb-4">
+    <Label>{label}</Label>
+
+    <div className="relative">
+      <input
+        className={`${inputCls} pr-10`}
+        type={show ? "text" : "password"}
+        value={value}
+        placeholder={placeholder}
+        onChange={onChange}
+      />
+
+      <button
+        type="button"
+        onClick={toggleShow}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+      >
+        {show ? <EyeOpen /> : <EyeClosed />}
+      </button>
+    </div>
   </div>
 );
 
@@ -144,6 +159,7 @@ const NAV = [
 // ─────────────────────────────────────────────────────────────
 
 const PersonalInfo = ({ user, onSaved }) => {
+  const toast = useToast();
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -152,7 +168,6 @@ const PersonalInfo = ({ user, onSaved }) => {
   });
 
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
   const fileRef = useRef();
   const [avatar, setAvatar] = useState(null);
 
@@ -172,11 +187,6 @@ const PersonalInfo = ({ user, onSaved }) => {
   const initials =
     `${user?.first_name?.[0] || ""}${user?.last_name?.[0] || ""}`.toUpperCase() ||
     "?";
-
-  const showToast = (msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -198,22 +208,21 @@ const PersonalInfo = ({ user, onSaved }) => {
 
       const updated = await res.json();
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          ...user,
-          ...updated,
-        }),
-      );
-
-      onSaved?.({
+      const mergedUser = {
         ...user,
         ...updated,
-      });
+        provider_id: updated.provider_id ?? user?.provider_id,
+        service_provider_id:
+          updated.service_provider_id ?? user?.service_provider_id,
+      };
 
-      showToast("Changes saved successfully.");
+      localStorage.setItem("user", JSON.stringify(mergedUser));
+
+      onSaved?.(mergedUser);
+
+      toast.success("Changes saved", "Your personal information has been updated.");
     } catch (e) {
-      showToast(e.message || "Save failed.", false);
+      toast.error("Save failed", e.message || "Please try again.");
     } finally {
       setSaving(false);
     }
@@ -221,8 +230,6 @@ const PersonalInfo = ({ user, onSaved }) => {
 
   return (
     <div>
-      {toast && <Toast msg={toast.msg} ok={toast.ok} />}
-
       <h2 className="text-xl font-bold text-gray-900 mb-1">
         Personal Information
       </h2>
@@ -386,7 +393,8 @@ const PersonalInfo = ({ user, onSaved }) => {
 // ─────────────────────────────────────────────────────────────
 
 const ProfessionalInfo = () => {
-  const providerId = authService.getStoredUser()?.provider_id;
+  const providerId = getStoredProviderId();
+  const toast = useToast();
 
   const [form, setForm] = useState({
     service_category: "",
@@ -396,13 +404,6 @@ const ProfessionalInfo = () => {
   });
 
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
-
-  const showToast = (msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  };
-
   useEffect(() => {
     if (!providerId) return;
 
@@ -415,7 +416,6 @@ const ProfessionalInfo = () => {
         if (!response.ok) {
           throw new Error("Failed to load provider profile");
         }
-
         return response.json();
       })
       .then((data) => {
@@ -431,7 +431,7 @@ const ProfessionalInfo = () => {
 
   const handleSave = async () => {
     if (!providerId) {
-      showToast("Provider profile not found.", false);
+      toast.error("Provider profile not found", "Unable to save professional information.");
       return;
     }
 
@@ -459,9 +459,9 @@ const ProfessionalInfo = () => {
         throw new Error(e.detail || "Failed to update professional info");
       }
 
-      showToast("Professional info updated.");
+      toast.success("Professional info updated", "Your professional details have been saved.");
     } catch (e) {
-      showToast(e.message || "Save failed.", false);
+      toast.error("Save failed", e.message || "Please try again.");
     } finally {
       setSaving(false);
     }
@@ -469,8 +469,6 @@ const ProfessionalInfo = () => {
 
   return (
     <div>
-      {toast && <Toast msg={toast.msg} ok={toast.ok} />}
-
       <h2 className="text-xl font-bold text-gray-900 mb-1">
         Professional Information
       </h2>
@@ -478,7 +476,6 @@ const ProfessionalInfo = () => {
       <p className="text-sm text-gray-400 mb-6">
         Details clients see when browsing your profile
       </p>
-
       <div className="mb-4">
         <Label>Service Category</Label>
 
@@ -579,7 +576,8 @@ const ProfessionalInfo = () => {
 // ─────────────────────────────────────────────────────────────
 
 const Availability = () => {
-  const providerId = authService.getStoredUser()?.provider_id;
+  const providerId = getStoredProviderId();
+  const toast = useToast();
 
   const [slots, setSlots] = useState(
     DAYS.map((day) => ({
@@ -592,12 +590,6 @@ const Availability = () => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
-
-  const showToast = (msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  };
 
   // Fetch availability separately from the provider profile.
   useEffect(() => {
@@ -609,7 +601,6 @@ const Availability = () => {
     const loadAvailability = async () => {
       try {
         setLoading(true);
-
         const response = await fetch(
           `http://localhost:8000/api/providers/${providerId}/availability`,
           {
@@ -648,13 +639,15 @@ const Availability = () => {
           }),
         );
       } catch (error) {
-        showToast(error.message || "Failed to load availability.", false);
+        toast.error("Failed to load availability", error.message || "Showing default availability.");
       } finally {
         setLoading(false);
       }
     };
 
     loadAvailability();
+    // Toast changes should not trigger another availability fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providerId]);
 
   const toggle = (index) => {
@@ -666,7 +659,7 @@ const Availability = () => {
               enabled: !slot.enabled,
             }
           : slot,
-      ),
+          ),
     );
   };
 
@@ -685,7 +678,7 @@ const Availability = () => {
 
   const handleSave = async () => {
     if (!providerId) {
-      showToast("Provider profile not found.", false);
+      toast.error("Provider profile not found", "Unable to save availability.");
       return;
     }
 
@@ -717,9 +710,9 @@ const Availability = () => {
         throw new Error(data.detail || "Failed to update availability");
       }
 
-      showToast("Availability updated.");
+      toast.success("Availability updated", "Your working hours have been saved.");
     } catch (error) {
-      showToast(error.message || "Save failed.", false);
+      toast.error("Save failed", error.message || "Please try again.");
     } finally {
       setSaving(false);
     }
@@ -737,14 +730,12 @@ const Availability = () => {
         <div className="bg-gray-50 rounded-xl p-10 text-center">
           <p className="text-sm text-gray-500">Loading availability...</p>
         </div>
-      </div>
-    );
+        </div>
+      );
   }
 
   return (
     <div>
-      {toast && <Toast msg={toast.msg} ok={toast.ok} />}
-
       <h2 className="text-xl font-bold text-gray-900 mb-1">Availability</h2>
 
       <p className="text-sm text-gray-400 mb-6">
@@ -833,7 +824,8 @@ const Availability = () => {
 // ─────────────────────────────────────────────────────────────
 
 const Location = ({ user }) => {
-  const providerId = authService.getStoredUser()?.provider_id;
+  const providerId = getStoredProviderId();
+  const toast = useToast();
 
   const [form, setForm] = useState({
     city: "",
@@ -842,13 +834,6 @@ const Location = ({ user }) => {
   });
 
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
-
-  const showToast = (msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  };
-
   useEffect(() => {
     if (user) {
       setForm({
@@ -896,9 +881,9 @@ const Location = ({ user }) => {
         }
       }
 
-      showToast("Location updated.");
+      toast.success("Location updated", "Your service area has been saved.");
     } catch (error) {
-      showToast(error.message || "Save failed.", false);
+      toast.error("Save failed", error.message || "Please try again.");
     } finally {
       setSaving(false);
     }
@@ -906,8 +891,6 @@ const Location = ({ user }) => {
 
   return (
     <div>
-      {toast && <Toast msg={toast.msg} ok={toast.ok} />}
-
       <h2 className="text-xl font-bold text-gray-900 mb-1">Location</h2>
 
       <p className="text-sm text-gray-400 mb-6">
@@ -981,6 +964,7 @@ const Location = ({ user }) => {
 // ─────────────────────────────────────────────────────────────
 
 const Security = memo(() => {
+  const toast = useToast();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -990,24 +974,17 @@ const Security = memo(() => {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
-
-  const showToast = useCallback((msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  }, []);
-
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
 
       if (newPassword !== confirmPassword) {
-        showToast("New passwords don't match.", false);
+        toast.warning("Passwords do not match", "Enter the same new password in both fields.");
         return;
       }
 
       if (newPassword.length < 2) {
-        showToast("Password must be at least 2 characters.", false);
+        toast.warning("Password is too short", "Use at least 2 characters.");
         return;
       }
 
@@ -1035,14 +1012,14 @@ const Security = memo(() => {
         setNewPassword("");
         setConfirmPassword("");
 
-        showToast("Password changed successfully.");
+        toast.success("Password changed", "Your password has been updated successfully.");
       } catch (e) {
-        showToast(e.message || "Failed.", false);
+        toast.error("Password change failed", e.message || "Please try again.");
       } finally {
         setSaving(false);
       }
     },
-    [currentPassword, newPassword, confirmPassword, showToast],
+    [currentPassword, newPassword, confirmPassword, toast],
   );
 
   const handleCurrentChange = useCallback((e) => {
@@ -1069,37 +1046,8 @@ const Security = memo(() => {
     setShowConfirm((prev) => !prev);
   }, []);
 
-  const PwField = useCallback(
-    ({ label, value, onChange, show, toggleShow, placeholder }) => (
-      <div className="mb-4">
-        <Label>{label}</Label>
-
-        <div className="relative">
-          <input
-            className={`${inputCls} pr-10`}
-            type={show ? "text" : "password"}
-            value={value}
-            placeholder={placeholder}
-            onChange={onChange}
-          />
-
-          <button
-            type="button"
-            onClick={toggleShow}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            {show ? <EyeOpen /> : <EyeClosed />}
-          </button>
-        </div>
-      </div>
-    ),
-    [],
-  );
-
   return (
     <div>
-      {toast && <Toast msg={toast.msg} ok={toast.ok} />}
-
       <h2 className="text-xl font-bold text-gray-900 mb-1">Security</h2>
 
       <p className="text-sm text-gray-400 mb-6">
@@ -1107,7 +1055,7 @@ const Security = memo(() => {
       </p>
 
       <form onSubmit={handleSubmit} className="max-w-md">
-        <PwField
+        <PasswordField
           label="Current Password"
           value={currentPassword}
           onChange={handleCurrentChange}
@@ -1116,7 +1064,7 @@ const Security = memo(() => {
           placeholder="Enter current password"
         />
 
-        <PwField
+        <PasswordField
           label="New Password"
           value={newPassword}
           onChange={handleNewChange}
@@ -1125,7 +1073,7 @@ const Security = memo(() => {
           placeholder="Create new password"
         />
 
-        <PwField
+        <PasswordField
           label="Confirm Password"
           value={confirmPassword}
           onChange={handleConfirmChange}
@@ -1239,7 +1187,15 @@ function Profile() {
 
     authService
       .getCurrentUser()
-      .then(setUser)
+      .then((currentUser) => {
+        setUser((previousUser) => ({
+          ...previousUser,
+          ...currentUser,
+          provider_id: currentUser.provider_id ?? previousUser?.provider_id,
+          service_provider_id:
+            currentUser.service_provider_id ?? previousUser?.service_provider_id,
+        }));
+      })
       .catch(() => {});
   }, []);
 

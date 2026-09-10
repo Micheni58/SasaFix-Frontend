@@ -10,6 +10,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 function ordinalSuffix(day) {
   const d = Number(day);
@@ -78,6 +79,7 @@ function RescheduleRequestedJobSkeleton() {
 function RescheduleRequestedJobDetails() {
   const { id: bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -177,7 +179,7 @@ function RescheduleRequestedJobDetails() {
       setTimeout(() => setSuccessMessage(null), 5000);
       navigate("/provider/my-jobs");
     } catch (err) {
-      alert("Failed to accept: " + err.message);
+      toast.error("Failed to accept reschedule", err.message);
     } finally {
       setActionLoading(false);
     }
@@ -192,7 +194,7 @@ function RescheduleRequestedJobDetails() {
       setTimeout(() => setSuccessMessage(null), 5000);
       navigate("/provider/my-jobs");
     } catch (err) {
-      alert("Failed to decline: " + err.message);
+      toast.error("Failed to decline reschedule", err.message);
     } finally {
       setActionLoading(false);
     }
@@ -207,7 +209,7 @@ function RescheduleRequestedJobDetails() {
       setTimeout(() => setSuccessMessage(null), 5000);
       navigate("/provider/my-jobs");
     } catch (err) {
-      alert("Failed to cancel: " + err.message);
+      toast.error("Failed to cancel booking", err.message);
     } finally {
       setActionLoading(false);
     }
@@ -282,13 +284,11 @@ function RescheduleRequestedJobDetails() {
   let statusBadge;
   let statusMessage;
   let pageTitle;
-  let showActions = false;
 
   if (isWaitingForProvider) {
     pageTitle = "Reschedule Request";
  
     statusMessage = "The client has requested a reschedule. Please review and respond.";
-    showActions = true;
   } else if (isConfirmed) {
     pageTitle = "Reschedule Confirmed";
     statusBadge = (
@@ -297,7 +297,6 @@ function RescheduleRequestedJobDetails() {
       </span>
     );
     statusMessage = "You have accepted the client's reschedule request. The booking has been updated to the new time.";
-    showActions = false;
   } else {
     pageTitle = "Booking Details";
     statusBadge = (
@@ -306,7 +305,6 @@ function RescheduleRequestedJobDetails() {
       </span>
     );
     statusMessage = "This booking is not in a reschedule state.";
-    showActions = false;
   }
 
   return (

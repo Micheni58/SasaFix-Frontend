@@ -58,7 +58,7 @@ function FeatureCardSkeleton() {
 
 // ── Components ──
 
-function FeatureCard({ icon: Icon, title, description, color, onClick, badge }) {
+function FeatureCard({ icon: _Icon, title, description, color, onClick, badge }) {
   return (
     <button
       onClick={onClick}
@@ -68,7 +68,7 @@ function FeatureCard({ icon: Icon, title, description, color, onClick, badge }) 
       <div className="relative">
         <div className="flex items-start justify-between">
           <div className={`inline-flex rounded-xl ${color} p-3 mb-4`}>
-            <Icon className="h-6 w-6 text-white" />
+            <_Icon className="h-6 w-6 text-white" />
           </div>
           {badge && (
             <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium" style={{ color: '#056db3' }}>
@@ -87,7 +87,7 @@ function FeatureCard({ icon: Icon, title, description, color, onClick, badge }) 
   );
 }
 
-function OnboardingCard({ step, title, description, icon: Icon, isCompleted, onStart }) {
+function OnboardingCard({ step, title, description, isCompleted, onStart }) {
   return (
     <div className={`flex items-start gap-4 p-4 rounded-xl border ${
       isCompleted

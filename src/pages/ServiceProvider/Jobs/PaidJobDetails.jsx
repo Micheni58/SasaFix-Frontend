@@ -24,6 +24,7 @@ import { BookingInfoCard } from "../../../components/cards/BookingInfoCard";
 import { PaymentDetailsCard } from "../../../components/cards/PaymentDetailsCard";
 import { Timeline } from "../../../components/cards/Timeline";
 import { SasaFixReceipt } from "../../../components/SasaFixReceipt";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // HELPERS
@@ -135,8 +136,18 @@ function JobReviewCard({ rating, review, loading }) {
 // RECEIPT DOWNLOAD BUTTON
 // ─────────────────────────────────────────────
 
-function ReceiptDownloadButton({ booking, ui }) {
+function ReceiptDownloadButton({ ui }) {
   const fileName = `SasaFix-Receipt-provider-Booking-${ui.id}.pdf`;
+  const toast = useToast();
+
+  const handleDownload = (error) => {
+    if (error) {
+      toast.error("Receipt download failed", "Please try again.");
+      return;
+    }
+
+    toast.info("Preparing receipt", "Your PDF download will begin shortly.");
+  };
 
   return (
     <PDFDownloadLink
@@ -145,6 +156,7 @@ function ReceiptDownloadButton({ booking, ui }) {
     >
       {({ loading: pdfLoading, error }) => (
         <button
+          onClick={() => handleDownload(error)}
           disabled={pdfLoading}
           className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-emerald-600 px-3 py-2 text-emerald-600 transition-colors hover:bg-emerald-50 disabled:opacity-60 disabled:cursor-not-allowed"
         >

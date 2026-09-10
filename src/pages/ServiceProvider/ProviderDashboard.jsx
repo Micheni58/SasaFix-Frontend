@@ -25,6 +25,7 @@ import ratingService from "../../api/ratingService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 import aiService from "../../api/aiService";
+import { getStoredProviderId } from "../../utils/sidebarRole";
 
 // ── Status Colors ──
 const STATUS_STYLES = {
@@ -106,41 +107,6 @@ function formatDateToWords(dateString) {
   }
 }
 
-function isToday(dateString) {
-  if (!dateString) return false;
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return false;
-    const today = new Date();
-    return date.getFullYear() === today.getFullYear() &&
-           date.getMonth() === today.getMonth() &&
-           date.getDate() === today.getDate();
-  } catch {
-    return false;
-  }
-}
-
-function normalizeStatus(statusValue) {
-  const rawStatus = (statusValue || "").toString().trim();
-  if (!rawStatus) return "";
-
-  const normalized = rawStatus.toLowerCase().replace(/\s+/g, "_");
-  const statusMap = {
-    pending: "Pending",
-    accepted: "Accepted",
-    in_progress: "In Progress",
-    completed: "Completed",
-    paid: "Paid",
-    cancelled: "Cancelled",
-    rescheduled: "Rescheduled",
-    reschedule_requested: "Reschedule Requested",
-    reschedule_proposed: "Reschedule Proposed",
-    reschedule_confirmed: "Reschedule Confirmed",
-  };
-
-  return statusMap[normalized] || rawStatus;
-}
-
 // ── FIXED: Correct reschedule routing logic ──
 function getBookingRoute(booking) {
   const status = booking.status || "Pending";
@@ -158,9 +124,6 @@ function getBookingRoute(booking) {
 
   const isProviderInitiated = ["provider", "service_provider", "service-provider"].includes(initiator);
   const isClientInitiated = ["client", "customer"].includes(initiator);
-
-  // Check if this booking has reschedule history
-  const hasRescheduleHistory = !!(booking.raw?.original_scheduled_date || booking.originalDate);
 
   // ── IF STATUS IS ACCEPTED, IN_PROGRESS, COMPLETED, or PAID → GO TO REGULAR DETAILS PAGE ──
   const regularStatuses = ["Accepted", "accepted", "In Progress", "in_progress", "Completed", "completed", "Paid", "paid"];
@@ -286,7 +249,7 @@ function StatCardSkeleton() {
   );
 }
 
-function StatCard({ label, value, icon: Icon, iconBg, isLoading, subText }) {
+function StatCard({ label, value, icon: _Icon, iconBg, isLoading, subText }) {
   return (
     <div className="min-h-28 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex h-full items-center justify-between gap-4">
@@ -302,7 +265,7 @@ function StatCard({ label, value, icon: Icon, iconBg, isLoading, subText }) {
           )}
         </div>
         <div className={`shrink-0 rounded-lg p-2 ${iconBg}`}>
-          <Icon className="h-6 w-6" />
+          <_Icon className="h-6 w-6" />
         </div>
       </div>
     </div>
@@ -492,7 +455,6 @@ function ProviderDashboard() {
   const [monthEarnings, setMonthEarnings] = useState(0);
   const [monthPaidJobs, setMonthPaidJobs] = useState(0);
   const [providerRating, setProviderRating] = useState(null);
-  const [totalRatings, setTotalRatings] = useState(0);
   const [providerSpecialty, setProviderSpecialty] = useState("Service Provider");
   const [providerLocation, setProviderLocation] = useState("Nairobi, Kenya");
   const [aiInsight, setAiInsight] = useState(null);
@@ -507,12 +469,7 @@ function ProviderDashboard() {
       "Provider"
     : "Provider";
 
-  const providerId = Number(
-    storedUser?.provider_id || 
-    storedUser?.service_provider_id || 
-    localStorage.getItem("providerId") ||
-    0
-  );
+  const providerId = getStoredProviderId() || 0;
 
   // ── Fetch bookings ──
   useEffect(() => {
@@ -548,7 +505,6 @@ function ProviderDashboard() {
           const ratingData = await ratingService.getProviderAverageRating(providerId);
           if (mounted && ratingData) {
             setProviderRating(ratingData.averageScore || 0);
-            setTotalRatings(ratingData.totalRatings || 0);
           }
         } catch (ratingErr) {
           console.warn("Could not fetch rating:", ratingErr);
@@ -718,7 +674,6 @@ function ProviderDashboard() {
   const displayedJobs = sortedTodaysBookings.slice(0, 5);
 
   // Active jobs (Accepted, In Progress, and reschedule proposals waiting for client)
-  const activeStatuses = ["Accepted", "In Progress"];
   const activeJobs = bookings.filter((b) => {
     const status = b.status || "Pending";
     // Include Accepted, In Progress, and Reschedule Proposed (waiting for client)

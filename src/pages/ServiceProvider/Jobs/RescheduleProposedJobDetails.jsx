@@ -10,6 +10,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 function ordinalSuffix(day) {
   const d = Number(day);
@@ -78,10 +79,10 @@ function RescheduleProposedJobSkeleton() {
 function RescheduleProposedJobDetails() {
   const { id: bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [actionLoading, setActionLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
 
   useEffect(() => {
@@ -195,16 +196,13 @@ function RescheduleProposedJobDetails() {
 
   const handleCancel = async () => {
     if (!window.confirm("Are you sure you want to cancel this booking?")) return;
-    setActionLoading(true);
     try {
       await bookingService.cancelBooking(bookingId);
       setSuccessMessage("✅ Booking cancelled successfully!");
       setTimeout(() => setSuccessMessage(null), 5000);
       navigate("/provider/my-jobs");
     } catch (err) {
-      alert("Failed to cancel: " + err.message);
-    } finally {
-      setActionLoading(false);
+      toast.error("Failed to cancel booking", err.message);
     }
   };
 
@@ -240,7 +238,6 @@ function RescheduleProposedJobDetails() {
   }
 
   const pageState = job.pageState;
-  const hasRescheduleHistory = job.hasRescheduleHistory;
 
   // Format all dates
   const formattedOriginalDate = formatDate(job.originalDate);
@@ -255,21 +252,11 @@ function RescheduleProposedJobDetails() {
   let statusMessage;
   let pageTitle;
   let badgeColor;
-  let showOriginal = false;
-  let showProposed = false;
-  let showCurrent = true;
 
   if (pageState === "waiting_for_client") {
     pageTitle = "Reschedule Proposed";
-    statusBadge = (
-      <span className="px-4 py-2 rounded-full text-sm font-semibold bg-purple-100 text-purple-800">
-        ⏳ Waiting for Client
-      </span>
-    );
     statusMessage = "You've proposed a new time. Waiting for the client to respond.";
     badgeColor = "bg-purple-50 border-purple-200 text-purple-700";
-    showOriginal = true;
-    showProposed = true;
   } else if (pageState === "waiting_for_provider") {
     pageTitle = "Reschedule Request";
     statusBadge = (
@@ -279,8 +266,6 @@ function RescheduleProposedJobDetails() {
     );
     statusMessage = "The client has requested a reschedule. Please review and respond.";
     badgeColor = "bg-amber-50 border-amber-200 text-amber-700";
-    showOriginal = true;
-    showProposed = true;
   } else if (pageState === "confirmed") {
     pageTitle = "Reschedule Confirmed";
     statusBadge = (
@@ -290,9 +275,6 @@ function RescheduleProposedJobDetails() {
     );
     statusMessage = "The reschedule has been confirmed. The booking has been updated to the new time.";
     badgeColor = "bg-green-50 border-green-200 text-green-700";
-    showOriginal = true;
-    showProposed = false;
-    showCurrent = true;
   } else if (pageState === "applied_no_history") {
     pageTitle = "Reschedule Applied";
     statusBadge = (
@@ -302,9 +284,6 @@ function RescheduleProposedJobDetails() {
     );
     statusMessage = "This booking has been rescheduled. The time has been updated.";
     badgeColor = "bg-blue-50 border-blue-200 text-blue-700";
-    showOriginal = true;
-    showProposed = false;
-    showCurrent = true;
   } else if (pageState === "completed") {
     pageTitle = "Reschedule Completed";
     statusBadge = (
@@ -314,9 +293,6 @@ function RescheduleProposedJobDetails() {
     );
     statusMessage = "The reschedule has been completed successfully.";
     badgeColor = "bg-green-50 border-green-200 text-green-700";
-    showOriginal = true;
-    showProposed = false;
-    showCurrent = true;
   } else {
     pageTitle = "Booking Details";
     statusBadge = (
@@ -326,7 +302,6 @@ function RescheduleProposedJobDetails() {
     );
     statusMessage = "This booking is not in a reschedule state.";
     badgeColor = "bg-gray-50 border-gray-200 text-gray-700";
-    showCurrent = true;
   }
 
   return (
@@ -535,7 +510,7 @@ function RescheduleProposedJobDetails() {
             </div>
 
             <div className="lg:col-span-1">
-              <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+              <div className="sticky top-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-3">
                 <h2 className="text-xl font-bold text-gray-800">Actions</h2>
 
                 {pageState === "waiting_for_client" && (
@@ -571,7 +546,7 @@ function RescheduleProposedJobDetails() {
                 )}
 
                 <Link to={`/provider/messages?client=${job.clientId || ''}`}>
-                  <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-3 px-2 rounded-lg hover:bg-blue-50 transition-colors">
+                  <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-50 transition-colors mb-4">
                     <MessageSquare className="w-5 h-5" />
                     Message Client
                   </button>
@@ -579,7 +554,7 @@ function RescheduleProposedJobDetails() {
 
                 <button
                   onClick={handleCancel}
-                  className="w-full flex items-center justify-center gap-2 border-2 border-red-200 text-red-600 py-3 px-2 rounded-lg hover:bg-red-50 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 border-2 border-red-200 text-red-600 py-2 px-2 rounded-lg hover:bg-red-50 transition-colors"
                 >
                   <XCircle className="w-5 h-5" />
                   Cancel Booking
@@ -587,7 +562,7 @@ function RescheduleProposedJobDetails() {
 
                 <button
                   onClick={handleBack}
-                  className="w-full flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 font-semibold py-3 px-2 rounded-lg hover:bg-gray-50 transition-colors mt-4"
+                  className="w-full flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 font-semibold py-2 px-2 rounded-lg hover:bg-gray-50 transition-colors "
                 >
                   Back to My Jobs
                 </button>

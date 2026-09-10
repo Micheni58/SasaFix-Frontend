@@ -22,3 +22,19 @@ export function getStoredUserRole() {
 
   return null;
 }
+
+export function getStoredProviderId() {
+  try {
+    const rawUser = localStorage.getItem("user");
+    const user = rawUser ? JSON.parse(rawUser) : null;
+    const providerId =
+      user?.provider_id ??
+      user?.service_provider_id ??
+      localStorage.getItem("providerId") ??
+      localStorage.getItem("serviceProviderId");
+
+    return providerId ? Number(providerId) || null : null;
+  } catch {
+    return null;
+  }
+}

@@ -11,6 +11,7 @@ import bookingService from "../../../api/bookingService";
 import reportService from "../../../api/reportService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
@@ -334,6 +335,7 @@ function ReportModal({ isOpen, onClose, onSubmit, loading, job }) {
 function InProgressJobDetails() {
   const { id: bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -420,7 +422,7 @@ function InProgressJobDetails() {
   const handleComplete = async () => {
     // Check if already completed
     if (job?.status === "Completed" || job?.status === "completed") {
-      alert("This job is already completed.");
+      toast.info("Job already completed", "This job has already been completed.");
       navigate("/provider/my-jobs");
       return;
     }
@@ -428,16 +430,16 @@ function InProgressJobDetails() {
     setActionLoading(true);
     try {
       await bookingService.updateBookingStatus(bookingId, "completed");
-      alert("✅ Job marked as completed!");
+      toast.success("Job completed", "The job has been marked as completed.");
       navigate("/provider/my-jobs");
     } catch (err) {
       console.error("Failed to complete job:", err);
       // Check if the error is because it's already completed
       if (err.response?.data?.detail?.includes("Cannot transition")) {
-        alert("This job has already been completed.");
+        toast.info("Job already completed", "This job has already been completed.");
         navigate("/provider/my-jobs");
       } else {
-        alert("Failed to complete job: " + (err.response?.data?.detail || err.message));
+        toast.error("Failed to complete job", err.response?.data?.detail || err.message);
       }
     } finally {
       setActionLoading(false);
@@ -458,11 +460,11 @@ function InProgressJobDetails() {
       });
 
       setReportOpen(false);
-      alert("✅ Report submitted successfully. Our team will review it shortly.");
+      toast.success("Report submitted", "Our team will review it shortly.");
     } catch (err) {
       console.error("Error submitting report:", err);
       const errorMsg = err.response?.data?.detail || err.message || "Failed to submit report. Please try again.";
-      alert("❌ " + errorMsg);
+      toast.error("Report submission failed", errorMsg);
     } finally {
       setReportLoading(false);
     }

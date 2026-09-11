@@ -10,6 +10,7 @@ import { ProviderInfoCard } from "../../../components/cards/ProviderInfoCard";
 import { PaymentDetailsCard } from "../../../components/cards/PaymentDetailsCard";
 import { Timeline } from "../../../components/cards/Timeline";
 import { BookingInfoCard } from "../../../components/cards/BookingInfoCard";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
@@ -268,6 +269,7 @@ function RescheduleModal({ job, onConfirm, onCancel, loading, error }) {
 function UpcomingBookingDetails() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -319,7 +321,7 @@ function UpcomingBookingDetails() {
         reason: reason || "Client requested reschedule"
       });
       setShowRescheduleModal(false);
-      alert("Reschedule request sent to provider. They will confirm shortly.");
+      toast.success("Reschedule requested", "The provider will confirm shortly.");
       const updated = await bookingService.getBooking(Number(bookingId));
       setBooking(updated);
     } catch (err) {
@@ -338,12 +340,12 @@ function UpcomingBookingDetails() {
       if (updated) {
         setBooking(updated);
         setShowCancelModal(false);
-        alert("Booking cancelled successfully.");
+        toast.success("Booking cancelled successfully");
         navigate("/client/my-bookings");
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to cancel booking.");
+      toast.error("Failed to cancel booking");
     } finally {
       setActionLoading(false);
     }
@@ -515,11 +517,11 @@ function UpcomingBookingDetails() {
                           onClick={async () => {
                             try {
                               await bookingService.acceptReschedule(booking.id);
-                              alert("Reschedule accepted! The booking has been updated.");
+                              toast.success("Reschedule accepted", "The booking has been updated.");
                               const updated = await bookingService.getBooking(Number(bookingId));
                               setBooking(updated);
                             } catch (err) {
-                              alert("Failed to accept reschedule.");
+                              toast.error("Failed to accept reschedule");
                             }
                           }}
                           disabled={actionLoading}
@@ -533,11 +535,11 @@ function UpcomingBookingDetails() {
                             if (window.confirm("Decline this reschedule? The booking will remain at the original time.")) {
                               try {
                                 await bookingService.declineReschedule(booking.id);
-                                alert("Reschedule declined. Booking remains at original time.");
+                                toast.info("Reschedule declined", "The booking remains at the original time.");
                                 const updated = await bookingService.getBooking(Number(bookingId));
                                 setBooking(updated);
                               } catch (err) {
-                                alert("Failed to decline reschedule.");
+                                toast.error("Failed to decline reschedule");
                               }
                             }
                           }}

@@ -21,6 +21,7 @@ import { Timeline } from "../../../components/cards/Timeline";
 import { BookingInfoCard } from "../../../components/cards/BookingInfoCard";
 import { ReviewCard } from "../../../components/cards/ReviewCard";
 import { SasaFixReceipt } from "../../../components/SasaFixReceipt";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
@@ -184,6 +185,7 @@ function ReceiptDownloadButton({ ui, role = "client" }) {
 function PaidBookingDetails() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [reportOpen, setReportOpen] = useState(false);
@@ -219,12 +221,12 @@ function PaidBookingDetails() {
 
   const submitReport = async () => {
     if (!reportText) {
-      window.alert("Please add a reason for the report.");
+      toast.warning("Report reason required", "Please add a reason for the report.");
       return;
     }
     setReportText("");
     setReportOpen(false);
-    window.alert("Report submitted. Our team will review it.");
+    toast.success("Report submitted", "Our team will review it.");
   };
 
   if (loading) return <PaidBookingSkeleton />;

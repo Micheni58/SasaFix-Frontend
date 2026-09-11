@@ -116,7 +116,9 @@ function Messages() {
       if (!res.ok) return;
       const data = await res.json();
       setConversations(data);
-    } catch {}
+    } catch (error) {
+      console.error("Failed to load conversations:", error);
+    }
   }, []);
 
   useEffect(() => {
@@ -133,7 +135,9 @@ function Messages() {
       if (!res.ok) return;
       const data = await res.json();
       setMessages(data);
-    } catch {}
+    } catch (error) {
+      console.error("Failed to load messages:", error);
+    }
   }, []);
 
   // Open a conversation
@@ -192,7 +196,8 @@ function Messages() {
             : c,
         ),
       );
-    } catch {
+    } catch (error) {
+      console.error("Failed to send message:", error);
     } finally {
       setSending(false);
     }

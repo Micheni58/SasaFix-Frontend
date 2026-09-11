@@ -22,6 +22,7 @@ import { getSidebarRole } from "../../utils/sidebarRole";
 import transactionService from "../../api/transactionService";
 import { TransactionSummaryPDF } from "../../components/TransactionSummaryPDF";
 import { PDFDownloadLink } from "@react-pdf/renderer";
+import { useToast } from "../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // HELPERS
@@ -86,7 +87,7 @@ function getDateRange(filter) {
             start.setHours(0, 0, 0, 0);
             end.setHours(23, 59, 59, 999);
             break;
-        case "week":
+        case "week": {
             const day = now.getDay();
             const diff = now.getDate() - day + (day === 0 ? -6 : 1);
             start.setDate(diff);
@@ -94,18 +95,21 @@ function getDateRange(filter) {
             end.setDate(start.getDate() + 6);
             end.setHours(23, 59, 59, 999);
             break;
-        case "month":
+        }
+        case "month": {
             start.setDate(1);
             start.setHours(0, 0, 0, 0);
             end.setMonth(now.getMonth() + 1, 0);
             end.setHours(23, 59, 59, 999);
             break;
-        case "year":
+        }
+        case "year": {
             start.setMonth(0, 1);
             start.setHours(0, 0, 0, 0);
             end.setMonth(11, 31);
             end.setHours(23, 59, 59, 999);
             break;
+        }
         default:
             start.setDate(1);
             start.setHours(0, 0, 0, 0);
@@ -178,6 +182,7 @@ function TransactionRowSkeleton() {
 // ─────────────────────────────────────────────
 
 function TransactionSummary({ transactions, filter, periodLabel }) {
+    const toast = useToast();
     const [isGeneratingCSV, setIsGeneratingCSV] = useState(false);
 
     // Filter to only completed/successful transactions
@@ -188,7 +193,7 @@ function TransactionSummary({ transactions, filter, periodLabel }) {
 
    const generateCSV = () => {
     if (completedTransactions.length === 0) {
-        alert("No completed transactions to summarize for this period.");
+        toast.warning("No completed transactions", "There are no completed transactions to summarize for this period.");
         return;
     }
 
@@ -263,9 +268,10 @@ function TransactionSummary({ transactions, filter, periodLabel }) {
         a.download = `payment_summary_${new Date().toISOString().split("T")[0]}.csv`;
         a.click();
         URL.revokeObjectURL(url);
+        toast.success("Summary downloaded", "Your CSV transaction summary is ready.");
     } catch (error) {
         console.error("Error generating CSV:", error);
-        alert("Failed to generate CSV. Please try again.");
+        toast.error("Download failed", "Failed to generate CSV. Please try again.");
     } finally {
         setIsGeneratingCSV(false);
     }

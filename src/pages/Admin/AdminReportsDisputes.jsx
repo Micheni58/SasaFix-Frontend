@@ -23,6 +23,7 @@ import {
   FileText,
 } from "lucide-react";
 import Sidebar from "../../layout/Sidebar";
+import { useToast } from "../../components/ui/ToastProvider";
 import Navbar from "../../components/Navbar";
 import reportService from "../../api/reportService";
 
@@ -500,6 +501,7 @@ function ReportDetailModal({ report, onClose, onStatusChange, onPriorityChange, 
 // ─────────────────────────────────────────────
 
 function AdminReportsDisputes() {
+  const toast = useToast();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFiltering, setIsFiltering] = useState(false);
@@ -514,11 +516,9 @@ function AdminReportsDisputes() {
 
   const [selectedReport, setSelectedReport] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [toast, setToast] = useState(null);
-
   const showToast = (msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3500);
+    if (ok) toast.success(msg);
+    else toast.error("Action failed", msg);
   };
 
   // ── Fetch reports and summary ──
@@ -1066,17 +1066,6 @@ function AdminReportsDisputes() {
         />
       )}
 
-      {/* ── Toast ── */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg transition-all ${
-            toast.ok ? "bg-green-600" : "bg-red-500"
-          }`}
-        >
-          {toast.ok ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          {toast.msg}
-        </div>
-      )}
     </div>
   );
 }

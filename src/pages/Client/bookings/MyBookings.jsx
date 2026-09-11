@@ -17,6 +17,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ── Tabs ──
 const tabs = ["Upcoming", "In Progress", "Completed", "Rescheduled", "Cancelled", "Paid"];
@@ -360,6 +361,7 @@ function MyBookings() {
   const [openMenuId, setOpenMenuId] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
 
   // ── Fetch Bookings ──
   const fetchBookings = async (showRefresh = false) => {
@@ -678,7 +680,7 @@ function MyBookings() {
                                   <button
                                     onClick={async () => {
                                       if (booking.status === 'In Progress') {
-                                        window.alert('In-progress bookings cannot be cancelled right now.');
+                                        toast.warning('Cancellation unavailable', 'In-progress bookings cannot be cancelled right now.');
                                         setOpenMenuId(null);
                                         return;
                                       }
@@ -687,10 +689,10 @@ function MyBookings() {
                                         setActionLoading(true);
                                         await bookingService.cancelBooking(booking.id);
                                         await fetchBookings();
-                                        window.alert('Booking cancelled');
+                                        toast.success('Booking cancelled');
                                       } catch (e) {
                                         console.error(e);
-                                        window.alert('Failed to cancel');
+                                        toast.error('Failed to cancel booking');
                                       } finally {
                                         setActionLoading(false);
                                         setOpenMenuId(null);

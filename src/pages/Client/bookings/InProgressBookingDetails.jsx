@@ -11,6 +11,7 @@ import { ProviderInfoCard } from "../../../components/cards/ProviderInfoCard";
 import { PaymentDetailsCard } from "../../../components/cards/PaymentDetailsCard";
 import { Timeline } from "../../../components/cards/Timeline";
 import { BookingInfoCard } from "../../../components/cards/BookingInfoCard";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
@@ -346,6 +347,7 @@ function ReportModal({ isOpen, onClose, onSubmit, loading, booking }) {
 function InProgressBookingDetails() {
     const { bookingId } = useParams();
     const navigate = useNavigate();
+    const toast = useToast();
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
     const [reportOpen, setReportOpen] = useState(false);
@@ -389,11 +391,11 @@ function InProgressBookingDetails() {
             });
 
             setReportOpen(false);
-            alert("✅ Report submitted successfully. Our team will review it shortly.");
+            toast.success("Report submitted", "Our team will review it shortly.");
         } catch (err) {
             console.error("Error submitting report:", err);
             const errorMsg = err.response?.data?.detail || err.message || "Failed to submit report. Please try again.";
-            alert("❌ " + errorMsg);
+            toast.error("Report submission failed", errorMsg);
         } finally {
             setReportLoading(false);
         }

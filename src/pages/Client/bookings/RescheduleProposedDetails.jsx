@@ -18,6 +18,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 function ordinalSuffix(day) {
   const d = Number(day);
@@ -86,6 +87,7 @@ function RescheduleProposedSkeleton() {
 function RescheduleProposedDetails() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -143,11 +145,11 @@ function RescheduleProposedDetails() {
     try {
       await bookingService.acceptReschedule(bookingId);
       setShowAcceptModal(false);
-      window.alert("Reschedule accepted successfully! The booking has been updated.");
+      toast.success("Reschedule accepted", "The booking has been updated.");
       navigate("/client/my-bookings", { state: { rescheduleUpdated: true } });
     } catch (err) {
       console.error("Accept failed:", err);
-      window.alert("Failed to accept reschedule: " + err.message);
+      toast.error("Failed to accept reschedule", err.message);
     } finally {
       setActionLoading(false);
     }
@@ -158,11 +160,11 @@ function RescheduleProposedDetails() {
     try {
       await bookingService.declineReschedule(bookingId);
       setShowDeclineModal(false);
-      window.alert("Reschedule declined. Booking remains at the original time.");
+      toast.info("Reschedule declined", "The booking remains at the original time.");
       navigate("/client/my-bookings", { state: { rescheduleUpdated: true } });
     } catch (err) {
       console.error("Decline failed:", err);
-      window.alert("Failed to decline reschedule: " + err.message);
+      toast.error("Failed to decline reschedule", err.message);
     } finally {
       setActionLoading(false);
     }

@@ -16,6 +16,7 @@ import { PaymentDetailsCard } from "../../../components/cards/PaymentDetailsCard
 import { Timeline } from "../../../components/cards/Timeline";
 import { BookingInfoCard } from "../../../components/cards/BookingInfoCard";
 import { ReviewCard } from "../../../components/cards/ReviewCard";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
@@ -364,6 +365,7 @@ function ReportModal({ isOpen, onClose, onSubmit, loading, booking }) {
 function CompletedBookingDetails() {
     const { bookingId } = useParams();
     const navigate = useNavigate();
+    const toast = useToast();
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -479,11 +481,11 @@ function CompletedBookingDetails() {
             });
             
             setReportOpen(false);
-            alert("✅ Report submitted successfully. Our team will review it shortly.");
+            toast.success("Report submitted", "Our team will review it shortly.");
         } catch (err) {
             console.error("Error submitting report:", err);
             const errorMsg = err.response?.data?.detail || err.message || "Failed to submit report. Please try again.";
-            alert("❌ " + errorMsg);
+            toast.error("Report submission failed", errorMsg);
         } finally {
             setReportLoading(false);
         }
@@ -543,17 +545,12 @@ function CompletedBookingDetails() {
 
             if (result.status === "SUCCESS") {
                 await bookingService.updateBookingStatus(bookingId, "paid");
-                alert("✅ Payment completed successfully.");
+                toast.success("Payment completed", "Your payment was successful.");
                 navigate(`/client/my-bookings/paid/${bookingId}`);
                 return;
             }
 
-            alert(
-                `✅ STK Push sent!\n\n` +
-                `Checkout ID: ${checkoutId}\n` +
-                `Amount: KES ${amount.toLocaleString()}\n\n` +
-                `Please complete the payment by entering your M-Pesa PIN on your phone.`
-            );
+            toast.info("STK Push sent", `Complete the KES ${amount.toLocaleString()} payment by entering your M-Pesa PIN.`);
 
         } catch (err) {
             console.error("❌ Payment error:", err);

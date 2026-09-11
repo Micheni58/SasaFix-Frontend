@@ -4,12 +4,14 @@ import { useState, useEffect } from "react";
 import {
   Mail, Phone, Calendar, Clock3, MapPin,
   MessageSquare, Loader2, XCircle, AlertCircle,
-  RefreshCw, Home, FileText, CheckCircle2,
+  RefreshCw, Home, FileText, CheckCircle2, Flag,
 } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
+import reportService from "../../../api/reportService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
@@ -63,6 +65,21 @@ function formatTimeRange(timeStr) {
   }
   return formatTime(timeStr);
 }
+
+// ─────────────────────────────────────────────
+// REPORT CATEGORIES (Provider reporting client)
+// ─────────────────────────────────────────────
+
+const REPORT_CATEGORIES = [
+  { value: "Client no-show", label: "Client no-show" },
+  { value: "Client refused to pay", label: "Client refused to pay" },
+  { value: "Abusive behaviour", label: "Abusive behaviour" },
+  { value: "Fake or malicious booking", label: "Fake or malicious booking" },
+  { value: "Unprofessional behaviour", label: "Unprofessional behaviour" },
+  { value: "Safety concern", label: "Safety concern" },
+  { value: "Fraud or scam", label: "Fraud or scam" },
+  { value: "Other", label: "Other" },
+];
 
 // ─────────────────────────────────────────────
 // SKELETON LOADING COMPONENT
@@ -180,22 +197,157 @@ function CancelledJobSkeleton() {
 }
 
 // ─────────────────────────────────────────────
+// REPORT MODAL
+// ─────────────────────────────────────────────
+
+function ReportModal({ isOpen, onClose, onSubmit, loading, job }) {
+  const [category, setCategory] = useState("");
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState(null);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!category) {
+      setError("Please select a category");
+      return;
+    }
+
+    if (!description || description.length < 10) {
+      setError("Please provide a detailed description (minimum 10 characters)");
+      return;
+    }
+
+    onSubmit({
+      category,
+      description,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-xl bg-white shadow-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="border-b border-gray-200 px-6 py-4">
+          <h3 className="text-lg font-bold text-gray-800">Report Issue</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Report a problem with this booking or client
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+          {/* Booking info */}
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">Booking:</span> {job?.service || "N/A"}
+            </p>
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">Client:</span> {job?.client?.name || "N/A"}
+            </p>
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200 flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={category}
+              onChange={(e) => {
+                setError(null);
+                setCategory(e.target.value);
+              }}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-blue-100"
+              required
+            >
+              <option value="">Select a category...</option>
+              {REPORT_CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => {
+                setError(null);
+                setDescription(e.target.value);
+              }}
+              rows={4}
+              placeholder="Please describe the issue in detail..."
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-blue-100"
+              required
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Minimum 10 characters
+            </p>
+          </div>
+
+          {/* Info note */}
+          <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">What happens next?</p>
+              <p className="text-xs mt-1">Our admin team will review your report and take appropriate action. You'll be notified of any updates.</p>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+            >
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Submit Report"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 
 function CancelledJobDetails() {
   const { id: bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [job, setJob] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedBookingId, setLoadedBookingId] = useState(null);
   const [error, setError] = useState(null);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState("");
-  const [actionLoading, setActionLoading] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
 
     bookingService.getBooking(bookingId)
       .then((b) => {
@@ -270,10 +422,13 @@ function CancelledJobDetails() {
         if (!mounted) return;
         setError(e.message || 'Failed to load booking');
       })
-      .finally(() => mounted && setLoading(false));
+      .finally(() => mounted && setLoadedBookingId(bookingId));
 
     return () => { mounted = false; };
   }, [bookingId]);
+
+  const loading = loadedBookingId !== bookingId;
+  const visibleError = loadedBookingId === bookingId ? error : null;
 
   // ── Handle View More Jobs ──
   const handleViewMoreJobs = () => {
@@ -285,39 +440,35 @@ function CancelledJobDetails() {
     navigate("/provider");
   };
 
-  // ── Handle Report Issue ──
-  const handleReportIssue = async () => {
-    if (!reportReason.trim()) {
-      alert("Please describe the issue");
-      return;
-    }
-
-    setActionLoading(true);
+  // ── Handle Report Submission ──
+  // The backend derives who is being reported from the booking + authenticated user.
+  // No reported_user_id is sent from the frontend — it's resolved server-side.
+  const handleSubmitReport = async (reportData) => {
+    setReportLoading(true);
     try {
-      await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: 1,
-          type: "report",
-          title: `Cancellation Issue Report: Booking #${bookingId}`,
-          body: `Provider reported: ${reportReason}`,
-          related_booking_id: bookingId
-        })
+      await reportService.createOrUpdateReport({
+        booking_id: job.id,
+        category: reportData.category,
+        description: reportData.description,
       });
-      alert("✅ Issue reported to admin");
-      setShowReportModal(false);
-      setReportReason("");
+
+      setReportOpen(false);
+      toast.success(
+        "Report submitted",
+        "Our team will review it shortly.",
+      );
     } catch (err) {
-      alert("Failed to report issue: " + err.message);
+      console.error("Error submitting report:", err);
+      const errorMsg = err.response?.data?.detail || err.message || "Failed to submit report. Please try again.";
+      toast.error("Report submission failed", errorMsg);
     } finally {
-      setActionLoading(false);
+      setReportLoading(false);
     }
   };
 
   // ── Handle Get Support ──
   const handleGetSupport = () => {
-    alert("📞 Support feature coming soon!");
+    toast.info("Support coming soon", "The support feature is not available yet.");
   };
 
   // ── Loading state with skeleton ──
@@ -325,14 +476,14 @@ function CancelledJobDetails() {
     return <CancelledJobSkeleton />;
   }
 
-  if (error) {
+  if (visibleError) {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
         <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 flex items-center justify-center">
-            <p className="text-red-500">Error: {error}</p>
+            <p className="text-red-500">Error: {visibleError}</p>
           </main>
         </div>
       </div>
@@ -366,7 +517,6 @@ function CancelledJobDetails() {
                 <h1 className="text-3xl font-bold text-gray-800">Cancelled Job</h1>
                 <p className="text-gray-600 mt-2">Request ID #{job.id}</p>
               </div>
-              {/* ── Status color unchanged: red ── */}
               <span className="px-4 py-2 rounded-full text-sm font-semibold bg-red-100 text-red-800">
                 {job.status}
               </span>
@@ -390,7 +540,6 @@ function CancelledJobDetails() {
                         <Calendar className="h-4 w-4" />
                         <span>Date</span>
                       </div>
-                      {/* ── Formatted date ── */}
                       <p className="text-lg text-gray-800 mt-1">{job.date}</p>
                     </div>
                     <div>
@@ -398,7 +547,6 @@ function CancelledJobDetails() {
                         <Clock3 className="h-4 w-4" />
                         <span>Time</span>
                       </div>
-                      {/* ── Formatted time ── */}
                       <p className="text-lg text-gray-800 mt-1">{job.time}</p>
                     </div>
                   </div>
@@ -553,10 +701,10 @@ function CancelledJobDetails() {
 
                 {/* ── Report Issue ── */}
                 <button
-                  onClick={() => setShowReportModal(true)}
-                  className="w-full flex items-center justify-center gap-2 border-2 border-red-200 text-red-600 font-semibold py-2 px-2 rounded-lg hover:bg-red-50 transition-colors"
+                  onClick={() => setReportOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 border-2 border-red-500 text-red-500 font-semibold py-2 px-2 rounded-lg hover:bg-red-50 transition-colors"
                 >
-                  <AlertCircle className="w-5 h-5" />
+                  <Flag className="w-5 h-5" />
                   Report Issue
                 </button>
 
@@ -594,48 +742,14 @@ function CancelledJobDetails() {
               </div>
             </div>
 
-            {/* ── Report Issue Modal ── */}
-            {showReportModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4">
-                <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
-                  <div className="border-b border-gray-200 px-6 py-4">
-                    <h3 className="text-lg font-bold text-gray-800">Report Issue</h3>
-                  </div>
-                  <div className="px-6 py-4">
-                    <p className="text-sm text-gray-600 mb-4">
-                      Please describe the issue you're experiencing with this cancellation:
-                    </p>
-                    <textarea
-                      rows={4}
-                      value={reportReason}
-                      onChange={(e) => setReportReason(e.target.value)}
-                      placeholder="Describe the issue in detail..."
-                      className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3] outline-none"
-                    />
-                  </div>
-                  <div className="border-t border-gray-200 px-6 py-4">
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => {
-                          setShowReportModal(false);
-                          setReportReason("");
-                        }}
-                        className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleReportIssue}
-                        disabled={actionLoading}
-                        className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50"
-                      >
-                        {actionLoading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Submit Report"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* ── Report Modal ── */}
+            <ReportModal
+              isOpen={reportOpen}
+              onClose={() => setReportOpen(false)}
+              onSubmit={handleSubmitReport}
+              loading={reportLoading}
+              job={job}
+            />
           </div>
         </main>
       </div>

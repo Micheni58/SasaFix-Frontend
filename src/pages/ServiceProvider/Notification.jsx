@@ -74,11 +74,11 @@ function IconFor({ type }) {
     }
 }
 
-function EmptyState({ icon: Icon, title, description }) {
+function EmptyState({ icon: _Icon, title, description }) {
     return (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <div className="rounded-full bg-gray-100 p-4 mb-4">
-                <Icon className="h-8 w-8 text-gray-400" />
+                <_Icon className="h-8 w-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-800 mb-1">{title}</h3>
             <p className="text-sm text-gray-500 max-w-sm">{description}</p>
@@ -136,7 +136,7 @@ export default function ProviderNotification() {
         setError(null);
 
         try {
-            const [data, count] = await Promise.all([
+            const [data] = await Promise.all([
                 fetchNotifications(),
                 fetchUnreadNotificationCount(),
             ]);

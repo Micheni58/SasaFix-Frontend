@@ -12,6 +12,7 @@ import ratingService from "../../../api/ratingService";
 import reviewService from "../../../api/reviewService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
@@ -201,12 +202,12 @@ function CompletedJobSkeleton() {
 function CompletedJobDetails() {
   const { id: bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [rating, setRating] = useState(null);
   const [review, setReview] = useState(null);
-  const [loadingReview, setLoadingReview] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -278,8 +279,6 @@ function CompletedJobDetails() {
         setJob(mapped);
 
         // ── Fetch rating for this booking (silently handle 404) ──
-        setLoadingReview(true);
-
         // Fetch rating
         ratingService.getBookingRating(bookingId)
           .then((ratingData) => {
@@ -313,9 +312,6 @@ function CompletedJobDetails() {
             }
             setReview(null);
           })
-          .finally(() => {
-            if (mounted) setLoadingReview(false);
-          });
       })
       .catch((e) => {
         console.error(e);
@@ -329,7 +325,7 @@ function CompletedJobDetails() {
 
   // ── Handle Download Invoice ──
   const handleDownloadInvoice = () => {
-    alert("📄 Invoice download feature coming soon!");
+    toast.info("Invoice download coming soon", "This feature is not available yet.");
   };
 
   // ── Handle View More Jobs ──

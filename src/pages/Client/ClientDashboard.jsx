@@ -123,9 +123,60 @@ function formatDateToWords(dateString) {
 // DYNAMIC ROUTING HELPER
 // ─────────────────────────────────────────────
 
-function getBookingRoute(booking) {
-  const status = booking.status || "Pending";
+function normalizeStatus(statusValue) {
+  const rawStatus = (statusValue || "").toString().trim();
+  if (!rawStatus) return "";
 
+  const normalized = rawStatus.toLowerCase().replace(/\s+/g, "_");
+  const statusMap = {
+    pending: "Pending",
+    accepted: "Accepted",
+    in_progress: "In Progress",
+    completed: "Completed",
+    paid: "Paid",
+    cancelled: "Cancelled",
+    rescheduled: "Rescheduled",
+    reschedule_requested: "Reschedule Requested",
+    reschedule_proposed: "Reschedule Proposed",
+    reschedule_confirmed: "Reschedule Confirmed",
+  };
+
+  return statusMap[normalized] || rawStatus;
+}
+
+function getRescheduleInitiator(booking) {
+  const rawInitiator = (
+    booking?.rescheduleInitiatedBy ||
+    booking?.raw?.reschedule_initiated_by ||
+    booking?.initiated_by ||
+    booking?.raw?.initiated_by ||
+    ""
+  ).toString().trim().toLowerCase();
+
+  return rawInitiator;
+}
+
+function getBookingRoute(booking) {
+  const rawStatusKey = (booking?.raw?.status ?? booking?.status ?? "pending")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+
+  const initiator = getRescheduleInitiator(booking);
+  const isProviderInitiated = ["provider", "service_provider", "service-provider"].includes(initiator);
+  const isClientInitiated = ["client", "customer"].includes(initiator);
+
+  if (["reschedule_requested", "reschedule_proposed", "rescheduled", "reschedule_confirmed"].includes(rawStatusKey)) {
+    if (isClientInitiated) return `/client/my-bookings/reschedule-requested/${booking.id}`;
+    if (isProviderInitiated) return `/client/my-bookings/reschedule-proposed/${booking.id}`;
+    return rawStatusKey === "reschedule_proposed" || rawStatusKey === "rescheduled" || rawStatusKey === "reschedule_confirmed"
+      ? `/client/my-bookings/reschedule-proposed/${booking.id}`
+      : `/client/my-bookings/reschedule-requested/${booking.id}`;
+  }
+
+  const status = booking.status || "Pending";
   const routeMap = {
     "Upcoming": `/client/my-bookings/upcoming/${booking.id}`,
     "Pending": `/client/my-bookings/upcoming/${booking.id}`,
@@ -133,7 +184,6 @@ function getBookingRoute(booking) {
     "New Requests": `/client/my-bookings/upcoming/${booking.id}`,
     "In Progress": `/client/my-bookings/in-progress/${booking.id}`,
     "Completed": `/client/my-bookings/completed/${booking.id}`,
-    "Rescheduled": `/client/my-bookings/rescheduled/${booking.id}`,
     "Paid": `/client/my-bookings/paid/${booking.id}`,
     "Cancelled": `/client/my-bookings/cancelled/${booking.id}`,
   };

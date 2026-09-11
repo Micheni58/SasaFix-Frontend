@@ -3,6 +3,8 @@ import { Clock3, Copy, X } from "lucide-react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 import authService from "../../services/api";
+import bookingService from "../../api/bookingService";
+import { useToast } from "../../components/ui/ToastProvider";
 
 const BRAND = "#056db3";
 const BRAND_DARK = "#045ca0";
@@ -42,41 +44,21 @@ function formatTime(value) {
   return `${String(displayHour).padStart(2, "0")}:${minute} ${suffix}`;
 }
 
-const Toast = ({ msg, ok }) => (
-  <div
-    className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium text-white flex items-center gap-2 ${
-      ok ? "bg-green-500" : "bg-red-500"
-    }`}
-  >
-    {ok ? "✓" : "✕"} {msg}
-  </div>
-);
-
 export default function Availability() {
   const providerId = authService.getStoredUser()?.provider_id;
+  const toast = useToast();
 
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [days, setDays] = useState(DEFAULT_DAYS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
-
-  const showToast = (msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  };
-
   useEffect(() => {
     if (!providerId) {
       setLoading(false);
       return;
     }
-    fetch(`http://localhost:8000/api/providers/${providerId}/availability`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-      },
-    })
-      .then((r) => r.json())
+    bookingService
+      .getProviderAvailability(providerId)
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setDays((current) => {
@@ -96,9 +78,11 @@ export default function Availability() {
         }
       })
       .catch(() => {
-        showToast("Couldn't load availability. Showing defaults.", false);
+        toast.error("Availability load failed", "Showing default working hours.");
       })
       .finally(() => setLoading(false));
+    // The toast API object is recreated by the provider; providerId controls this fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providerId]);
 
   const weeklyTotals = useMemo(() => {
@@ -129,7 +113,7 @@ export default function Availability() {
       });
       return next;
     });
-    showToast(`Applied ${selectedDay}'s hours to every day.`);
+    toast.success("Hours copied", `Applied ${selectedDay}'s hours to every day.`);
   };
 
   const clearAllSlots = () => {
@@ -140,40 +124,26 @@ export default function Availability() {
       });
       return next;
     });
-    showToast("All days marked unavailable.");
+    toast.info("Availability cleared", "All days are marked unavailable.");
   };
 
   const handleSave = async () => {
     if (!providerId) {
-      showToast("No provider account found.", false);
+      toast.error("Provider account not found", "Unable to save availability.");
       return;
     }
     setSaving(true);
     try {
       const payload = WEEK_DAYS.map((day) => ({
-        day,
+        day_of_week: day,
         start_time: days[day].start,
         end_time: days[day].end,
         is_available: days[day].enabled,
       }));
-      const res = await fetch(
-        `http://localhost:8000/api/providers/${providerId}/availability`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify(payload),
-        },
-      );
-      if (!res.ok) {
-        const e = await res.json();
-        throw new Error(e.detail);
-      }
-      showToast("Availability updated.");
+      await bookingService.updateProviderAvailability(providerId, payload);
+      toast.success("Availability updated", "Your working hours have been saved.");
     } catch (e) {
-      showToast(e.message || "Save failed.", false);
+      toast.error("Availability save failed", e.message || "Please try again.");
     } finally {
       setSaving(false);
     }
@@ -185,8 +155,6 @@ export default function Availability() {
       <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
-          {toast && <Toast msg={toast.msg} ok={toast.ok} />}
-
           <section className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">

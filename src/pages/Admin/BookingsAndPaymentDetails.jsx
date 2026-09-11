@@ -33,6 +33,7 @@ import reviewService from "../../api/reviewService";
 import paymentsService from "../../api/paymentsService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
+import { useToast } from "../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // HELPERS
@@ -41,7 +42,6 @@ import Navbar from "../../components/Navbar";
 const statusStyles = {
   "pending": "bg-yellow-100 text-yellow-700",
   "accepted": "bg-blue-100 text-blue-700",
-  "in progress": "bg-amber-100 text-amber-700",
   "in progress": "bg-amber-100 text-amber-700",
   "completed": "bg-green-100 text-green-700",
   "approved": "bg-green-100 text-green-700",
@@ -268,6 +268,7 @@ function EmptyState({ icon: Icon, title, description }) {
 // ─────────────────────────────────────────────
 
 function BookingsAndPaymentsDetails() {
+  const toast = useToast();
   const { bookingId } = useParams();
   const navigate = useNavigate();
 
@@ -463,7 +464,7 @@ function BookingsAndPaymentsDetails() {
   // ── Handle Release Escrow Funds ──
   const handleReleaseFunds = async () => {
     if (!escrowTransaction) {
-      alert("No escrow transaction found for this booking");
+      toast.warning("No escrow transaction", "No escrow transaction was found for this booking.");
       return;
     }
 
@@ -478,13 +479,13 @@ function BookingsAndPaymentsDetails() {
       const adminId = storedUser.id || 9;
 
       await paymentsService.releaseEscrowFunds(escrowTransaction.id, adminId);
-      alert("✅ Funds released successfully to provider wallet!");
+      toast.success("Funds released", "Funds were released to the provider wallet.");
 
       // Refresh data
       await fetchBookingDetails(true);
 
     } catch (err) {
-      alert("Failed to release funds: " + err.message);
+      toast.error("Failed to release funds", err.message);
     } finally {
       setActionLoading(false);
     }
@@ -498,22 +499,22 @@ function BookingsAndPaymentsDetails() {
 
       if (action === "review") {
         setBooking(prev => ({ ...prev, reviewed: true }));
-        alert("✅ Booking marked as reviewed");
+        toast.success("Booking marked as reviewed");
       } else if (action === "flag") {
         setBooking(prev => ({ ...prev, flagged: !prev.flagged }));
-        alert(booking?.flagged ? "✅ Booking unflagged" : "⚠️ Booking flagged for review");
+        toast.info(booking?.flagged ? "Booking unflagged" : "Booking flagged for review");
       } else if (action === "export") {
-        alert("📄 Exporting booking details as PDF...");
+        toast.info("Export started", "Booking details are being exported as a PDF.");
       } else if (action === "save_note") {
         if (data?.note) {
           setBooking(prev => ({ ...prev, adminNote: data.note }));
-          alert("✅ Admin note saved");
+          toast.success("Admin note saved");
           setAdminNote("");
         }
       }
     } catch (err) {
       console.error(`Failed to perform ${action}:`, err);
-      alert(`Failed to ${action}: ${err.message}`);
+      toast.error(`Failed to ${action}`, err.message);
     } finally {
       setActionLoading(false);
     }

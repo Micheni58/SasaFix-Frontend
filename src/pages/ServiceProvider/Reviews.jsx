@@ -5,6 +5,7 @@ import reviewService from "../../api/reviewService";
 import ratingService from "../../api/ratingService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
+import { useToast } from "../../components/ui/ToastProvider";
 
 const reviewFilters = ["Most Recent", "Highest Rated", "Lowest Rated", "Unanswered"];
 
@@ -167,6 +168,7 @@ function SkeletonReviewsList() {
 // ─────────────────────────────────────────────
 
 function Reviews() {
+    const toast = useToast();
     const [activeFilter, setActiveFilter] = useState("Most Recent");
     const [replyingTo, setReplyingTo] = useState(null);
     const [replyText, setReplyText] = useState("");
@@ -264,7 +266,10 @@ function Reviews() {
     }, [reviews]);
 
     const handleReply = async (reviewId) => {
-        if (!replyText.trim()) return;
+        if (!replyText.trim()) {
+            toast.warning("Response is empty", "Write a response before sending it.");
+            return;
+        }
         try {
             const updated = await reviewService.respondToReview(reviewId, replyText.trim());
             setReviews((prev) =>
@@ -276,8 +281,10 @@ function Reviews() {
             );
             setReplyingTo(null);
             setReplyText("");
+            toast.success("Response sent", "Your reply has been added to the review.");
         } catch (err) {
             console.error("Failed to send response:", err);
+            toast.error("Response failed", err.message || "Unable to send your response.");
         }
     };
 
@@ -289,8 +296,10 @@ function Reviews() {
                     r.id === reviewId ? { ...r, thanked: true } : r
                 )
             );
+            toast.success("Client thanked", "Your appreciation has been recorded.");
         } catch (err) {
             console.error("Failed to thank client:", err);
+            toast.error("Could not thank client", err.message || "Please try again.");
         }
     };
 

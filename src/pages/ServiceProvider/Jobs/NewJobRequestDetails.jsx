@@ -1,21 +1,21 @@
-// src/pages/ServiceProvider/Jobs/NewJobRequestDetails.jsx - Payment Breakdown Fixed
+// src/pages/ServiceProvider/Jobs/NewJobRequestDetails.jsx
 
 import { useState, useEffect } from "react";
 import {
   Mail, Phone, Calendar, Clock3, MapPin,
   MessageSquare, Flag, Loader2, CheckCircle2,
-  RotateCcw
+  RotateCcw, AlertCircle, Info
 } from "lucide-react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
 // ─────────────────────────────────────────────
 
-// Adds ordinal suffix: 1 -> 1st, 2 -> 2nd, 3 -> 3rd, 19 -> 19th, etc.
 function ordinalSuffix(day) {
   const d = Number(day);
   if (d % 10 === 1 && d % 100 !== 11) return `${d}st`;
@@ -24,37 +24,29 @@ function ordinalSuffix(day) {
   return `${d}th`;
 }
 
-// Formats a date string (e.g. "2026-08-19") into "19th August 2026"
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const parsed = new Date(dateStr);
   if (isNaN(parsed.getTime())) return dateStr;
-
   const day = ordinalSuffix(parsed.getDate());
   const month = parsed.toLocaleString("en-US", { month: "long" });
   const year = parsed.getFullYear();
-
   return `${day} ${month} ${year}`;
 }
 
-// Formats a 24hr time string (e.g. "09:00" or "09:00:00") into "9:00 AM"
 function formatTime(timeStr) {
   if (!timeStr) return "";
   const parts = timeStr.split(":");
   if (parts.length < 2) return timeStr;
-
   let hours = parseInt(parts[0], 10);
   const minutes = parts[1];
   if (isNaN(hours)) return timeStr;
-
   const period = hours >= 12 ? "PM" : "AM";
   hours = hours % 12;
   if (hours === 0) hours = 12;
-
   return `${hours}:${minutes} ${period}`;
 }
 
-// Formats a time range "start - end" (e.g. "09:00 - 10:00") into "9:00 AM - 10:00 AM"
 function formatTimeRange(timeStr) {
   if (!timeStr) return "";
   if (timeStr.includes(" - ")) {
@@ -186,18 +178,19 @@ function NewJobRequestSkeleton() {
 function NewJobRequestDetails() {
   const { id: bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [modalType, setModalType] = useState(null);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState("");
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState(null);
   const [rescheduleData, setRescheduleData] = useState({
     date: "",
     startTime: "",
-    endTime: ""
+    endTime: "",
+    reason: ""
   });
 
   useEffect(() => {
@@ -232,9 +225,21 @@ function NewJobRequestDetails() {
 
         const clientName = b.client || b.clientName || b.client_full_name || b.raw?.client_full_name || `Client #${b.clientId}`;
 
-        // ── Format date and time ──
-        const formattedDate = formatDate(b.date || b.scheduled_date || '');
+        // ── Get raw date/time for pre-filling ──
+        const rawDate = b.raw?.scheduled_date || b.scheduled_date || b.date || '';
+        const rawStartTime = b.raw?.scheduled_start_time || b.scheduled_start_time || (b.time ? b.time.split(" - ")[0] : '');
+        const rawEndTime = b.raw?.scheduled_end_time || b.scheduled_end_time || (b.time ? b.time.split(" - ")[1] : '');
+
+        // ── Format for input fields ──
+        const dateForInput = rawDate ? new Date(rawDate).toISOString().split('T')[0] : '';
+        const startTimeForInput = rawStartTime ? rawStartTime.slice(0, 5) : '';
+        const endTimeForInput = rawEndTime ? rawEndTime.slice(0, 5) : '';
+
+        const formattedDate = formatDate(rawDate);
         const formattedTime = formatTimeRange(b.time || (b.scheduled_start_time && `${b.scheduled_start_time} - ${b.scheduled_end_time}`) || '');
+
+        // ── Get client booking count ──
+        const clientBookingCount = b.clientBookingCount || b.client?.booking_count || 0;
 
         const mapped = {
           id: b.id || bookingId,
@@ -248,11 +253,11 @@ function NewJobRequestDetails() {
             name: clientName,
             initials: getInitials(clientName),
             type: b.client?.type || 'Customer',
-            bookings: b.client?.booking_count || b.client?.bookings || 0,
+            bookings: clientBookingCount,
             phone: b.raw?.client?.phone || b.client_phone || '',
             email: b.raw?.client?.email || b.client_email || ''
           },
-          // ── FIX: Use the raw values for display ──
+          clientBookingCount: clientBookingCount,
           serviceFeeDisplay: `KES ${serviceFeeRaw.toLocaleString()}`,
           serviceFeeRaw: serviceFeeRaw,
           commissionRate: commissionRate,
@@ -267,10 +272,22 @@ function NewJobRequestDetails() {
             { task: 'Work Completed', completed: false },
             { task: 'Payment Released', completed: false }
           ],
+          // ── Store raw data for reschedule modal ──
+          rawDate: dateForInput,
+          rawStartTime: startTimeForInput,
+          rawEndTime: endTimeForInput,
           raw: b
         };
         console.log("💰 Mapped job with payment breakdown:", mapped);
         setJob(mapped);
+
+        // ── Pre-fill reschedule data ──
+        setRescheduleData({
+          date: dateForInput,
+          startTime: startTimeForInput,
+          endTime: endTimeForInput,
+          reason: ""
+        });
       })
       .catch((e) => {
         console.error(e);
@@ -286,10 +303,10 @@ function NewJobRequestDetails() {
     setActionLoading(true);
     try {
       await bookingService.updateBookingStatus(bookingId, "accepted");
-      alert("✅ Job accepted successfully!");
+      toast.success("Job accepted", "The job has been added to your accepted jobs.");
       navigate("/provider/my-jobs");
     } catch (err) {
-      alert("Failed to accept job: " + err.message);
+      toast.error("Failed to accept job", err.message);
     } finally {
       setActionLoading(false);
       setModalType(null);
@@ -300,63 +317,55 @@ function NewJobRequestDetails() {
     setActionLoading(true);
     try {
       await bookingService.cancelBooking(bookingId);
-      alert("❌ Job declined");
+      toast.info("Job declined", "The job request has been declined.");
       navigate("/provider/my-jobs");
     } catch (err) {
-      alert("Failed to decline job: " + err.message);
+      toast.error("Failed to decline job", err.message);
     } finally {
       setActionLoading(false);
       setModalType(null);
     }
   };
 
-  const handleReschedule = async () => {
+  const validateTimes = (startTime, endTime) => {
+    if (!startTime || !endTime) return null;
+    if (endTime <= startTime) {
+      return "End time must be later than start time";
+    }
+    return null;
+  };
+
+  const handleProposeReschedule = async () => {
+    setRescheduleError(null);
+
+    // Validate all fields are filled
     if (!rescheduleData.date || !rescheduleData.startTime || !rescheduleData.endTime) {
-      alert("Please fill in all reschedule fields");
+      setRescheduleError("Please fill in all reschedule fields");
+      return;
+    }
+
+    // Validate time
+    const timeError = validateTimes(rescheduleData.startTime, rescheduleData.endTime);
+    if (timeError) {
+      setRescheduleError(timeError);
       return;
     }
 
     setActionLoading(true);
     try {
-      await bookingService.rescheduleBooking(bookingId, {
+      // ✅ Use proposeReschedule - sets status to RESCHEDULE_PROPOSED
+      await bookingService.proposeReschedule(bookingId, {
         scheduled_date: rescheduleData.date,
         scheduled_start_time: rescheduleData.startTime,
-        scheduled_end_time: rescheduleData.endTime
+        scheduled_end_time: rescheduleData.endTime,
+        reason: rescheduleData.reason || "Provider proposed new time"
       });
-      alert("✅ Reschedule request sent to client");
+      toast.success("Reschedule proposal sent", "The client will review the proposed time.");
       setShowRescheduleModal(false);
       navigate("/provider/my-jobs");
     } catch (err) {
-      alert("Failed to reschedule: " + err.message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleReportIssue = async () => {
-    if (!reportReason.trim()) {
-      alert("Please describe the issue");
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: 1,
-          type: "report",
-          title: `Issue Report: Booking #${bookingId}`,
-          body: `Provider reported: ${reportReason}`,
-          related_booking_id: bookingId
-        })
-      });
-      alert("✅ Issue reported to admin");
-      setShowReportModal(false);
-      setReportReason("");
-    } catch (err) {
-      alert("Failed to report issue: " + err.message);
+      const errorMsg = err.response?.data?.detail || err.message || "Failed to propose reschedule";
+      setRescheduleError(errorMsg);
     } finally {
       setActionLoading(false);
     }
@@ -410,7 +419,6 @@ function NewJobRequestDetails() {
                 <h1 className="text-3xl font-bold text-gray-800">New Job Request</h1>
                 <p className="text-gray-600 mt-2">Request ID #{job.id}</p>
               </div>
-              {/* ── Status color unchanged: amber ── */}
               <span className="px-4 py-2 rounded-full text-sm font-semibold bg-amber-100 text-amber-800">
                 {job.status}
               </span>
@@ -434,7 +442,6 @@ function NewJobRequestDetails() {
                         <Calendar className="h-4 w-4" />
                         <span>Date</span>
                       </div>
-                      {/* ── Formatted date ── */}
                       <p className="text-lg text-gray-800 mt-1">{job.date}</p>
                     </div>
                     <div>
@@ -442,7 +449,6 @@ function NewJobRequestDetails() {
                         <Clock3 className="h-4 w-4" />
                         <span>Time</span>
                       </div>
-                      {/* ── Formatted time ── */}
                       <p className="text-lg text-gray-800 mt-1">{job.time}</p>
                     </div>
                   </div>
@@ -460,7 +466,7 @@ function NewJobRequestDetails() {
                 </div>
               </section>
 
-              {/* Client Information */}
+              {/* ── Updated Client Information with Booking Count ── */}
               <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Client Information</h2>
                 <div className="flex items-center gap-4 mb-6">
@@ -470,7 +476,10 @@ function NewJobRequestDetails() {
                   <div>
                     <p className="text-lg font-semibold text-gray-800">{job.client.name}</p>
                     <p className="text-sm text-gray-600">{job.client.type}</p>
-                    <p className="text-sm text-gray-600">{job.client.bookings} previous bookings</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-sm font-medium text-[#056db3]">{job.client.bookings || job.clientBookingCount || 0}</span>
+                      <span className="text-sm text-gray-500">previous bookings</span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-3 mb-6">
@@ -511,7 +520,7 @@ function NewJobRequestDetails() {
                 </div>
               </section>
 
-              {/* ── Payment Breakdown (FIXED) ── */}
+              {/* Payment Breakdown */}
               <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Payment Breakdown</h2>
                 <div className="space-y-4">
@@ -559,7 +568,7 @@ function NewJobRequestDetails() {
                   Decline Request
                 </button>
 
-                <Link to={`/client/messages?client=${bookingId}`}>
+                <Link to={`/provider/messages?client=${bookingId}`}>
                   <button className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] font-semibold py-2 px-2 rounded-lg hover:bg-blue-50 transition-colors">
                     <MessageSquare className="w-5 h-5" />
                     Message Client
@@ -568,18 +577,10 @@ function NewJobRequestDetails() {
 
                 <button
                   onClick={() => setShowRescheduleModal(true)}
-                  className="w-full flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 font-semibold py-2 px-2 rounded-lg hover:bg-gray-50 transition-colors mt-4"
+                  className="w-full flex items-center justify-center gap-2 border-2 border-purple-600 text-purple-600 font-semibold py-2 px-2 rounded-lg hover:bg-purple-50 transition-colors mt-4"
                 >
                   <RotateCcw className="w-5 h-5" />
-                  Request Reschedule
-                </button>
-
-                <button
-                  onClick={() => setShowReportModal(true)}
-                  className="w-full flex items-center justify-center gap-2 border-2 border-red-200 text-red-600 font-semibold py-2 px-2 rounded-lg hover:bg-red-50 transition-colors"
-                >
-                  <Flag className="w-5 h-5" />
-                  Report Issue
+                  Propose New Time
                 </button>
 
                 {/* Important Notes */}
@@ -646,7 +647,7 @@ function NewJobRequestDetails() {
                       disabled={actionLoading}
                       className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors ${
                         modalType === "accept"
-                          ? "bg-green-600 hover:bg-green-700"
+                          ? "bg-[#056db3] hover:bg-blue-700"
                           : "bg-red-600 hover:bg-red-700"
                       } disabled:opacity-50`}
                     >
@@ -658,87 +659,116 @@ function NewJobRequestDetails() {
             </div>
           )}
 
-          {/* ── Report Issue Modal ── */}
-          {showReportModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4">
-              <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
-                <div className="border-b border-gray-200 px-6 py-4">
-                  <h3 className="text-lg font-bold text-gray-800">Report Issue</h3>
-                </div>
-                <div className="px-6 py-4">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Please describe the issue you're experiencing with this booking:
-                  </p>
-                  <textarea
-                    rows={4}
-                    value={reportReason}
-                    onChange={(e) => setReportReason(e.target.value)}
-                    placeholder="Describe the issue in detail..."
-                    className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3] outline-none"
-                  />
-                </div>
-                <div className="border-t border-gray-200 px-6 py-4">
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => {
-                        setShowReportModal(false);
-                        setReportReason("");
-                      }}
-                      className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleReportIssue}
-                      disabled={actionLoading}
-                      className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50"
-                    >
-                      {actionLoading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Submit Report"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── Reschedule Modal ── */}
+          {/* ── Reschedule Modal with Pre-filled Data ── */}
           {showRescheduleModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4">
-              <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
+              <div className="w-full max-w-md rounded-xl bg-white shadow-lg max-h-[90vh] overflow-y-auto">
                 <div className="border-b border-gray-200 px-6 py-4">
-                  <h3 className="text-lg font-bold text-gray-800">Request Reschedule</h3>
+                  <h3 className="text-lg font-bold text-gray-800">Propose New Time</h3>
+                  <p className="text-sm text-gray-500 mt-1">{job.service} with {job.client.name}</p>
                 </div>
                 <div className="px-6 py-4">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Propose a new date and time for this booking:
-                  </p>
-                  <div className="space-y-3">
+                  {/* Current schedule info */}
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-700">
+                      <span className="font-medium">Current:</span> {job.date} at {job.time}
+                    </p>
+                  </div>
+
+                  {/* Error message */}
+                  {rescheduleError && (
+                    <div className="mb-4 p-3 bg-red-50 rounded-lg border border-red-200 flex items-start gap-2">
+                      <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-sm text-red-600">{rescheduleError}</p>
+                    </div>
+                  )}
+
+                  {/* Form fields */}
+                  <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">New Date</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        New Date <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="date"
                         value={rescheduleData.date}
-                        onChange={(e) => setRescheduleData({...rescheduleData, date: e.target.value})}
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3] outline-none"
+                        onChange={(e) => {
+                          setRescheduleError(null);
+                          setRescheduleData({...rescheduleData, date: e.target.value});
+                        }}
+                        className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-[#056db3] focus:ring-2 focus:ring-blue-100 outline-none transition-colors"
+                        min={new Date().toISOString().split('T')[0]}
                       />
+                      <p className="text-xs text-gray-400 mt-1">
+                        Current: <span className="font-medium">{job.rawDate ? formatDate(job.rawDate) : 'Not set'}</span>
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Start Time <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="time"
+                          value={rescheduleData.startTime}
+                          onChange={(e) => {
+                            setRescheduleError(null);
+                            setRescheduleData({...rescheduleData, startTime: e.target.value});
+                          }}
+                          className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-[#056db3] focus:ring-2 focus:ring-blue-100 outline-none transition-colors"
+                          step="300"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">24-hour format (e.g., 14:00)</p>
+                        <p className="text-xs text-gray-400">
+                          Current: <span className="font-medium">{job.rawStartTime || 'Not set'}</span>
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          End Time <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="time"
+                          value={rescheduleData.endTime}
+                          onChange={(e) => {
+                            setRescheduleError(null);
+                            setRescheduleData({...rescheduleData, endTime: e.target.value});
+                          }}
+                          className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-[#056db3] focus:ring-2 focus:ring-blue-100 outline-none transition-colors"
+                          step="300"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Must be after start time</p>
+                        <p className="text-xs text-gray-400">
+                          Current: <span className="font-medium">{job.rawEndTime || 'Not set'}</span>
+                        </p>
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                      <input
-                        type="time"
-                        value={rescheduleData.startTime}
-                        onChange={(e) => setRescheduleData({...rescheduleData, startTime: e.target.value})}
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3] outline-none"
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Reason (Optional)
+                      </label>
+                      <textarea
+                        value={rescheduleData.reason}
+                        onChange={(e) => {
+                          setRescheduleError(null);
+                          setRescheduleData({...rescheduleData, reason: e.target.value});
+                        }}
+                        placeholder="Briefly explain why you need to reschedule..."
+                        className="w-full rounded-lg border border-gray-300 p-2.5 text-sm focus:border-[#056db3] focus:ring-2 focus:ring-blue-100 outline-none transition-colors"
+                        rows="2"
                       />
                     </div>
+                  </div>
+
+                  {/* Info note about reschedule process */}
+                  <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200 flex items-start gap-2">
+                    <Info className="h-5 w-5 text-purple-500 shrink-0 mt-0.5" />
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                      <input
-                        type="time"
-                        value={rescheduleData.endTime}
-                        onChange={(e) => setRescheduleData({...rescheduleData, endTime: e.target.value})}
-                        className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-[#056db3] focus:ring-1 focus:ring-[#056db3] outline-none"
-                      />
+                      <p className="text-sm font-medium text-purple-700">What happens next?</p>
+                      <p className="text-xs text-purple-600 mt-1">
+                        The client will be notified and must <strong>approve</strong> the new time. 
+                        The booking will remain at the current time until the client approves.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -747,18 +777,31 @@ function NewJobRequestDetails() {
                     <button
                       onClick={() => {
                         setShowRescheduleModal(false);
-                        setRescheduleData({ date: "", startTime: "", endTime: "" });
+                        setRescheduleError(null);
+                        setRescheduleData({
+                          date: job.rawDate || "",
+                          startTime: job.rawStartTime || "",
+                          endTime: job.rawEndTime || "",
+                          reason: ""
+                        });
                       }}
-                      className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                      className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
-                      onClick={handleReschedule}
+                      onClick={handleProposeReschedule}
                       disabled={actionLoading}
-                      className="flex-1 rounded-lg bg-[#056db3] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900 transition-colors disabled:opacity-50"
+                      className="flex-1 rounded-lg bg-[#056db3] px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                     >
-                      {actionLoading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Send Request"}
+                      {actionLoading ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Send Proposal"
+                      )}
                     </button>
                   </div>
                 </div>

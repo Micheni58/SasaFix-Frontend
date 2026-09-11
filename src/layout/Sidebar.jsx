@@ -17,11 +17,21 @@ import {
   Star,
 } from "lucide-react";
 
-import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useState, useRef, useLayoutEffect } from "react";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 
 function Sidebar({ role = "client" }) {
   const [isOpen, setIsOpen] = useState(false);
+  const navRef = useRef(null);
+  const scrollPositionRef = useRef(0);
+  const location = useLocation();
+
+  useLayoutEffect(() => {
+    const navElement = navRef.current;
+    if (navElement) {
+      navElement.scrollTop = scrollPositionRef.current;
+    }
+  }, [location]);
 
   const clientLinks = [
     {
@@ -201,6 +211,10 @@ function Sidebar({ role = "client" }) {
 
         {/* Navigation */}
         <nav
+          ref={navRef}
+          onScroll={(e) => {
+            scrollPositionRef.current = e.currentTarget.scrollTop;
+          }}
           className="
             flex-1
             overflow-y-auto
@@ -213,6 +227,7 @@ function Sidebar({ role = "client" }) {
             <NavLink
               key={link.path}
               to={link.path}
+              end
               className={({ isActive }) =>
                 `
                 flex

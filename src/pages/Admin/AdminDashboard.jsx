@@ -32,6 +32,7 @@ import {
 } from "recharts";
 import bookingService from "../../api/bookingService";
 import transactionService from "../../api/transactionService";
+import apiClient from "../../api/apiClient";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 
@@ -185,7 +186,7 @@ function SkeletonTable() {
 // STAT CARD COMPONENT
 // ─────────────────────────────────────────────
 
-function StatCard({ title, value, icon: Icon, iconBg, trend, isLoading, onClick }) {
+function StatCard({ title, value, icon: Icon, iconBg, isLoading, onClick }) {
   return (
     <div
       onClick={onClick}
@@ -193,11 +194,6 @@ function StatCard({ title, value, icon: Icon, iconBg, trend, isLoading, onClick 
         onClick ? "cursor-pointer hover:border-[#056db3]" : ""
       }`}
     >
-      {trend && !isLoading && (
-        <div className="absolute top-4 right-4">
-          <span className="text-sm text-green-600 font-medium">{trend}</span>
-        </div>
-      )}
       <div className="flex flex-col items-start">
         <div className={`p-3 ${iconBg} rounded-full mb-3`}>
           <Icon className="w-6 h-6" />
@@ -311,12 +307,10 @@ function AdminDashboard() {
       // ── Fetch Users ──
       let totalUsers = 0;
       try {
-        const resp = await fetch("/api/users");
-        if (resp.ok) {
-          const data = await resp.json();
-          const users = Array.isArray(data) ? data : data.users || [];
-          totalUsers = users.length;
-        }
+        const resp = await apiClient.get("/users/");
+        const data = resp.data;
+        const users = Array.isArray(data) ? data : data.users || [];
+        totalUsers = users.length;
       } catch (e) {
         console.info("Users endpoint not yet available");
       }
@@ -324,12 +318,10 @@ function AdminDashboard() {
       // ── Fetch Providers ──
       let totalProviders = 0;
       try {
-        const resp = await fetch("/api/service-providers");
-        if (resp.ok) {
-          const data = await resp.json();
-          const providers = Array.isArray(data) ? data : data.service_providers || [];
-          totalProviders = providers.length;
-        }
+        const resp = await apiClient.get("/admin/service-providers");
+        const data = resp.data;
+        const providers = Array.isArray(data) ? data : data.service_providers || [];
+        totalProviders = providers.length;
       } catch (e) {
         console.info("Service providers endpoint not yet available");
       }
@@ -598,7 +590,6 @@ function AdminDashboard() {
               value={stats.totalUsers.toLocaleString()}
               icon={Users}
               iconBg="bg-blue-100 text-blue-600"
-              trend="+12.5%"
               isLoading={loading}
               onClick={() => navigateTo("/admin/users")}
             />
@@ -607,7 +598,6 @@ function AdminDashboard() {
               value={stats.totalProviders.toLocaleString()}
               icon={Briefcase}
               iconBg="bg-purple-100 text-purple-600"
-              trend="+8.2%"
               isLoading={loading}
               onClick={() => navigateTo("/admin/service-providers")}
             />
@@ -616,7 +606,6 @@ function AdminDashboard() {
               value={stats.activeBookings.toLocaleString()}
               icon={Calendar}
               iconBg="bg-orange-100 text-orange-600"
-              trend="+15.3%"
               isLoading={loading}
               onClick={() => navigateTo("/admin/bookings-payments")}
             />
@@ -625,7 +614,6 @@ function AdminDashboard() {
               value={formatCurrency(stats.platformCommission)}
               icon={DollarSign}
               iconBg="bg-green-100 text-green-600"
-              trend={stats.platformCommission > 0 ? "+18.7%" : "0%"}
               isLoading={loading}
               onClick={() => navigateTo("/admin/bookings-payments")}
             />

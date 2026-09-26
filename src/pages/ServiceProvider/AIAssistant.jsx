@@ -87,7 +87,7 @@ function FeatureCard({ icon: _Icon, title, description, color, onClick, badge })
   );
 }
 
-function OnboardingCard({ step, title, description, isCompleted, onStart }) {
+function OnboardingCard({ step, title, description, isCompleted, onStart ,icon:Icon }) {
   return (
     <div className={`flex items-start gap-4 p-4 rounded-xl border ${
       isCompleted

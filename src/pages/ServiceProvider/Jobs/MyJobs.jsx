@@ -1,3 +1,5 @@
+// src/pages/ServiceProvider/MyJobs.jsx
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -11,19 +13,27 @@ import {
     XCircle,
     EllipsisVertical,
     Clock,
+    MessageCircle,
 } from "lucide-react";
 import bookingService from "../../../api/bookingService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
-const tabs = ["New Requests", "Accepted", "In Progress", "Completed", "Rescheduled", "Cancelled"];
+// ── Tabs - Clean structure ──
+const tabs = ["New Requests", "Accepted", "In Progress", "Completed", "Rescheduled", "Paid", "Cancelled"];
 
+// ── Status Colors ──
 const statusStyles = {
     "New Requests": "bg-amber-100 text-amber-800",
+    "Pending": "bg-amber-100 text-amber-800",
     "Accepted": "bg-sky-100 text-sky-800",
     "In Progress": "bg-indigo-100 text-indigo-800",
     "Completed": "bg-green-100 text-green-800",
     "Rescheduled": "bg-purple-100 text-purple-800",
+    "Reschedule Requested": "bg-purple-100 text-purple-800",
+    "Reschedule Proposed": "bg-purple-100 text-purple-800",
+    "Reschedule Confirmed": "bg-purple-100 text-purple-800",
     "Paid": "bg-emerald-100 text-emerald-800",
     "Cancelled": "bg-red-100 text-red-800",
 };
@@ -57,10 +67,17 @@ const emptyStateConfigs = {
         color: "bg-green-50",
         iconColor: "text-green-500",
     },
+    "Paid": {
+        icon: CheckCircle,
+        title: "No Paid Jobs",
+        description: "Paid jobs will appear here after a client's payment has been processed.",
+        color: "bg-emerald-50",
+        iconColor: "text-emerald-500",
+    },
     "Rescheduled": {
         icon: Clock,
-        title: "No Rescheduled Jobs",
-        description: "You don't have any rescheduled jobs. When a client reschedules a booking, it will appear here.",
+        title: "No Pending Reschedules",
+        description: "You don't have any pending reschedule requests. Reschedules that need your action or are waiting for client approval will appear here.",
         color: "bg-purple-50",
         iconColor: "text-purple-500",
     },
@@ -82,26 +99,128 @@ function formatJobDate(dateStr) {
     }).format(new Date(dateStr));
 }
 
+// ── FIXED: Routing logic for reschedules ──
 function getJobDetailsPath(job) {
-    const status = (job.status || "").toString().toLowerCase();
+    const status = job.status || "Pending";
+    const rawStatus = (job.raw?.status ?? job.status ?? "pending")
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "_")
+        .replace(/-/g, "_");
 
-    if (status.includes("rescheduled")) {
-        return `/provider/my-jobs/rescheduled/${job.id}`;
+    const initiator = (job.rescheduleInitiatedBy || job.raw?.reschedule_initiated_by || "")
+        .toString()
+        .trim()
+        .toLowerCase();
+
+    const isProviderInitiated = ["provider", "service_provider", "service-provider"].includes(initiator);
+    const isClientInitiated = ["client", "customer"].includes(initiator);
+
+    // Check if this booking has reschedule history
+    // ── IF STATUS IS ACCEPTED, IN_PROGRESS, COMPLETED, or PAID → GO TO REGULAR DETAILS PAGE ──
+    const regularStatuses = ["Accepted", "accepted", "In Progress", "in_progress", "Completed", "completed", "Paid", "paid"];
+    if (regularStatuses.includes(status)) {
+        if (status === "Accepted" || status === "accepted") {
+            return `/provider/my-jobs/accepted/${job.id}`;
+        }
+        if (status === "In Progress" || status === "in_progress") {
+            return `/provider/my-jobs/in-progress/${job.id}`;
+        }
+        if (status === "Completed" || status === "completed") {
+            return `/provider/my-jobs/completed/${job.id}`;
+        }
+        if (status === "Paid" || status === "paid") {
+            return `/provider/my-jobs/paid/${job.id}`;
+        }
     }
-    if (status.includes("accepted")) {
-        return `/provider/my-jobs/accepted/${job.id}`;
+
+    // ── NEW REQUESTS / PENDING ──
+    if (status === "New Requests" || status === "Pending" || status === "pending") {
+        return `/provider/my-jobs/new/${job.id}`;
     }
-    if (status.includes("progress")) {
-        return `/provider/my-jobs/in-progress/${job.id}`;
+
+    // ── PROVIDER INITIATED RESCHEDULE (PENDING) ──
+    if (isProviderInitiated && rawStatus === "reschedule_proposed") {
+        return `/provider/my-jobs/reschedule-proposed/${job.id}`;
     }
-    if (status.includes("completed")) {
-        return `/provider/my-jobs/completed/${job.id}`;
+
+    // ── CLIENT INITIATED RESCHEDULE (PENDING) ──
+    if (isClientInitiated && rawStatus === "reschedule_requested") {
+        return `/provider/my-jobs/reschedule-requested/${job.id}`;
     }
-    if (status.includes("cancelled")) {
-        return `/provider/my-jobs/cancelled/${job.id}`;
+
+    // ── PENDING RESCHEDULE STATES (fallback) ──
+    if (rawStatus === "reschedule_proposed") {
+        return `/provider/my-jobs/reschedule-proposed/${job.id}`;
+    }
+    if (rawStatus === "reschedule_requested") {
+        return `/provider/my-jobs/reschedule-requested/${job.id}`;
+    }
+
+    // ── RESCHEDULED / CONFIRMED (without clear initiator) ──
+    if (rawStatus === "rescheduled" || rawStatus === "reschedule_confirmed") {
+        // If status is Accepted, go to accepted page
+        if (status === "Accepted" || status === "accepted") {
+            return `/provider/my-jobs/accepted/${job.id}`;
+        }
+        return `/provider/my-jobs/reschedule-proposed/${job.id}`;
+    }
+
+    // ── REGULAR STATUS ROUTES ──
+    const routeMap = {
+        "New Requests": `/provider/my-jobs/new/${job.id}`,
+        "Pending": `/provider/my-jobs/new/${job.id}`,
+        "Accepted": `/provider/my-jobs/accepted/${job.id}`,
+        "Upcoming": `/provider/my-jobs/accepted/${job.id}`,
+        "In Progress": `/provider/my-jobs/in-progress/${job.id}`,
+        "Completed": `/provider/my-jobs/completed/${job.id}`,
+        "Paid": `/provider/my-jobs/paid/${job.id}`,
+        "Cancelled": `/provider/my-jobs/cancelled/${job.id}`,
+    };
+
+    return routeMap[status] || `/provider/my-jobs/${job.id}`;
+}
+
+// ── FIXED: Check if a booking is currently in a PENDING reschedule state ──
+function isRescheduleRelated(job) {
+    const status = job.status || "Pending";
+    const rawStatus = (job.raw?.status ?? job.status ?? "pending")
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "_")
+        .replace(/-/g, "_");
+    
+    // Terminal statuses - these should NOT show in Rescheduled tab
+    const terminalStatuses = ["in_progress", "completed", "paid", "accepted"];
+    
+    // PENDING reschedule statuses - these SHOULD show in Rescheduled tab
+    const pendingRescheduleStatuses = [
+        "reschedule_requested",
+        "reschedule_proposed",
+    ];
+    
+    // Only show if status is a pending reschedule status
+    if (pendingRescheduleStatuses.includes(rawStatus)) return true;
+    
+    // For "rescheduled" status, only show if not in a terminal state
+    if (rawStatus === "rescheduled" || rawStatus === "reschedule_confirmed") {
+        if (terminalStatuses.includes(status.toLowerCase())) {
+            return false;
+        }
+        return true;
     }
     
-    return `/provider/my-jobs/new/${job.id}`;
+    // Check if it has reschedule history AND is not in a terminal state
+    if (job.raw?.original_scheduled_date || job.originalDate) {
+        if (terminalStatuses.includes(status.toLowerCase())) {
+            return false;
+        }
+        return true;
+    }
+    
+    return false;
 }
 
 function getClientName(job) {
@@ -151,11 +270,39 @@ function getInitials(name) {
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-function EmptyState({ icon: Icon, title, description, color, iconColor }) {
+// ── Updated getStatusSubtext ──
+function getStatusSubtext(job) {
+    const status = job.status || "Pending";
+    const rawStatus = job.raw?.status || status;
+    const initiator = (job.rescheduleInitiatedBy || job.raw?.reschedule_initiated_by || "")
+        .toString()
+        .trim()
+        .toLowerCase();
+    const hasRescheduleHistory = !!(job.raw?.original_scheduled_date || job.originalDate);
+
+    if (rawStatus === "reschedule_requested") {
+        return "Waiting for your approval";
+    }
+    if (rawStatus === "reschedule_proposed") {
+        return "Waiting for client approval";
+    }
+    if (hasRescheduleHistory && status === "Accepted") {
+        if (initiator === "provider") {
+            return " Reschedule accepted - you proposed it";
+        }
+        if (initiator === "client") {
+            return " Reschedule accepted - client requested it";
+        }
+        return "Reschedule accepted";
+    }
+    return null;
+}
+
+function EmptyState({ icon: _Icon, title, description, color, iconColor }) {
     return (
         <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
             <div className={`rounded-full ${color} p-6 mb-6`}>
-                <Icon className={`h-16 w-16 ${iconColor}`} />
+                <_Icon className={`h-16 w-16 ${iconColor}`} />
             </div>
             <h3 className="text-2xl font-bold text-gray-800 mb-3">{title}</h3>
             <p className="text-gray-500 max-w-md">{description}</p>
@@ -182,7 +329,7 @@ function JobsSkeleton() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="provider" />
-            <div className="flex-1 ml-72">
+            <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
                 <main className="pt-24 px-6 pb-6">
                     <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
@@ -211,6 +358,7 @@ function JobsSkeleton() {
 }
 
 function RescheduleModal({ job, onConfirm, onCancel }) {
+    const toast = useToast();
     const [date, setDate] = useState(job.date || "");
     const [startTime, setStartTime] = useState(
         job.time ? job.time.split(" - ")[0] || "" : ""
@@ -218,30 +366,31 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
     const [endTime, setEndTime] = useState(
         job.time ? job.time.split(" - ")[1] || "" : ""
     );
+    const [reason, setReason] = useState("");
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!date || !startTime || !endTime) {
-            alert("Please fill in all fields");
+            toast.warning("Missing reschedule details", "Please fill in all fields.");
             return;
         }
-        onConfirm(date, startTime, endTime);
+        onConfirm(date, startTime, endTime, reason);
     };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
             <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
                 <div className="border-b border-gray-200 px-6 py-4">
-                    <h2 className="text-lg font-bold text-gray-800">Reschedule Booking</h2>
+                    <h2 className="text-lg font-bold text-gray-800">Propose New Time</h2>
                     <p className="text-sm text-gray-500 mt-1">
                         {job.service} with {getClientName(job)}
                     </p>
                 </div>
-                
+
                 <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
                     <div>
                         <label htmlFor="reschedule-date" className="block text-sm font-medium text-gray-700 mb-1">
-                            New Date
+                            New Date *
                         </label>
                         <input
                             id="reschedule-date"
@@ -253,11 +402,11 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
                             required
                         />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label htmlFor="reschedule-start-time" className="block text-sm font-medium text-gray-700 mb-1">
-                                Start Time
+                                Start Time *
                             </label>
                             <input
                                 id="reschedule-start-time"
@@ -271,7 +420,7 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
                         </div>
                         <div>
                             <label htmlFor="reschedule-end-time" className="block text-sm font-medium text-gray-700 mb-1">
-                                End Time
+                                End Time *
                             </label>
                             <input
                                 id="reschedule-end-time"
@@ -285,15 +434,26 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
                         </div>
                     </div>
 
-                    <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-                        <p className="font-medium">⚠️ Rescheduling this booking will:</p>
-                        <ul className="mt-1 list-disc list-inside text-xs">
-                            <li>Move it to the "Rescheduled" tab</li>
-                            <li>Notify the client of the new date/time</li>
-                            <li>Require re-confirmation from the client</li>
-                        </ul>
+                    <div>
+                        <label htmlFor="reschedule-reason" className="block text-sm font-medium text-gray-700 mb-1">
+                            Reason (Optional)
+                        </label>
+                        <textarea
+                            id="reschedule-reason"
+                            name="reschedule-reason"
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            placeholder="Briefly explain why you need to reschedule..."
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-blue-100"
+                            rows="2"
+                        />
                     </div>
-                    
+
+                    <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                        <p className="font-medium"> This will send a reschedule proposal to the client.</p>
+                        <p className="text-xs mt-1">The client will need to confirm the new time.</p>
+                    </div>
+
                     <div className="flex gap-3 mt-4">
                         <button
                             type="button"
@@ -306,7 +466,7 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
                             type="submit"
                             className="flex-1 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 transition-colors"
                         >
-                            Confirm Reschedule
+                            Send Proposal
                         </button>
                     </div>
                 </form>
@@ -316,6 +476,7 @@ function RescheduleModal({ job, onConfirm, onCancel }) {
 }
 
 function MyJobs() {
+    const toast = useToast();
     const [activeTab, setActiveTab] = useState("New Requests");
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -356,48 +517,91 @@ function MyJobs() {
         fetchJobs();
     }, []);
 
-    const filteredJobs = jobs.filter((job) => job.status === activeTab);
+    // ── FIXED: Filter jobs based on active tab ──
+    const filteredJobs = jobs.filter((job) => {
+        const status = job.status || "Pending";
+        
+        // For "New Requests" tab, show Pending and New Requests
+        if (activeTab === "New Requests") {
+            return status === "Pending" || status === "New Requests";
+        }
+        
+        // For "Rescheduled" tab, show pending reschedules
+        if (activeTab === "Rescheduled") {
+            return isRescheduleRelated(job);
+        }
+        
+        return status === activeTab;
+    });
 
+    // ── FIXED: Tab counts ──
     const tabCounts = tabs.reduce((acc, tab) => {
-        acc[tab] = jobs.filter((job) => job.status === tab).length;
+        if (tab === "New Requests") {
+            acc[tab] = jobs.filter((job) => {
+                const status = job.status || "Pending";
+                return status === "Pending" || status === "New Requests";
+            }).length;
+        } else if (tab === "Rescheduled") {
+            acc[tab] = jobs.filter((job) => {
+                const status = job.status || "Pending";
+                const rawStatus = (job.raw?.status ?? job.status ?? "pending")
+                    .toString()
+                    .trim()
+                    .toLowerCase()
+                    .replace(/\s+/g, "_")
+                    .replace(/-/g, "_");
+                
+                // Terminal statuses - these should NOT show in Rescheduled tab
+                const terminalStatuses = ["in_progress", "completed", "paid", "accepted"];
+                
+                // PENDING reschedule statuses
+                const pendingRescheduleStatuses = [
+                    "reschedule_requested",
+                    "reschedule_proposed",
+                ];
+                
+                if (pendingRescheduleStatuses.includes(rawStatus)) return true;
+                
+                if (rawStatus === "rescheduled" || rawStatus === "reschedule_confirmed") {
+                    if (terminalStatuses.includes(status.toLowerCase())) {
+                        return false;
+                    }
+                    return true;
+                }
+                
+                if (job.raw?.original_scheduled_date || job.originalDate) {
+                    if (terminalStatuses.includes(status.toLowerCase())) {
+                        return false;
+                    }
+                    return true;
+                }
+                
+                return false;
+            }).length;
+        } else {
+            acc[tab] = jobs.filter((job) => job.status === tab).length;
+        }
         return acc;
     }, {});
 
-    const handleAccept = (job) => {
-        setSelectedJob(job);
-        setModalType("accept");
-        setError(null);
-    };
-
-    const handleDecline = (job) => {
-        setSelectedJob(job);
-        setModalType("decline");
-        setError(null);
-    };
-
-    const handleReschedule = (job) => {
-        setSelectedJob(job);
-        setModalType("reschedule");
-        setError(null);
-    };
-
-    const handleRescheduleConfirm = async (newDate, newStartTime, newEndTime) => {
+    const handleRescheduleConfirm = async (newDate, newStartTime, newEndTime, reason) => {
         if (!selectedJob) return;
         setError(null);
         try {
-            await bookingService.rescheduleBooking(selectedJob.id, {
+            await bookingService.proposeReschedule(selectedJob.id, {
                 scheduled_date: newDate,
                 scheduled_start_time: newStartTime,
                 scheduled_end_time: newEndTime,
+                reason: reason || "Provider proposed new time"
             });
             await fetchJobs(true);
             setModalType(null);
             setSelectedJob(null);
         } catch (err) {
-            console.error("❌ Reschedule failed:", err);
+            console.error(" Reschedule failed:", err);
             const errorMessage = err.response?.data?.detail || err.message || "Failed to reschedule. Please try again.";
             setError(errorMessage);
-            alert(errorMessage);
+            toast.error("Failed to reschedule", errorMessage);
         }
     };
 
@@ -406,7 +610,6 @@ function MyJobs() {
         setError(null);
         try {
             if (modalType === "accept") {
-                // Send "accepted" (lowercase) - matches backend enum value
                 await bookingService.updateBookingStatus(selectedJob.id, "accepted");
                 await fetchJobs(true);
             } else if (modalType === "decline") {
@@ -414,10 +617,10 @@ function MyJobs() {
                 await fetchJobs(true);
             }
         } catch (err) {
-            console.error("❌ Action failed:", err);
+            console.error(" Action failed:", err);
             const errorMessage = err.response?.data?.detail || err.message || "Action failed. Please try again.";
             setError(errorMessage);
-            alert(errorMessage);
+            toast.error("Action failed", errorMessage);
         } finally {
             setModalType(null);
             setSelectedJob(null);
@@ -441,7 +644,7 @@ function MyJobs() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="provider" />
-            <div className="flex-1 ml-72">
+            <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
                 <main className="pt-24 px-6 pb-6">
                     <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
@@ -491,6 +694,11 @@ function MyJobs() {
                                     >
                                         {tabCounts[tab] || 0}
                                     </span>
+                                    {tab === "New Requests" && tabCounts[tab] > 0 && (
+                                        <span className="ml-1 text-xs text-amber-600 font-medium animate-pulse">
+                                            ({tabCounts[tab]} new)
+                                        </span>
+                                    )}
                                 </button>
                             ))}
                         </div>
@@ -544,9 +752,27 @@ function MyJobs() {
                                         {filteredJobs.map((job) => {
                                             const clientName = getClientName(job);
                                             const clientInitials = getClientInitials(job);
+                                            const statusSubtext = getStatusSubtext(job);
+                                            const hasRescheduleHistory = !!(job.raw?.original_scheduled_date || job.originalDate);
+                                            const isProviderInitiated = ["provider", "service_provider", "service-provider"].includes(
+                                                (job.rescheduleInitiatedBy || job.raw?.reschedule_initiated_by || "").toString().trim().toLowerCase()
+                                            );
+                                            const isClientInitiated = ["client", "customer"].includes(
+                                                (job.rescheduleInitiatedBy || job.raw?.reschedule_initiated_by || "").toString().trim().toLowerCase()
+                                            );
+
+                                            // Determine if this is a pending reschedule that needs action
+                                            const isPendingClientRequest = job.status === "Reschedule Requested" && isClientInitiated;
+                                            const isPendingProviderProposal = job.status === "Reschedule Proposed" && isProviderInitiated;
+                                            
+                                            // If status is Accepted and has reschedule history, show as confirmed
+                                            const isAcceptedReschedule = job.status === "Accepted" && hasRescheduleHistory;
+                                            
+                                            // Check if this is a new request
+                                            const isNewRequest = job.status === "Pending" || job.status === "New Requests";
 
                                             return (
-                                                <tr key={job.id} className="border-b border-gray-100 align-middle hover:bg-gray-50 transition-colors">
+                                                <tr key={job.id} className={`border-b border-gray-100 align-middle hover:bg-gray-50 transition-colors ${isNewRequest ? "bg-amber-50/30" : ""}`}>
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
                                                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
@@ -571,10 +797,28 @@ function MyJobs() {
                                                                 <Clock3 className="h-3.5 w-3.5 text-gray-400" />
                                                                 <span className="text-sm">{job.time}</span>
                                                             </div>
-                                                            {job.status === "Rescheduled" && (
+                                                            {hasRescheduleHistory && job.raw?.proposed_scheduled_date && (
+                                                                <div className="flex items-center gap-1 mt-1 text-xs text-green-600">
+                                                                    <CheckCircle className="h-3 w-3" />
+                                                                    <span>Rescheduled to {formatJobDate(job.raw.proposed_scheduled_date)}</span>
+                                                                </div>
+                                                            )}
+                                                            {statusSubtext && (
                                                                 <div className="flex items-center gap-1 mt-1">
                                                                     <Clock className="h-3 w-3 text-purple-500" />
-                                                                    <span className="text-xs text-purple-600 font-medium">Rescheduled</span>
+                                                                    <span className="text-xs text-purple-600 font-medium">{statusSubtext}</span>
+                                                                </div>
+                                                            )}
+                                                            {isAcceptedReschedule && (
+                                                                <div className="flex items-center gap-1 mt-1 text-xs text-green-600">
+                                                                    <CheckCircle className="h-3 w-3" />
+                                                                    <span>Reschedule confirmed </span>
+                                                                </div>
+                                                            )}
+                                                            {isNewRequest && (
+                                                                <div className="flex items-center gap-1 mt-1">
+                                                                    <Inbox className="h-3 w-3 text-amber-500" />
+                                                                    <span className="text-xs text-amber-600 font-medium">New request - needs your response</span>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -586,13 +830,33 @@ function MyJobs() {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-4">
-                                                        <span
-                                                            className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
-                                                                statusStyles[job.status] || "bg-gray-100 text-gray-700"
-                                                            }`}
-                                                        >
-                                                            {job.status}
-                                                        </span>
+                                                        <div className="flex flex-col items-start gap-0.5">
+                                                            <span
+                                                                className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
+                                                                    statusStyles[job.status] || "bg-gray-100 text-gray-700"
+                                                                } ${isAcceptedReschedule ? "bg-green-50 text-green-700" : ""} ${isNewRequest ? "border-2 border-amber-400 bg-amber-100 text-amber-800" : ""}`}
+                                                            >
+                                                                {job.status}
+                                                                {isAcceptedReschedule && (
+                                                                    <CheckCircle className="ml-1 inline h-3 w-3" aria-label="Reschedule confirmed" />
+                                                                )}
+                                                            </span>
+                                                            {statusSubtext && (
+                                                                <span className="text-xs text-purple-600 font-medium">
+                                                                    {statusSubtext}
+                                                                </span>
+                                                            )}
+                                                            {isAcceptedReschedule && (
+                                                                <span className="text-xs text-green-600 font-medium">
+                                                                    Ready to start work
+                                                                </span>
+                                                            )}
+                                                            {isNewRequest && (
+                                                                <span className="text-xs text-amber-600 font-medium">
+                                                                    Awaiting your response
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="px-4 py-4">
                                                         <span className="text-sm font-bold font-mono text-gray-800">{job.amount}</span>
@@ -601,9 +865,21 @@ function MyJobs() {
                                                         <div className="flex items-center gap-2 whitespace-nowrap">
                                                             <Link
                                                                 to={getJobDetailsPath(job)}
-                                                                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-[#056db3] hover:bg-blue-50 transition-colors"
+                                                                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                                                    isNewRequest
+                                                                        ? "border-2 border-amber-500 text-amber-700 "
+                                                                        : isPendingClientRequest
+                                                                        ? "border-2 border-amber-500 text-amber-700 hover:bg-amber-200"
+                                                                        : isPendingProviderProposal
+                                                                        ? "border-2 border-purple-500 text-purple-700 hover:bg-purple-200"
+                                                                        : isAcceptedReschedule
+                                                                        ? "border-2 border-green-700  text-green-700 hover:bg-green-50"
+                                                                        : hasRescheduleHistory
+                                                                        ? "text-green-700 hover:bg-green-200"
+                                                                        : "text-[#056db3] hover:bg-blue-50"
+                                                                }`}
                                                             >
-                                                                View
+                                                                {isNewRequest ? "Respond" : isPendingClientRequest ? "Respond" : isAcceptedReschedule ? "Start Work" : "View"}
                                                             </Link>
                                                             <button
                                                                 onClick={() => setOpenMenuId(openMenuId === job.id ? null : job.id)}
@@ -622,27 +898,11 @@ function MyJobs() {
                                                                     }}
                                                                     className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                                                 >
-                                                                    <span className="h-4 w-4 text-gray-600">💬</span>
+                                                                    <MessageCircle className="h-4 w-4 text-gray-600" />
                                                                     Message
                                                                 </button>
-                                                                
-                                                                {job.status !== "Completed" && 
-                                                                 job.status !== "Cancelled" && 
-                                                                 job.status !== "Paid" && (
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setSelectedJob(job);
-                                                                            setModalType("reschedule");
-                                                                            setOpenMenuId(null);
-                                                                        }}
-                                                                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-purple-600 hover:bg-gray-50"
-                                                                    >
-                                                                        <Clock className="h-4 w-4" />
-                                                                        Reschedule
-                                                                    </button>
-                                                                )}
-                                                                
-                                                                {job.status === "New Requests" && (
+
+                                                                {isNewRequest && (
                                                                     <>
                                                                         <button
                                                                             onClick={() => {
@@ -650,8 +910,9 @@ function MyJobs() {
                                                                                 setModalType('accept');
                                                                                 setOpenMenuId(null);
                                                                             }}
-                                                                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#056db3] hover:bg-gray-50"
+                                                                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-green-600 hover:bg-gray-50"
                                                                         >
+                                                                            <CheckCircle className="h-4 w-4" />
                                                                             Accept
                                                                         </button>
                                                                         <button
@@ -662,13 +923,56 @@ function MyJobs() {
                                                                             }}
                                                                             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-50"
                                                                         >
+                                                                            <XCircle className="h-4 w-4" />
                                                                             Decline
                                                                         </button>
                                                                     </>
                                                                 )}
-                                                                
-                                                                {job.status !== "Completed" && 
-                                                                 job.status !== "Cancelled" && 
+
+                                                                {job.status === "Reschedule Requested" && (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setSelectedJob(job);
+                                                                                setModalType('accept');
+                                                                                setOpenMenuId(null);
+                                                                            }}
+                                                                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-green-600 hover:bg-gray-50"
+                                                                        >
+                                                                            <CheckCircle className="h-4 w-4" />
+                                                                            Accept New Time
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setSelectedJob(job);
+                                                                                setModalType('decline');
+                                                                                setOpenMenuId(null);
+                                                                            }}
+                                                                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-50"
+                                                                        >
+                                                                            <XCircle className="h-4 w-4" />
+                                                                            Decline
+                                                                        </button>
+                                                                    </>
+                                                                )}
+
+                                                                {/* Show "Propose New Time" only for Accepted/In Progress bookings without pending reschedule */}
+                                                                {(job.status === "Accepted" || job.status === "In Progress") && !hasRescheduleHistory && !isNewRequest && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setSelectedJob(job);
+                                                                            setModalType("reschedule");
+                                                                            setOpenMenuId(null);
+                                                                        }}
+                                                                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-purple-600 hover:bg-gray-50"
+                                                                    >
+                                                                        <Clock className="h-4 w-4" />
+                                                                        Propose New Time
+                                                                    </button>
+                                                                )}
+
+                                                                {job.status !== "Completed" &&
+                                                                 job.status !== "Cancelled" &&
                                                                  job.status !== "Paid" && (
                                                                     <button
                                                                         onClick={async () => {
@@ -678,7 +982,7 @@ function MyJobs() {
                                                                                 await fetchJobs(true);
                                                                             } catch (e) {
                                                                                 console.error(e);
-                                                                                alert('Failed to cancel');
+                                                                                toast.error("Failed to cancel booking", "Please try again.");
                                                                             } finally {
                                                                                 setOpenMenuId(null);
                                                                             }
@@ -715,11 +1019,25 @@ function MyJobs() {
                                     <h2 className="text-lg font-bold text-gray-800">
                                         {modalType === "accept" ? "Accept Job" : "Decline Job"}
                                     </h2>
+                                    {selectedJob.status === "Reschedule Requested" && (
+                                        <p className="text-sm text-purple-600 mt-1">
+                                            This will accept the client's reschedule request
+                                        </p>
+                                    )}
+                                    {selectedJob.status === "Pending" && (
+                                        <p className="text-sm text-amber-600 mt-1">
+                                            This will accept the job request from the client
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="px-6 py-4">
                                     <p className="text-sm text-gray-600">
                                         {modalType === "accept"
-                                            ? `Are you sure you want to accept this job from ${getClientName(selectedJob)}?`
+                                            ? selectedJob.status === "Reschedule Requested"
+                                                ? `Are you sure you want to accept the reschedule request from ${getClientName(selectedJob)}? The booking will be updated to the new time.`
+                                                : selectedJob.status === "Pending"
+                                                ? `Are you sure you want to accept this job request from ${getClientName(selectedJob)}?`
+                                                : `Are you sure you want to accept this job from ${getClientName(selectedJob)}?`
                                             : `Are you sure you want to decline this job from ${getClientName(selectedJob)}? The client will be notified.`}
                                     </p>
                                     <div className="mt-4 rounded-lg bg-gray-50 p-4">
@@ -728,6 +1046,14 @@ function MyJobs() {
                                             {formatJobDate(selectedJob.date)} at {selectedJob.time}
                                         </p>
                                         <p className="text-xs text-gray-600">{selectedJob.location}</p>
+                                        {selectedJob.status === "Reschedule Requested" && selectedJob.raw?.proposed_scheduled_date && (
+                                            <div className="mt-2 pt-2 border-t border-gray-200">
+                                                <p className="text-xs font-medium text-purple-600">Proposed: {formatJobDate(selectedJob.raw.proposed_scheduled_date)} at {selectedJob.raw.proposed_scheduled_start_time} - {selectedJob.raw.proposed_scheduled_end_time}</p>
+                                                {selectedJob.raw?.reschedule_reason && (
+                                                    <p className="text-xs text-gray-500 mt-1">Reason: {selectedJob.raw.reschedule_reason}</p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="border-t border-gray-200 px-6 py-4 flex gap-3">

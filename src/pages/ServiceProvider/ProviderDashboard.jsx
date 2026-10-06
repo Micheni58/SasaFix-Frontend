@@ -1,4 +1,4 @@
-// src/pages/ServiceProvider/ProviderDashboard.jsx - With consistent earnings logic
+// src/pages/ServiceProvider/ProviderDashboard.jsx
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -17,6 +17,7 @@ import {
   DollarSign,
   Sparkles,
   Receipt,
+  Inbox,
 } from "lucide-react";
 import bookingService from "../../api/bookingService";
 import { getProviderTransactions } from "../../api/transactionService";
@@ -24,6 +25,7 @@ import ratingService from "../../api/ratingService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 import aiService from "../../api/aiService";
+import { getStoredProviderId } from "../../utils/sidebarRole";
 
 // ── Status Colors ──
 const STATUS_STYLES = {
@@ -36,6 +38,12 @@ const STATUS_STYLES = {
   "Approved": "bg-green-100 text-green-800",
   "Rejected": "bg-red-100 text-red-800",
   "Cancelled": "bg-red-100 text-red-800",
+  "Paid": "bg-emerald-100 text-emerald-800",
+  // Reschedule statuses
+  "Rescheduled": "bg-purple-100 text-purple-800",
+  "Reschedule Requested": "bg-purple-100 text-purple-800",
+  "Reschedule Proposed": "bg-purple-100 text-purple-800",
+  "Reschedule Confirmed": "bg-purple-100 text-purple-800",
 };
 
 const TIER_COLORS = { gold: "#CA8A04", blue: "#056db3", gray: "#9CA3AF" };
@@ -99,22 +107,69 @@ function formatDateToWords(dateString) {
   }
 }
 
-function isToday(dateString) {
-  if (!dateString) return false;
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return false;
-    const today = new Date();
-    return date.getFullYear() === today.getFullYear() &&
-           date.getMonth() === today.getMonth() &&
-           date.getDate() === today.getDate();
-  } catch {
-    return false;
-  }
-}
-
+// ── FIXED: Correct reschedule routing logic ──
 function getBookingRoute(booking) {
   const status = booking.status || "Pending";
+  const rawStatus = (booking.raw?.status ?? booking.status ?? "pending")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+
+  const initiator = (booking.rescheduleInitiatedBy || booking.raw?.reschedule_initiated_by || "")
+    .toString()
+    .trim()
+    .toLowerCase();
+
+  const isProviderInitiated = ["provider", "service_provider", "service-provider"].includes(initiator);
+  const isClientInitiated = ["client", "customer"].includes(initiator);
+
+  // ── IF STATUS IS ACCEPTED, IN_PROGRESS, COMPLETED, or PAID → GO TO REGULAR DETAILS PAGE ──
+  const regularStatuses = ["Accepted", "accepted", "In Progress", "in_progress", "Completed", "completed", "Paid", "paid"];
+  if (regularStatuses.includes(status)) {
+    if (status === "Accepted" || status === "accepted") {
+      return `/provider/my-jobs/accepted/${booking.id}`;
+    }
+    if (status === "In Progress" || status === "in_progress") {
+      return `/provider/my-jobs/in-progress/${booking.id}`;
+    }
+    if (status === "Completed" || status === "completed") {
+      return `/provider/my-jobs/completed/${booking.id}`;
+    }
+    if (status === "Paid" || status === "paid") {
+      return `/provider/my-jobs/paid/${booking.id}`;
+    }
+  }
+
+  // ── PROVIDER INITIATED RESCHEDULE (PENDING) ──
+  if (isProviderInitiated && rawStatus === "reschedule_proposed") {
+    return `/provider/my-jobs/reschedule-proposed/${booking.id}`;
+  }
+
+  // ── CLIENT INITIATED RESCHEDULE (PENDING) ──
+  if (isClientInitiated && rawStatus === "reschedule_requested") {
+    return `/provider/my-jobs/reschedule-requested/${booking.id}`;
+  }
+
+  // ── PENDING RESCHEDULE STATES (fallback) ──
+  if (rawStatus === "reschedule_proposed") {
+    return `/provider/my-jobs/reschedule-proposed/${booking.id}`;
+  }
+  if (rawStatus === "reschedule_requested") {
+    return `/provider/my-jobs/reschedule-requested/${booking.id}`;
+  }
+
+  // ── RESCHEDULED / CONFIRMED (without clear initiator) ──
+  if (rawStatus === "rescheduled" || rawStatus === "reschedule_confirmed") {
+    // If status is Accepted, go to accepted page
+    if (status === "Accepted" || status === "accepted") {
+      return `/provider/my-jobs/accepted/${booking.id}`;
+    }
+    return `/provider/my-jobs/reschedule-proposed/${booking.id}`;
+  }
+
+  // ── REGULAR STATUS ROUTES ──
   const routeMap = {
     "New Requests": `/provider/my-jobs/new/${booking.id}`,
     "Pending": `/provider/my-jobs/new/${booking.id}`,
@@ -125,8 +180,42 @@ function getBookingRoute(booking) {
     "Approved": `/provider/my-jobs/approved/${booking.id}`,
     "Rejected": `/provider/my-jobs/rejected/${booking.id}`,
     "Cancelled": `/provider/my-jobs/cancelled/${booking.id}`,
+    "Paid": `/provider/my-jobs/paid/${booking.id}`,
+    "Reschedule Requested": `/provider/my-jobs/reschedule-requested/${booking.id}`,
+    "Reschedule Proposed": `/provider/my-jobs/reschedule-proposed/${booking.id}`,
   };
   return routeMap[status] || `/provider/my-jobs/${booking.id}`;
+}
+
+function getDisplayStatus(booking) {
+  const status = booking.status || "Pending";
+  
+  // All reschedule statuses show as "Rescheduled" in the dashboard
+  if (status === "Reschedule Requested" || 
+      status === "Reschedule Proposed" || 
+      status === "Reschedule Confirmed") {
+    return "Rescheduled";
+  }
+  return status;
+}
+
+function getStatusSubtext(booking) {
+  const status = booking.status || "Pending";
+  const initiator = (booking.rescheduleInitiatedBy || booking.raw?.reschedule_initiated_by || "")
+    .toString()
+    .trim()
+    .toLowerCase();
+  
+  if (status === "Reschedule Requested") {
+    return initiator === "client" ? "⏳ Awaiting your approval" : "⏳ Client requested reschedule";
+  }
+  if (status === "Reschedule Proposed") {
+    return initiator === "provider" ? "⏳ Awaiting client approval" : "⏳ Provider proposed reschedule";
+  }
+  if (status === "Reschedule Confirmed") {
+    return "✅ Reschedule confirmed";
+  }
+  return null;
 }
 
 // ─────────────────────────────────────────────
@@ -160,7 +249,7 @@ function StatCardSkeleton() {
   );
 }
 
-function StatCard({ label, value, icon: Icon, iconBg, isLoading, subText }) {
+function StatCard({ label, value, icon: _Icon, iconBg, isLoading, subText }) {
   return (
     <div className="min-h-28 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex h-full items-center justify-between gap-4">
@@ -176,7 +265,7 @@ function StatCard({ label, value, icon: Icon, iconBg, isLoading, subText }) {
           )}
         </div>
         <div className={`shrink-0 rounded-lg p-2 ${iconBg}`}>
-          <Icon className="h-6 w-6" />
+          <_Icon className="h-6 w-6" />
         </div>
       </div>
     </div>
@@ -249,48 +338,90 @@ function AIInsightCard({ onGenerate, isLoading, insight }) {
 }
 
 // ── Availability Card ──
-function AvailabilityCard({ bookings }) {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const dayAfter = new Date();
-  dayAfter.setDate(dayAfter.getDate() + 2);
-  const dayAfterStr = dayAfter.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+function AvailabilityCard({ bookings, availability, loading }) {
+  const generateTimeSlots = (startTime, endTime) => {
+    if (!startTime || !endTime) return [];
 
-  const generateTimeSlots = () => {
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
+    const start = startHour * 60 + startMinute;
+    const end = endHour * 60 + endMinute;
     const slots = [];
-    for (let hour = 9; hour <= 17; hour += 2) {
-      const start = `${hour.toString().padStart(2, '0')}:00`;
-      const end = `${(hour + 2).toString().padStart(2, '0')}:00`;
-      slots.push(`${start} - ${end}`);
+    for (let slotStart = start; slotStart < end; slotStart += 120) {
+      const slotEnd = Math.min(slotStart + 120, end);
+      const format = (minutes) => {
+        const hour = Math.floor(minutes / 60);
+        return `${String(hour).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+      };
+      slots.push(`${format(slotStart)} - ${format(slotEnd)}`);
     }
     return slots;
   };
 
-  const allSlots = generateTimeSlots();
-  const todayBookings = bookings.filter(b => isToday(b.date || b.scheduled_date));
-  const bookedSlots = todayBookings.map(b => b.time || `${b.scheduled_start_time} - ${b.scheduled_end_time}`);
+  const dates = [0, 1, 2].map((offset) => {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    return date;
+  });
 
-  const slots = allSlots.map(slot => ({
-    time: slot,
-    booked: bookedSlots.some(b => b && b.includes(slot.split(' - ')[0]))
-  }));
+  const getDaySchedule = (date) => {
+    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+    return availability.find(
+      (entry) => (entry.day_of_week || entry.day || "").toLowerCase() === dayName.toLowerCase(),
+    );
+  };
 
-  const tomorrowSlots = allSlots.slice(0, 3);
-  const nextDaySlots = allSlots.slice(0, 3);
+  const isBookingOnDate = (booking, date) => {
+    const bookingDate = new Date(booking.date || booking.scheduled_date);
+    return !Number.isNaN(bookingDate.getTime()) &&
+      bookingDate.getFullYear() === date.getFullYear() &&
+      bookingDate.getMonth() === date.getMonth() &&
+      bookingDate.getDate() === date.getDate();
+  };
+
+  const scheduleForDate = (date) => {
+    const schedule = getDaySchedule(date);
+    const available = Boolean(schedule?.is_available);
+    const slots = available
+      ? generateTimeSlots(schedule.start_time, schedule.end_time)
+      : [];
+    const bookedSlots = bookings
+      .filter((booking) => isBookingOnDate(booking, date))
+      .map((booking) => booking.scheduled_start_time || booking.time?.split(" - ")[0]);
+
+    return {
+      available,
+      slots: slots.map((time) => ({
+        time,
+        booked: bookedSlots.some((bookedTime) => bookedTime?.slice(0, 5) === time.slice(0, 5)),
+      })),
+    };
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
+        {dates.map((date, index) => {
+          const schedule = scheduleForDate(date);
+          const title = index === 0
+            ? "Today"
+            : date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+          return (
+        <div key={date.toDateString()}>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-lg text-gray-800">Today</h3>
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
-              {slots.filter(s => s.booked).length} Booked
+            <h3 className="font-bold text-lg text-gray-800">{title}</h3>
+            <span className={`px-2 py-1 rounded-full text-sm font-medium ${schedule.available ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+              {schedule.available ? `${schedule.slots.filter((slot) => slot.booked).length} Booked` : "Unavailable"}
             </span>
           </div>
           <div className="space-y-2">
-            {slots.slice(0, 4).map((slot, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
+            {loading ? (
+              <p className="py-3 text-sm text-gray-500">Loading availability…</p>
+            ) : schedule.slots.length === 0 ? (
+              <p className="py-3 text-sm text-gray-500">No working hours set.</p>
+            ) : schedule.slots.map((slot) => (
+              <div key={slot.time} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
                 <span className="text-sm font-medium text-gray-700">{slot.time}</span>
                 <span className={`text-xs font-medium ${slot.booked ? "text-blue-600" : "text-green-600"}`}>
                   {slot.booked ? "Booked" : "Available"}
@@ -299,34 +430,8 @@ function AvailabilityCard({ bookings }) {
             ))}
           </div>
         </div>
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-lg text-gray-800">Tomorrow</h3>
-            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">Available</span>
-          </div>
-          <div className="space-y-2">
-            {tomorrowSlots.map((slot, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
-                <span className="text-sm font-medium text-gray-700">{slot}</span>
-                <span className="text-xs font-medium text-green-600">Available</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-lg text-gray-800">{dayAfterStr}</h3>
-            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">Available</span>
-          </div>
-          <div className="space-y-2">
-            {nextDaySlots.map((slot, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
-                <span className="text-sm font-medium text-gray-700">{slot}</span>
-                <span className="text-xs font-medium text-green-600">Available</span>
-              </div>
-            ))}
-          </div>
-        </div>
+          );
+        })}
       </div>
       <Link to="/provider/availability" className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[#056db3] px-4 py-2 text-sm font-semibold text-[#056db3] transition-colors hover:bg-blue-50">
         <Calendar className="h-4 w-4" />
@@ -342,13 +447,14 @@ function AvailabilityCard({ bookings }) {
 
 function ProviderDashboard() {
   const [bookings, setBookings] = useState([]);
+  const [availability, setAvailability] = useState([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [earningsLoading, setEarningsLoading] = useState(true);
   const [monthEarnings, setMonthEarnings] = useState(0);
   const [monthPaidJobs, setMonthPaidJobs] = useState(0);
   const [providerRating, setProviderRating] = useState(null);
-  const [totalRatings, setTotalRatings] = useState(0);
   const [providerSpecialty, setProviderSpecialty] = useState("Service Provider");
   const [providerLocation, setProviderLocation] = useState("Nairobi, Kenya");
   const [aiInsight, setAiInsight] = useState(null);
@@ -363,17 +469,20 @@ function ProviderDashboard() {
       "Provider"
     : "Provider";
 
-  const userId = Number(storedUser?.id || localStorage.getItem("userId") || 0);
-  const providerId = Number(
-    storedUser?.provider_id || storedUser?.service_provider_id || 
-    storedUser?.id || localStorage.getItem("userId") || 1
-  );
+  const providerId = getStoredProviderId() || 0;
 
   // ── Fetch bookings ──
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     setError(null);
+
+    if (!providerId) {
+      setBookings([]);
+      setError("Provider account not found. Please sign in again.");
+      setLoading(false);
+      return () => { mounted = false; };
+    }
 
     const fetchData = async () => {
       try {
@@ -396,7 +505,6 @@ function ProviderDashboard() {
           const ratingData = await ratingService.getProviderAverageRating(providerId);
           if (mounted && ratingData) {
             setProviderRating(ratingData.averageScore || 0);
-            setTotalRatings(ratingData.totalRatings || 0);
           }
         } catch (ratingErr) {
           console.warn("Could not fetch rating:", ratingErr);
@@ -417,38 +525,63 @@ function ProviderDashboard() {
     return () => { mounted = false; };
   }, [providerId]);
 
+  // ── Fetch the provider's saved working hours ──
+  useEffect(() => {
+    let mounted = true;
+    setAvailabilityLoading(true);
+
+    if (!providerId) {
+      setAvailability([]);
+      setAvailabilityLoading(false);
+      return () => { mounted = false; };
+    }
+
+    bookingService
+      .getProviderAvailability(providerId)
+      .then((data) => {
+        if (mounted) setAvailability(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.warn("Could not fetch availability:", err);
+        if (mounted) setAvailability([]);
+      })
+      .finally(() => {
+        if (mounted) setAvailabilityLoading(false);
+      });
+
+    return () => { mounted = false; };
+  }, [providerId]);
+
   // ── Fetch month-to-date earnings from transaction history ──
   useEffect(() => {
     let mounted = true;
-    if (!userId) { setEarningsLoading(false); return; }
+    if (!providerId) { 
+      setEarningsLoading(false); 
+      return; 
+    }
 
     const fetchMonthEarnings = async () => {
       try {
-        // Fetch all transactions and filter locally
-        const txRes = await getProviderTransactions(userId);
+        const txRes = await getProviderTransactions(providerId);
         const txList = Array.isArray(txRes)
           ? txRes
           : txRes?.transactions || txRes?.data?.transactions || [];
-        
+
         if (!mounted) return;
 
-        // Get current month date range
         const now = new Date();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-        // Filter transactions to current month only
         const monthTransactions = txList.filter(tx => {
           const txDate = new Date(tx.paid_at || tx.paidAt || tx.created_at || tx.createdAt || tx.date);
           if (isNaN(txDate.getTime())) return false;
           return txDate >= monthStart && txDate <= monthEnd;
         });
 
-        // Calculate total for this month (using net_amount for provider earnings)
         const total = monthTransactions
           .filter(tx => {
             const status = (tx.status || "").toUpperCase();
-            // Only include successful/completed transactions
             return status === "COMPLETED" || status === "SUCCESS" || status === "PAID";
           })
           .reduce((sum, tx) => {
@@ -472,7 +605,7 @@ function ProviderDashboard() {
 
     fetchMonthEarnings();
     return () => { mounted = false; };
-  }, [userId]);
+  }, [providerId]);
 
   // ── AI Insight Generation ──
   const generateAIInsight = async () => {
@@ -494,11 +627,28 @@ function ProviderDashboard() {
 
   // ── Derived stats ──
   const today = new Date();
-  
+
+  // Get new requests (Pending status)
+  const newRequests = bookings.filter((b) => {
+    const status = b.status || "Pending";
+    return status === "Pending" || status === "New Requests";
+  });
+
+  // Get today's bookings (including new requests and accepted)
   const todaysBookings = bookings.filter((b) => {
-    if (b.status === "New Requests" || b.status === "Pending") {
+    const status = b.status || "Pending";
+    
+    // Always show New Requests and Pending in Today's Jobs
+    if (status === "Pending" || status === "New Requests") {
       return true;
     }
+    
+    // Show reschedule requests
+    if (status === "Reschedule Requested" || status === "Reschedule Proposed") {
+      return true;
+    }
+    
+    // Check if the booking date is today
     const bookingDate = b.date || b.scheduled_date || b.booking_date;
     if (!bookingDate) return false;
     try {
@@ -511,11 +661,29 @@ function ProviderDashboard() {
       return false;
     }
   });
-  
-  const displayedJobs = todaysBookings.slice(0, 5);
 
-  const activeStatuses = ["Accepted", "In Progress"];
-  const activeJobs = bookings.filter((b) => activeStatuses.includes(b.status));
+  // Sort: New Requests first, then by date
+  const sortedTodaysBookings = [...todaysBookings].sort((a, b) => {
+    const aIsNew = a.status === "Pending" || a.status === "New Requests";
+    const bIsNew = b.status === "Pending" || b.status === "New Requests";
+    if (aIsNew && !bIsNew) return -1;
+    if (!aIsNew && bIsNew) return 1;
+    return 0;
+  });
+
+  const displayedJobs = sortedTodaysBookings.slice(0, 5);
+
+  // Active jobs (Accepted, In Progress, and reschedule proposals waiting for client)
+  const activeJobs = bookings.filter((b) => {
+    const status = b.status || "Pending";
+    // Include Accepted, In Progress, and Reschedule Proposed (waiting for client)
+    if (status === "Accepted" || status === "In Progress") return true;
+    if (status === "Reschedule Proposed") {
+      const initiator = (b.rescheduleInitiatedBy || b.raw?.reschedule_initiated_by || "").toString().trim().toLowerCase();
+      return initiator === "provider" || initiator === "service_provider";
+    }
+    return false;
+  });
   const activeCount = activeJobs.length;
 
   const completedCount = bookings.filter(
@@ -571,7 +739,7 @@ function ProviderDashboard() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="px-6 pb-6 pt-24">
           {/* ── Header ── */}
@@ -667,6 +835,31 @@ function ProviderDashboard() {
             </section>
           )}
 
+          {/* ── New Requests Alert ── */}
+          {newRequests.length > 0 && (
+            <section className="mb-8">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Inbox className="h-6 w-6 text-amber-600" />
+                  <div>
+                    <p className="font-semibold text-amber-800">
+                      {newRequests.length} New Request{newRequests.length > 1 ? 's' : ''}
+                    </p>
+                    <p className="text-sm text-amber-700">
+                      {newRequests.length} job{newRequests.length > 1 ? 's' : ''} waiting for your response
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  to="/provider/my-jobs"
+                  className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 transition-colors"
+                >
+                  View Requests
+                </Link>
+              </div>
+            </section>
+          )}
+
           {/* ── Side by Side: Active Jobs & Today's Jobs ── */}
           <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Active Jobs Card */}
@@ -686,6 +879,18 @@ function ProviderDashboard() {
                         <Clock className="h-3.5 w-3.5 text-gray-400" />
                         <span className="text-xs text-gray-500">{formatDateToWords(activeJob.date)}</span>
                       </div>
+                      {activeJob.status === "Reschedule Proposed" && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Clock className="h-3 w-3 text-purple-500" />
+                          <span className="text-xs text-purple-600 font-medium">⏳ Awaiting client approval</span>
+                        </div>
+                      )}
+                      {activeJob.status === "Reschedule Requested" && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Clock className="h-3 w-3 text-amber-500" />
+                          <span className="text-xs text-amber-600 font-medium">⏳ Client requested reschedule</span>
+                        </div>
+                      )}
                     </div>
                     <Link to={getBookingRoute(activeJob)} className="flex items-center gap-1 rounded-lg bg-[#056db3] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#045a94] transition-colors">
                       <Eye className="h-3.5 w-3.5" />
@@ -729,6 +934,12 @@ function ProviderDashboard() {
                     <ChevronRight className="h-4 w-4" />
                   </Link>
                 </div>
+                {newRequests.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-amber-600">
+                    <Inbox className="h-4 w-4" />
+                    <span>{newRequests.length} new request{newRequests.length > 1 ? 's' : ''}</span>
+                  </div>
+                )}
               </div>
               <div className="border-t border-gray-200">
                 {loading ? (
@@ -753,28 +964,48 @@ function ProviderDashboard() {
                   </div>
                 ) : (
                   <ul className="divide-y divide-gray-100">
-                    {displayedJobs.map((job) => (
-                      <li key={job.id} className="flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <ClientAvatar name={job.client || job.clientName || `Client #${job.clientId}`} size={44} />
-                          <div className="min-w-0">
-                            <p className="truncate font-semibold text-gray-800">{job.service || "Service unavailable"}</p>
-                            <p className="truncate text-sm text-gray-500">{job.client || job.clientName || "Client"}</p>
+                    {displayedJobs.map((job) => {
+                      const displayStatus = getDisplayStatus(job);
+                      const statusSubtext = getStatusSubtext(job);
+                      const isNewRequest = job.status === "Pending" || job.status === "New Requests";
+                      const isReschedulePending = job.status === "Reschedule Requested" || job.status === "Reschedule Proposed";
+                      
+                      return (
+                        <li key={job.id} className={`flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between ${isNewRequest ? "bg-amber-50/50" : ""}`}>
+                          <div className="flex min-w-0 items-center gap-3">
+                            <ClientAvatar name={job.client || job.clientName || `Client #${job.clientId}`} size={44} />
+                            <div className="min-w-0">
+                              <p className="truncate font-semibold text-gray-800">{job.service || "Service unavailable"}</p>
+                              <p className="truncate text-sm text-gray-500">{job.client || job.clientName || "Client"}</p>
+                              {isNewRequest && (
+                                <span className="inline-block mt-0.5 text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
+                                  New Request
+                                </span>
+                              )}
+                              {isReschedulePending && (
+                                <span className="inline-block mt-0.5 text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
+                                  Reschedule Pending
+                                </span>
+                              )}
+                              {statusSubtext && !isNewRequest && !isReschedulePending && (
+                                <p className="text-xs text-purple-600 font-medium mt-0.5">{statusSubtext}</p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center justify-between gap-4 sm:justify-end">
-                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[job.status] || "bg-gray-100 text-gray-700"}`}>
-                            {job.status}
-                          </span>
-                          <span className="font-mono text-sm font-semibold text-gray-800">
-                            {job.amount || formatAmount(job.amountRaw)}
-                          </span>
-                          <Link to={getBookingRoute(job)} className="text-sm font-medium text-[#056db3] hover:underline">
-                            View
-                          </Link>
-                        </div>
-                      </li>
-                    ))}
+                          <div className="flex items-center justify-between gap-4 sm:justify-end">
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[displayStatus] || "bg-gray-100 text-gray-700"}`}>
+                              {displayStatus}
+                            </span>
+                            <span className="font-mono text-sm font-semibold text-gray-800">
+                              {job.amount || formatAmount(job.amountRaw)}
+                            </span>
+                            <Link to={getBookingRoute(job)} className={`text-sm font-medium hover:underline ${isNewRequest ? "text-amber-600" : "text-[#056db3]"}`}>
+                              {isNewRequest ? "Respond" : "View"}
+                            </Link>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>
@@ -782,7 +1013,11 @@ function ProviderDashboard() {
           </div>
 
           {/* ── Availability Card ── */}
-          <AvailabilityCard bookings={bookings} />
+          <AvailabilityCard
+            bookings={bookings}
+            availability={availability}
+            loading={availabilityLoading}
+          />
         </main>
       </div>
     </div>

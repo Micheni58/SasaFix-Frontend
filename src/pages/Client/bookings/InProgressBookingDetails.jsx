@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MessageSquare, Flag, Loader2, Clock3 } from "lucide-react";
+import { MessageSquare, Flag, Loader2, Clock3, AlertCircle } from "lucide-react";
 import bookingService from "../../../api/bookingService";
+import reportService from "../../../api/reportService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
 import { ProviderInfoCard } from "../../../components/cards/ProviderInfoCard";
 import { PaymentDetailsCard } from "../../../components/cards/PaymentDetailsCard";
 import { Timeline } from "../../../components/cards/Timeline";
 import { BookingInfoCard } from "../../../components/cards/BookingInfoCard";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
@@ -63,6 +65,20 @@ function formatTimeRange(timeStr) {
   }
   return formatTime(timeStr);
 }
+
+// ─────────────────────────────────────────────
+// REPORT CATEGORIES (Client reporting provider)
+// ─────────────────────────────────────────────
+
+const REPORT_CATEGORIES = [
+  { value: "Poor service quality", label: "Poor service quality" },
+  { value: "Provider no-show", label: "Provider no-show" },
+  { value: "Overcharging / wrong amount", label: "Overcharging / wrong amount" },
+  { value: "Unprofessional behaviour", label: "Unprofessional behaviour" },
+  { value: "Safety concern", label: "Safety concern" },
+  { value: "Fraud or scam", label: "Fraud or scam" },
+  { value: "Other", label: "Other" },
+];
 
 // ─────────────────────────────────────────────
 // SKELETON LOADER COMPONENTS
@@ -189,21 +205,158 @@ function SkeletonSidebar() {
 }
 
 // ─────────────────────────────────────────────
+// REPORT MODAL
+// ─────────────────────────────────────────────
+
+function ReportModal({ isOpen, onClose, onSubmit, loading, booking }) {
+  const [category, setCategory] = useState("");
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState(null);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!category) {
+      setError("Please select a category");
+      return;
+    }
+
+    if (!description || description.length < 10) {
+      setError("Please provide a detailed description (minimum 10 characters)");
+      return;
+    }
+
+    onSubmit({
+      category,
+      description,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm px-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-xl bg-white shadow-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="border-b border-gray-200 px-6 py-4">
+          <h3 className="text-lg font-bold text-gray-800">Report Issue</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Report a problem with this booking or provider
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+          {/* Booking info */}
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">Booking:</span> {booking?.service || "N/A"}
+            </p>
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">Provider:</span> {booking?.providerName || "N/A"}
+            </p>
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200 flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={category}
+              onChange={(e) => {
+                setError(null);
+                setCategory(e.target.value);
+              }}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-blue-100"
+              required
+            >
+              <option value="">Select a category...</option>
+              {REPORT_CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => {
+                setError(null);
+                setDescription(e.target.value);
+              }}
+              rows={4}
+              placeholder="Please describe the issue in detail..."
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-blue-100"
+              required
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Minimum 10 characters
+            </p>
+          </div>
+
+          {/* Info note */}
+          <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">What happens next?</p>
+              <p className="text-xs mt-1">Our admin team will review your report and take appropriate action. You'll be notified of any updates.</p>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+            >
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Submit Report"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 
 function InProgressBookingDetails() {
     const { bookingId } = useParams();
     const navigate = useNavigate();
+    const toast = useToast();
     const [booking, setBooking] = useState(null);
     const [loading, setLoading] = useState(true);
     const [reportOpen, setReportOpen] = useState(false);
-    const [reportText, setReportText] = useState("");
+    const [reportLoading, setReportLoading] = useState(false);
 
     useEffect(() => {
         let mounted = true;
         setLoading(true);
-        
+
         const fetchBooking = async () => {
             try {
                 const b = await bookingService.getBooking(Number(bookingId));
@@ -215,7 +368,7 @@ function InProgressBookingDetails() {
                 if (mounted) setLoading(false);
             }
         };
-        
+
         fetchBooking();
         return () => { mounted = false; };
     }, [bookingId]);
@@ -225,15 +378,27 @@ function InProgressBookingDetails() {
         navigate(`/client/messages?provider=${booking?.serviceProviderId}`);
     };
 
-    // ── Submit Report ──
-    const submitReport = async () => {
-        if (!reportText) {
-            window.alert("Please add a reason for the report.");
-            return;
+    // ── Handle Report Submission ──
+    // The backend derives who is being reported from the booking + authenticated user.
+    // No reported_user_id is sent from the frontend — it's resolved server-side.
+    const handleSubmitReport = async (reportData) => {
+        setReportLoading(true);
+        try {
+            await reportService.createOrUpdateReport({
+                booking_id: booking.id,
+                category: reportData.category,
+                description: reportData.description,
+            });
+
+            setReportOpen(false);
+            toast.success("Report submitted", "Our team will review it shortly.");
+        } catch (err) {
+            console.error("Error submitting report:", err);
+            const errorMsg = err.response?.data?.detail || err.message || "Failed to submit report. Please try again.";
+            toast.error("Report submission failed", errorMsg);
+        } finally {
+            setReportLoading(false);
         }
-        setReportText("");
-        setReportOpen(false);
-        window.alert("Report submitted. Our team will review it.");
     };
 
     // ── Loading State with Skeletons ──
@@ -241,7 +406,7 @@ function InProgressBookingDetails() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="client" />
-                <div className="flex-1 ml-72">
+                <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
                     <main className="pt-24 px-6 pb-6">
                         <section className="mb-8">
@@ -278,7 +443,7 @@ function InProgressBookingDetails() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="client" />
-                <div className="flex-1 ml-72">
+                <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
                     <main className="pt-24 px-6 pb-6 flex items-center justify-center">
                         <p className="text-gray-500">Booking not found.</p>
@@ -304,14 +469,16 @@ function InProgressBookingDetails() {
         commission: `KES ${Math.round((booking.amountRaw || 0) * 0.1).toLocaleString()}`,
         totalPaid: `KES ${Math.round(booking.amountRaw || 0).toLocaleString()}`,
         commissionRate: 0.1,
+        providerName: booking.providerName || booking.worker || "Provider",
         worker: {
             id: booking.serviceProviderId || booking.raw?.service_provider_id,
             name: booking.providerName || booking.worker || "Provider",
             initials: booking.initials || "--",
-            trade: booking.raw?.service_provider?.service_type || null,
-            rating: booking.raw?.service_provider?.rating || null,
+            trade: booking.raw?.service_provider?.service_category || null,
+            rating: booking.raw?.service_provider?.average_rating || null,
             phone: booking.raw?.service_provider?.contact_phone || null,
             email: booking.raw?.service_provider?.contact_email || null,
+            user_id: booking.providerUserId || booking.raw?.provider_user_id,
         },
         timeline: [
             { task: "Booking Requested", completed: true },
@@ -325,7 +492,7 @@ function InProgressBookingDetails() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="client" />
-            <div className="flex-1 ml-72">
+            <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
                 <main className="pt-24 px-6 pb-6">
                     <section className="mb-8">
@@ -334,7 +501,7 @@ function InProgressBookingDetails() {
                                 <h1 className="text-3xl font-bold text-gray-800">Work In Progress</h1>
                                 <p className="text-gray-600 mt-2">Booking #{ui.id}</p>
                             </div>
-                            <div className="flex items-center gap-3 flex-wrap">                                
+                            <div className="flex items-center gap-3 flex-wrap">
                                 <span className="px-4 py-2 rounded-full text-sm font-semibold bg-indigo-50 text-indigo-700 flex items-center gap-2">
                                     <Clock3 className="w-4 h-4 animate-pulse" />
                                     In Progress
@@ -348,7 +515,7 @@ function InProgressBookingDetails() {
                             <BookingInfoCard booking={ui} />
                             <ProviderInfoCard worker={ui.worker} />
                             <Timeline items={ui.timeline} />
-                            <PaymentDetailsCard 
+                            <PaymentDetailsCard
                                 booking={ui}
                                 isPaid={false}
                                 isPaymentPending={false}
@@ -374,7 +541,7 @@ function InProgressBookingDetails() {
 
                                 <button
                                     onClick={() => setReportOpen(true)}
-                                    className="w-full flex items-center justify-center gap-2 border-2 border-[#056db3] text-[#056db3] py-3 px-2 rounded-lg hover:bg-blue-100 transition-colors"
+                                    className="w-full flex items-center justify-center gap-2 border-2 border-red-500 text-red-500 py-3 px-2 rounded-lg hover:bg-red-50 transition-colors"
                                 >
                                     <Flag className="w-5 h-5" />
                                     Report Issue
@@ -401,35 +568,14 @@ function InProgressBookingDetails() {
                         </div>
                     </div>
 
-                    {/* Report Modal */}
-                    {reportOpen && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-                            <div className="w-full max-w-lg rounded-xl bg-white shadow-lg p-6">
-                                <h3 className="text-lg font-semibold text-gray-800 mb-2">Report Issue</h3>
-                                <textarea
-                                    value={reportText}
-                                    onChange={(e) => setReportText(e.target.value)}
-                                    rows={6}
-                                    className="w-full rounded-xl border border-blue-200 p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                    placeholder="Describe the issue..."
-                                />
-                                <div className="flex gap-3 justify-end">
-                                    <button
-                                        onClick={() => setReportOpen(false)}
-                                        className="px-4 py-2 rounded-lg border border-gray-300"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={submitReport}
-                                        className="px-4 py-2 rounded-lg bg-[#056db3] text-white"
-                                    >
-                                        Submit Report
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {/* ── Report Modal ── */}
+                    <ReportModal
+                        isOpen={reportOpen}
+                        onClose={() => setReportOpen(false)}
+                        onSubmit={handleSubmitReport}
+                        loading={reportLoading}
+                        booking={ui}
+                    />
                 </main>
             </div>
         </div>

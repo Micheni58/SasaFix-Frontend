@@ -47,10 +47,10 @@ const ProviderProfilePage = () => {
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar role="client" />
 
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
 
-          <main className="pt-24 px-8">
+          <main className="pt-24 px-4 sm:px-6 lg:px-8">
             <div className="bg-white rounded-xl p-10 text-center shadow-sm">
               Loading provider...
             </div>
@@ -65,10 +65,10 @@ const ProviderProfilePage = () => {
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar role="client" />
 
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
 
-          <main className="pt-24 px-8">
+          <main className="pt-24 px-4 sm:px-6 lg:px-8">
             <div className="bg-red-50 border border-red-200 rounded-xl p-10 text-red-600">
               {error || "Provider not found"}
             </div>
@@ -82,10 +82,10 @@ const ProviderProfilePage = () => {
     <div className="flex min-h-screen bg-[#F8FAFC]">
       <Sidebar role="client" />
 
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
 
-        <main className="pt-24 px-8 pb-12">
+        <main className="pt-24 px-4 sm:px-6 lg:px-8 pb-12">
 
           {/* Header */}
 
@@ -93,7 +93,7 @@ const ProviderProfilePage = () => {
 
           {/* Main Content */}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-6 sm:mt-8">
 
             {/* Left */}
 

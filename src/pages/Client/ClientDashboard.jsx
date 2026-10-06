@@ -104,11 +104,11 @@ function getProviderRing(booking) {
 
 function formatDateToWords(dateString) {
   if (!dateString) return "Date pending";
-  
+
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "Date pending";
-    
+
     return new Intl.DateTimeFormat("en-KE", {
       day: "numeric",
       month: "long",
@@ -123,9 +123,60 @@ function formatDateToWords(dateString) {
 // DYNAMIC ROUTING HELPER
 // ─────────────────────────────────────────────
 
+function normalizeStatus(statusValue) {
+  const rawStatus = (statusValue || "").toString().trim();
+  if (!rawStatus) return "";
+
+  const normalized = rawStatus.toLowerCase().replace(/\s+/g, "_");
+  const statusMap = {
+    pending: "Pending",
+    accepted: "Accepted",
+    in_progress: "In Progress",
+    completed: "Completed",
+    paid: "Paid",
+    cancelled: "Cancelled",
+    rescheduled: "Rescheduled",
+    reschedule_requested: "Reschedule Requested",
+    reschedule_proposed: "Reschedule Proposed",
+    reschedule_confirmed: "Reschedule Confirmed",
+  };
+
+  return statusMap[normalized] || rawStatus;
+}
+
+function getRescheduleInitiator(booking) {
+  const rawInitiator = (
+    booking?.rescheduleInitiatedBy ||
+    booking?.raw?.reschedule_initiated_by ||
+    booking?.initiated_by ||
+    booking?.raw?.initiated_by ||
+    ""
+  ).toString().trim().toLowerCase();
+
+  return rawInitiator;
+}
+
 function getBookingRoute(booking) {
+  const rawStatusKey = (booking?.raw?.status ?? booking?.status ?? "pending")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+
+  const initiator = getRescheduleInitiator(booking);
+  const isProviderInitiated = ["provider", "service_provider", "service-provider"].includes(initiator);
+  const isClientInitiated = ["client", "customer"].includes(initiator);
+
+  if (["reschedule_requested", "reschedule_proposed", "rescheduled", "reschedule_confirmed"].includes(rawStatusKey)) {
+    if (isClientInitiated) return `/client/my-bookings/reschedule-requested/${booking.id}`;
+    if (isProviderInitiated) return `/client/my-bookings/reschedule-proposed/${booking.id}`;
+    return rawStatusKey === "reschedule_proposed" || rawStatusKey === "rescheduled" || rawStatusKey === "reschedule_confirmed"
+      ? `/client/my-bookings/reschedule-proposed/${booking.id}`
+      : `/client/my-bookings/reschedule-requested/${booking.id}`;
+  }
+
   const status = booking.status || "Pending";
-  
   const routeMap = {
     "Upcoming": `/client/my-bookings/upcoming/${booking.id}`,
     "Pending": `/client/my-bookings/upcoming/${booking.id}`,
@@ -133,11 +184,10 @@ function getBookingRoute(booking) {
     "New Requests": `/client/my-bookings/upcoming/${booking.id}`,
     "In Progress": `/client/my-bookings/in-progress/${booking.id}`,
     "Completed": `/client/my-bookings/completed/${booking.id}`,
-    "Rescheduled": `/client/my-bookings/rescheduled/${booking.id}`,
     "Paid": `/client/my-bookings/paid/${booking.id}`,
     "Cancelled": `/client/my-bookings/cancelled/${booking.id}`,
   };
-  
+
   return routeMap[status] || `/client/my-bookings/${booking.id}`;
 }
 
@@ -261,7 +311,7 @@ function ClientDashboard() {
       try {
         const result = await getTransactionHistory(userId);
         const transactions = result.transactions || [];
-        
+
         // Get current month date range
         const now = new Date();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -298,11 +348,11 @@ function ClientDashboard() {
   const activeCount = bookings.filter((booking) =>
     activeStatuses.includes(booking.status)
   ).length;
-  
-  const completedCount = bookings.filter((booking) => 
+
+  const completedCount = bookings.filter((booking) =>
     booking.status === "Completed" || booking.status === "Paid"
   ).length;
-  
+
   const loyalty = Math.min(
     100,
     Math.round((completedCount / Math.max(1, bookings.length)) * 100)
@@ -315,7 +365,7 @@ function ClientDashboard() {
     null;
   const activeProgress = activeBooking ? getBookingProgress(activeBooking.status) : 0;
 
-  const lastCompleted = bookings.find((booking) => 
+  const lastCompleted = bookings.find((booking) =>
     booking.status === "Completed" || booking.status === "Paid"
   ) || null;
 
@@ -362,7 +412,7 @@ function ClientDashboard() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="ml-72 min-w-0 flex-1">
+      <div className="ml-0 lg:ml-72 min-w-0 flex-1">
         <Navbar />
         <main className="px-6 pb-6 pt-24">
           {/* ── Header ── */}

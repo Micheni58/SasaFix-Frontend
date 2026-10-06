@@ -31,6 +31,7 @@ import paymentsService from "../../api/paymentsService";
 import bookingService from "../../api/bookingService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
+import { useToast } from "../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // HELPERS
@@ -104,7 +105,7 @@ function ConfirmationModal({
           </div>
           <h3 className="text-2xl font-bold text-gray-800">{title}</h3>
           <p className="mt-2 text-gray-600">{message}</p>
-          
+
           <div className="mt-6 flex gap-3">
             <button
               onClick={onClose}
@@ -158,7 +159,7 @@ function HoldPayoutModal({
           <p className="mt-2 text-gray-600">
             Please provide a reason for holding this payout of {payoutAmount} to {providerName}.
           </p>
-          
+
           <div className="mt-4 text-left">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Reason for Holding
@@ -270,6 +271,7 @@ function LoadingSkeleton() {
 function PayoutDetails() {
   const { payoutId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [payout, setPayout] = useState(null);
   const [provider, setProvider] = useState(null);
@@ -364,9 +366,9 @@ function PayoutDetails() {
       await paymentsService.approvePayout(payout.id);
       setPayout({ ...payout, status: "Approved" });
       setShowApproveModal(false);
-      alert("✅ Payout approved successfully!");
+      toast.success("Payout approved", "The payout was approved successfully.");
     } catch (err) {
-      alert("Failed to approve payout: " + err.message);
+      toast.error("Failed to approve payout", err.message);
     } finally {
       setActionLoading(false);
     }
@@ -375,7 +377,7 @@ function PayoutDetails() {
   // ── Handle Hold Payout ──
   const handleHoldPayout = async () => {
     if (!holdReason.trim()) {
-      alert("Please enter a reason for holding this payout");
+      toast.warning("Hold reason required", "Please enter a reason for holding this payout.");
       return;
     }
 
@@ -385,9 +387,9 @@ function PayoutDetails() {
       setPayout({ ...payout, status: "Held", admin_note: holdReason });
       setShowHoldModal(false);
       setHoldReason("");
-      alert("⏸️ Payout put on hold");
+      toast.info("Payout put on hold");
     } catch (err) {
-      alert("Failed to hold payout: " + err.message);
+      toast.error("Failed to hold payout", err.message);
     } finally {
       setActionLoading(false);
     }
@@ -396,7 +398,7 @@ function PayoutDetails() {
   // ── Handle Reject Payout ──
   const handleRejectPayout = async () => {
     if (!rejectReason.trim()) {
-      alert("Please enter a reason for rejecting this payout");
+      toast.warning("Rejection reason required", "Please enter a reason for rejecting this payout.");
       return;
     }
 
@@ -406,9 +408,9 @@ function PayoutDetails() {
       setPayout({ ...payout, status: "Failed", admin_note: `Rejected: ${rejectReason}` });
       setShowRejectModal(false);
       setRejectReason("");
-      alert("❌ Payout rejected");
+      toast.warning("Payout rejected");
     } catch (err) {
-      alert("Failed to reject payout: " + err.message);
+      toast.error("Failed to reject payout", err.message);
     } finally {
       setActionLoading(false);
     }
@@ -420,9 +422,9 @@ function PayoutDetails() {
     try {
       setPayout({ ...payout, status: "Completed" });
       setShowCompleteModal(false);
-      alert("✅ Payout completed successfully!");
+      toast.success("Payout completed", "The payout was completed successfully.");
     } catch (err) {
-      alert("Failed to complete payout: " + err.message);
+      toast.error("Failed to complete payout", err.message);
     } finally {
       setActionLoading(false);
     }
@@ -433,7 +435,7 @@ function PayoutDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
             <button
@@ -455,7 +457,7 @@ function PayoutDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
             <button
@@ -499,7 +501,7 @@ function PayoutDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
             <button
@@ -533,7 +535,7 @@ function PayoutDetails() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
           {/* ── Header ── */}
@@ -844,7 +846,7 @@ function PayoutDetails() {
               <p className="mt-2 text-gray-600">
                 Please provide a reason for rejecting this payout of {payout?.formatted_amount || formatCurrency(payout?.amount)} to {payout?.provider_name || `Provider #${payout?.provider_id}`}.
               </p>
-              
+
               <div className="mt-4 text-left">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Reason for Rejection

@@ -1,12 +1,9 @@
-// src/pages/ClientTransactions.jsx - Payment history only (no stored wallet balance)
+// src/pages/ClientTransactions.jsx - Payment history with transaction summary (CSV & PDF)
 
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import {
-    ArrowDownLeft,
     ArrowUpRight,
-    Download,
-    Filter,
     ShoppingBag,
     History,
     AlertCircle,
@@ -14,11 +11,18 @@ import {
     Briefcase,
     Receipt,
     RefreshCw,
+    Users,
+    FileText,
+    File,
+    Filter,
 } from "lucide-react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 import { getSidebarRole } from "../../utils/sidebarRole";
 import transactionService from "../../api/transactionService";
+import { TransactionSummaryPDF } from "../../components/TransactionSummaryPDF";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { useToast } from "../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // HELPERS
@@ -60,6 +64,19 @@ function formatDate(dateString) {
     });
 }
 
+function formatDateFull(dateString) {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString("en-KE", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
 function getDateRange(filter) {
     const now = new Date();
     const start = new Date(now);
@@ -70,7 +87,7 @@ function getDateRange(filter) {
             start.setHours(0, 0, 0, 0);
             end.setHours(23, 59, 59, 999);
             break;
-        case "week":
+        case "week": {
             const day = now.getDay();
             const diff = now.getDate() - day + (day === 0 ? -6 : 1);
             start.setDate(diff);
@@ -78,18 +95,21 @@ function getDateRange(filter) {
             end.setDate(start.getDate() + 6);
             end.setHours(23, 59, 59, 999);
             break;
-        case "month":
+        }
+        case "month": {
             start.setDate(1);
             start.setHours(0, 0, 0, 0);
             end.setMonth(now.getMonth() + 1, 0);
             end.setHours(23, 59, 59, 999);
             break;
-        case "year":
+        }
+        case "year": {
             start.setMonth(0, 1);
             start.setHours(0, 0, 0, 0);
             end.setMonth(11, 31);
             end.setHours(23, 59, 59, 999);
             break;
+        }
         default:
             start.setDate(1);
             start.setHours(0, 0, 0, 0);
@@ -158,6 +178,169 @@ function TransactionRowSkeleton() {
 }
 
 // ─────────────────────────────────────────────
+// TRANSACTION SUMMARY COMPONENT (Client Version)
+// ─────────────────────────────────────────────
+
+function TransactionSummary({ transactions, filter, periodLabel }) {
+    const toast = useToast();
+    const [isGeneratingCSV, setIsGeneratingCSV] = useState(false);
+
+    // Filter to only completed/successful transactions
+    const completedTransactions = transactions.filter(tx => {
+        const status = (tx.status || "").toUpperCase();
+        return status === "COMPLETED" || status === "SUCCESS" || status === "PAID";
+    });
+
+   const generateCSV = () => {
+    if (completedTransactions.length === 0) {
+        toast.warning("No completed transactions", "There are no completed transactions to summarize for this period.");
+        return;
+    }
+
+    setIsGeneratingCSV(true);
+
+    try {
+        // Calculate totals
+        let totalSpent = 0;
+
+        completedTransactions.forEach(tx => {
+            const amount = tx.amount || tx.net_amount || tx.netAmount || 0;
+            totalSpent += Number(amount);
+        });
+
+        // Build summary data
+        const summaryData = {
+            period: periodLabel || "Selected Period",
+            generatedAt: new Date().toLocaleString("en-KE", {
+                dateStyle: "full",
+                timeStyle: "medium",
+            }),
+            totals: {
+                totalSpent: totalSpent,
+                transactionsCount: completedTransactions.length,
+            },
+            transactions: completedTransactions.map(tx => ({
+                id: tx.id,
+                description: tx.description || "Transaction",
+                date: formatDateFull(tx.paid_at || tx.paidAt || tx.created_at || tx.createdAt || tx.date),
+                amount: tx.amount || tx.net_amount || tx.netAmount || 0,
+                status: (tx.status || "PENDING").toUpperCase(),
+                type: tx.type || "payment",
+                provider: tx.provider_name || null,
+            })),
+        };
+
+        // Create CSV
+        const headers = ["ID", "Description", "Date", "Status", "Type", "Provider", "Amount (KES)"];
+        const rows = summaryData.transactions.map(t => [
+            t.id,
+            t.description,
+            t.date,
+            t.status,
+            t.type,
+            t.provider || "N/A",
+            t.amount.toFixed(2),
+        ]);
+
+        const csv = [
+            "Sasafix Transaction Summary",
+            "========================",
+            `Period: ${summaryData.period}`,
+            `Generated: ${summaryData.generatedAt}`,
+            "",
+            `Total Transactions: ${summaryData.totals.transactionsCount}`,
+            `Total Spent: KES ${summaryData.totals.totalSpent.toFixed(2)}`,
+            "",
+            "Transaction Details",
+            "-------------------",
+            headers.join(","),
+            ...rows.map(row => row.join(",")),
+            "",
+            "Sasafix - Trusted Local Services",
+            `© ${new Date().getFullYear()} Sasafix. All rights reserved.`,
+        ].join("\n");
+
+        // Download CSV
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `payment_summary_${new Date().toISOString().split("T")[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("Summary downloaded", "Your CSV transaction summary is ready.");
+    } catch (error) {
+        console.error("Error generating CSV:", error);
+        toast.error("Download failed", "Failed to generate CSV. Please try again.");
+    } finally {
+        setIsGeneratingCSV(false);
+    }
+};
+    return (
+        <div className="flex items-center gap-2">
+            {/* CSV Download Button */}
+            <button
+                onClick={generateCSV}
+                disabled={isGeneratingCSV || completedTransactions.length === 0}
+                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+                {isGeneratingCSV ? (
+                    <>
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        Generating CSV...
+                    </>
+                ) : (
+                    <>
+                        <FileText className="h-3.5 w-3.5" />
+                        CSV
+                    </>
+                )}
+            </button>
+
+            {/* PDF Download Button - Only for completed transactions */}
+            {completedTransactions.length > 0 ? (
+                <PDFDownloadLink
+                    document={
+                        <TransactionSummaryPDF
+                            transactions={completedTransactions}
+                            periodLabel={periodLabel}
+                            filter={filter}
+                            role="client"
+                        />
+                    }
+                    fileName={`payment_summary_${new Date().toISOString().split("T")[0]}.pdf`}
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                    {({ loading }) => (
+                        <>
+                            {loading ? (
+                                <>
+                                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                    Generating PDF...
+                                </>
+                            ) : (
+                                <>
+                                    <File className="h-3.5 w-3.5" />
+                                    PDF
+                                </>
+                            )}
+                        </>
+                    )}
+                </PDFDownloadLink>
+            ) : (
+                <button
+                    disabled
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-400 opacity-40 cursor-not-allowed"
+                >
+                    <File className="h-3.5 w-3.5" />
+                    PDF
+                </button>
+            )}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 
@@ -171,6 +354,7 @@ function ClientTransactions() {
     const [error, setError] = useState(null);
 
     const [transactions, setTransactions] = useState([]);
+    const [isFiltering, setIsFiltering] = useState(false);
 
     // ── Get user ID from localStorage ──
     const storedUser = getStoredUser();
@@ -180,18 +364,24 @@ function ClientTransactions() {
     );
 
     // ── Fetch transactions ──
-    const fetchTransactions = async (showRefresh = false) => {
+    const fetchTransactions = async (showRefresh = false, newFilter = null) => {
         if (!userId) {
             setLoading(false);
             return;
         }
 
+        if (newFilter !== null) {
+            setIsFiltering(true);
+        } else if (!showRefresh) {
+            setLoading(true);
+        }
+
         if (showRefresh) setRefreshing(true);
-        else setLoading(true);
         setError(null);
 
         try {
-            const { start, end } = getDateRange(activeFilter);
+            const filterToUse = newFilter !== null ? newFilter : activeFilter;
+            const { start, end } = getDateRange(filterToUse);
             
             const txRes = await transactionService.getClientTransactions(userId);
             const txList = Array.isArray(txRes)
@@ -205,6 +395,10 @@ function ClientTransactions() {
             });
             
             setTransactions(filtered);
+            
+            if (newFilter !== null) {
+                setActiveFilter(newFilter);
+            }
         } catch (err) {
             console.error("Error loading transactions:", err);
             if (err.status === 404) {
@@ -215,13 +409,20 @@ function ClientTransactions() {
         } finally {
             setLoading(false);
             setRefreshing(false);
+            setIsFiltering(false);
         }
     };
 
     useEffect(() => {
         fetchTransactions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId, activeFilter]);
+    }, [userId]);
+
+    // ── Handle filter change with smooth transition ──
+    const handleFilterChange = (value) => {
+        if (value === activeFilter) return;
+        fetchTransactions(false, value);
+    };
 
     // ── Resolve transaction data ──
     const resolveTx = (tx) => {
@@ -247,12 +448,14 @@ function ClientTransactions() {
         const rawStatus = (tx.status || "PENDING").toUpperCase();
         const dateVal = tx.paid_at || tx.paidAt || tx.created_at || tx.createdAt || tx.date;
         const description = tx.description || (isIncoming ? "Refund" : "Booking payment");
+        
+        // Extract provider_id from the transaction
+        const providerId = tx.provider_id || tx.providerId;
 
-        return { absoluteAmount, isIncoming, rawStatus, dateVal, description, txType };
+        return { absoluteAmount, isIncoming, rawStatus, dateVal, description, txType, providerId };
     };
 
     // ── Calculate stats from COMPLETED transactions only ──
-    // Get all transactions that are COMPLETED/SUCCESS/PAID (successful payments)
     const successfulTxes = transactions.filter(tx => {
         const status = (tx.status || "").toUpperCase();
         return status === "COMPLETED" || status === "SUCCESS" || status === "PAID";
@@ -265,12 +468,23 @@ function ClientTransactions() {
     const totalSpent = outgoingTxs.reduce((sum, t) => sum + t.absoluteAmount, 0);
     const paymentCount = outgoingTxs.length;
 
-    // Incoming (refunds received by client)
-    const incomingTxs = successfulResolved.filter(t => t.isIncoming);
-    const totalRefunded = incomingTxs.reduce((sum, t) => sum + t.absoluteAmount, 0);
-    const refundCount = incomingTxs.length;
+    // Get unique providers worked with
+    const uniqueProviders = new Set();
+    successfulResolved.forEach(t => {
+        // Check if it's a payment (outgoing) and has a providerId
+        if (!t.isIncoming && t.providerId) {
+            uniqueProviders.add(t.providerId);
+        }
+    });
+    const totalProviders = uniqueProviders.size;
 
-    const hasTransactions = transactions.length > 0;
+    // Get completed transactions for display
+    const completedTransactions = transactions.filter(tx => {
+        const status = (tx.status || "").toUpperCase();
+        return status === "COMPLETED" || status === "SUCCESS" || status === "PAID";
+    });
+
+    const hasTransactions = completedTransactions.length > 0;
     const hasCompletedTransactions = successfulTxes.length > 0;
 
     // ── Get period label ──
@@ -279,10 +493,6 @@ function ClientTransactions() {
         const startStr = start.toLocaleDateString("en-KE", { month: "short", day: "numeric", year: "numeric" });
         const endStr = end.toLocaleDateString("en-KE", { month: "short", day: "numeric", year: "numeric" });
         return `${startStr} - ${endStr}`;
-    };
-
-    const handleFilterChange = (value) => {
-        setActiveFilter(value);
     };
 
     // ── Loading State ──
@@ -390,6 +600,8 @@ function ClientTransactions() {
         );
     }
 
+    const periodLabel = getPeriodLabel();
+
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role={sidebarRole} />
@@ -435,49 +647,57 @@ function ClientTransactions() {
                                 ))}
                             </div>
                         </div>
-                        <span className="text-xs text-gray-400">
-                            {hasTransactions ? getPeriodLabel() : "No transactions"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400">
+                                {hasTransactions ? periodLabel : "No completed transactions"}
+                            </span>
+                            <TransactionSummary 
+                                transactions={transactions} 
+                                filter={activeFilter}
+                                periodLabel={periodLabel}
+                            />
+                        </div>
                     </div>
 
-                    {/* ── Stat Cards - Only showing COMPLETED transactions ── */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    {/* ── Stat Cards ── */}
+                    <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 transition-opacity duration-300 ${isFiltering ? 'opacity-60' : 'opacity-100'}`}>
                         <StatCard
                             icon={<ArrowUpRight className="h-5 w-5 sm:h-6 sm:w-6 text-red-500" />}
                             iconBg="bg-red-50 border border-red-100"
                             label="Total Paid"
                             value={hasCompletedTransactions ? `KES ${totalSpent.toLocaleString()}` : "KES 0"}
-                            sub={hasCompletedTransactions ? getPeriodLabel() : "No completed payments"}
-                            isLoading={loading}
+                            sub={hasCompletedTransactions ? periodLabel : "No completed payments"}
+                            isLoading={isFiltering}
                         />
                         <StatCard
-                            icon={<ArrowDownLeft className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />}
-                            iconBg="bg-green-50 border border-green-100"
-                            label="Total Refunded"
-                            value={hasCompletedTransactions ? `KES ${totalRefunded.toLocaleString()}` : "KES 0"}
-                            sub={hasCompletedTransactions ? getPeriodLabel() : "No refunds"}
-                            isLoading={loading}
-                        />
-                        <StatCard
-                            icon={<ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-[#056db3]" />}
+                            icon={<Users className="h-5 w-5 sm:h-6 sm:w-6 text-[#056db3]" />}
                             iconBg="bg-blue-50 border border-blue-100"
+                            label="Providers Worked With"
+                            value={totalProviders}
+                            sub={hasCompletedTransactions ? periodLabel : "No providers yet"}
+                            isLoading={isFiltering}
+                        />
+                        <StatCard
+                            icon={<ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />}
+                            iconBg="bg-green-50 border border-green-100"
                             label="Payments Made"
                             value={paymentCount}
-                            sub={hasCompletedTransactions ? getPeriodLabel() : "No completed payments"}
-                            isLoading={loading}
+                            sub={hasCompletedTransactions ? periodLabel : "No completed payments"}
+                            isLoading={isFiltering}
                         />
                     </div>
 
+                    {/* ── Recent Activity and How Payments Work ── */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                         <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm">
                             <div className="flex items-center justify-between mb-1">
                                 <h2 className="text-base sm:text-lg font-bold text-gray-800">Recent Activity</h2>
                                 <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                                    {transactions.length}
+                                    {completedTransactions.length}
                                 </span>
                             </div>
                             <p className="text-xs sm:text-sm text-gray-500 mb-4">
-                                Your latest payments {hasTransactions ? `for ${getPeriodLabel()}` : ""}
+                                Your latest payments {hasTransactions ? `for ${periodLabel}` : ""}
                             </p>
 
                             {!hasTransactions ? (
@@ -494,7 +714,7 @@ function ClientTransactions() {
                                 </div>
                             ) : (
                                 <div className="space-y-3">
-                                    {transactions.slice(0, 5).map((tx, idx) => {
+                                    {completedTransactions.slice(0, 5).map((tx, idx) => {
                                         const { absoluteAmount, isIncoming, dateVal, description } = resolveTx(tx);
                                         return (
                                             <div key={tx.id || idx} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 last:pb-0 gap-2">
@@ -556,48 +776,15 @@ function ClientTransactions() {
                             <h2 className="text-base sm:text-lg font-bold text-gray-800">Transaction History</h2>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-400">
-                                    {hasTransactions ? `${transactions.length} transactions` : "No transactions"}
+                                    {hasTransactions ? `${completedTransactions.length} completed transactions` : "No completed transactions"}
                                 </span>
-                                <button
-                                    onClick={() => {
-                                        if (transactions.length === 0) return;
-                                        const csv = [
-                                            ["Type", "Description", "Date", "Status", "Amount"],
-                                            ...transactions.map((t) => [
-                                                t.type || "",
-                                                t.description || "",
-                                                t.date || "",
-                                                t.status || "",
-                                                t.amount || 0,
-                                            ]),
-                                        ]
-                                            .map((row) => row.join(","))
-                                            .join("\n");
-                                        const blob = new Blob([csv], { type: "text/csv" });
-                                        const url = URL.createObjectURL(blob);
-                                        const a = document.createElement("a");
-                                        a.href = url;
-                                        a.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`;
-                                        a.click();
-                                        URL.revokeObjectURL(url);
-                                    }}
-                                    disabled={!hasTransactions}
-                                    className={`flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                                        hasTransactions
-                                            ? "border-gray-200 text-gray-600 hover:bg-gray-50"
-                                            : "border-gray-100 text-gray-300 cursor-not-allowed"
-                                    }`}
-                                >
-                                    <Download className="h-3.5 w-3.5" />
-                                    Export
-                                </button>
                             </div>
                         </div>
 
                         {!hasTransactions ? (
                             <div className="p-8 text-center text-gray-500 text-sm">
                                 <History className="mx-auto h-12 w-12 text-gray-300 mb-3" />
-                                No transactions for this period. Book a service to see your payment history here.
+                                No completed transactions for this period. Book a service to see your payment history here.
                             </div>
                         ) : (
                             <div className="overflow-x-auto w-full">
@@ -612,7 +799,7 @@ function ClientTransactions() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {transactions.map((tx, idx) => {
+                                        {completedTransactions.map((tx, idx) => {
                                             const { absoluteAmount, isIncoming, rawStatus, dateVal, description, txType } = resolveTx(tx);
                                             return (
                                                 <tr key={tx.id || idx} className="hover:bg-gray-50">
@@ -650,7 +837,7 @@ function ClientTransactions() {
                                             );
                                         })}
                                     </tbody>
-                                    {transactions.length > 0 && (
+                                    {completedTransactions.length > 0 && (
                                         <tfoot className="bg-gray-50 border-t border-gray-200">
                                             <tr>
                                                 <td colSpan="4" className="px-3 sm:px-4 py-2 text-right font-semibold text-gray-700">

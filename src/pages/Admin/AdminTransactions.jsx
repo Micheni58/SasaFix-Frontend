@@ -136,6 +136,7 @@ function SkeletonTableRow() {
       </td>
       <td className="px-4 py-3.5"><div className="h-4 w-20 animate-pulse rounded bg-gray-200" /></td>
       <td className="px-4 py-3.5"><div className="h-4 w-20 animate-pulse rounded bg-gray-200" /></td>
+      <td className="px-4 py-3.5"><div className="h-4 w-20 animate-pulse rounded bg-gray-200" /></td>
       <td className="px-4 py-3.5"><div className="h-6 w-20 animate-pulse rounded-full bg-gray-200" /></td>
       <td className="px-4 py-3.5"><div className="h-4 w-24 animate-pulse rounded bg-gray-200" /></td>
     </tr>
@@ -488,22 +489,20 @@ function AdminTransactions() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72 min-w-0">
           <Navbar />
-          <main className="pt-24 px-6 pb-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="mb-8">
-                <div className="h-9 w-56 animate-pulse rounded bg-gray-200" />
-                <div className="mt-2 h-5 w-72 animate-pulse rounded bg-gray-200" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {[...Array(3)].map((_, i) => (
-                  <SkeletonStatCard key={i} />
-                ))}
-              </div>
-              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                <SkeletonTable />
-              </div>
+          <main className="pt-24 px-4 sm:px-6 pb-6 max-w-7xl mx-auto">
+            <div className="mb-8">
+              <div className="h-9 w-56 animate-pulse rounded bg-gray-200" />
+              <div className="mt-2 h-5 w-72 animate-pulse rounded bg-gray-200" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {[...Array(3)].map((_, i) => (
+                <SkeletonStatCard key={i} />
+              ))}
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <SkeletonTable />
             </div>
           </main>
         </div>
@@ -514,219 +513,217 @@ function AdminTransactions() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72 min-w-0">
         <Navbar />
-        <main className="pt-24 px-6 pb-6">
-          <div className="max-w-7xl mx-auto">
-            {/* ── Page Header ── */}
-            <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-3xl font-bold text-gray-900">Transaction Monitor</h1>
-                  <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-[#056db3]">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    Admin
-                  </span>
-                </div>
-                <p className="mt-2 text-gray-600 max-w-2xl">
-                  Monitor all platform transactions, payments, and payouts.
-                </p>
+        <main className="pt-24 px-4 sm:px-6 pb-6 max-w-7xl mx-auto">
+          {/* ── Page Header ── */}
+          <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold text-gray-900">Transaction Monitor</h1>
+                <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-[#056db3]">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Admin
+                </span>
               </div>
+              <p className="mt-2 text-gray-600 max-w-2xl">
+                Monitor all platform transactions, payments, and payouts.
+              </p>
+            </div>
+            <button
+              onClick={() => fetchTransactions(true)}
+              disabled={refreshing}
+              className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:border-[#056db3] hover:text-[#056db3] transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+          </div>
+
+          {/* ── Stats Cards ── */}
+          <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            {statCards.map((card) => (
+              <StatCard
+                key={card.label}
+                label={card.label}
+                value={card.value}
+                icon={card.icon}
+                iconBg={card.iconBg}
+                accent={card.accent}
+                sub={card.sub}
+                isLoading={loading}
+              />
+            ))}
+          </div>
+
+          {/* ── Filters ── */}
+          <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="relative flex-1 min-w-50">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by booking ID, provider, client, or M-Pesa reference..."
+                  className="h-12 w-full rounded-xl border border-gray-200 bg-[#f8fafc] pl-11 pr-4 text-sm text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:border-[#056db3] focus:border-2 focus:bg-white"
+                />
+              </div>
+              <div className="relative min-w-40">
+                <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-700" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="h-12 w-full appearance-none rounded-xl border border-gray-200 bg-[#f8fafc] pl-9 pr-9 text-sm text-gray-700 outline-none transition-colors focus:border-[#056db3] focus:border-2 focus:bg-white"
+                >
+                  {statusOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="rounded-xl px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-[#056db3] hover:bg-blue-50 transition-colors"
+                >
+                  Clear filters
+                </button>
+              )}
               <button
-                onClick={() => fetchTransactions(true)}
-                disabled={refreshing}
-                className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:border-[#056db3] hover:text-[#056db3] transition-colors disabled:opacity-50"
+                onClick={() => downloadCSV(filteredTransactions)}
+                disabled={filteredTransactions.length === 0}
+                className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:border-[#056db3] hover:text-[#056db3] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                Refresh
+                <Download className="h-4 w-4" />
+                Export CSV
               </button>
             </div>
+          </div>
 
-            {/* ── Stats Cards ── */}
-            <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-              {statCards.map((card) => (
-                <StatCard
-                  key={card.label}
-                  label={card.label}
-                  value={card.value}
-                  icon={card.icon}
-                  iconBg={card.iconBg}
-                  accent={card.accent}
-                  sub={card.sub}
-                  isLoading={loading}
-                />
-              ))}
-            </div>
+          {/* ── Results summary ── */}
+          <p className="mb-4 px-1 text-sm text-gray-500">
+            Showing <span className="font-mono font-semibold text-gray-700">{filteredTransactions.length}</span> of{" "}
+            <span className="font-mono font-semibold text-gray-700">{transactions.length}</span> transactions
+          </p>
 
-            {/* ── Filters ── */}
-            <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                <div className="relative flex-1">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by booking ID, provider, client, or M-Pesa reference..."
-                    className="h-12 w-full rounded-xl border border-gray-200 bg-[#f8fafc] pl-11 pr-4 text-sm text-gray-700 outline-none transition-colors placeholder:text-gray-400 focus:border-[#056db3] focus:border-2 focus:bg-white"
-                  />
-                </div>
-                <div className="relative">
-                  <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-700" />
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="h-12 min-w-40 appearance-none rounded-xl border border-gray-200 bg-[#f8fafc] pl-9 pr-9 text-sm text-gray-700 outline-none transition-colors focus:border-[#056db3] focus:border-2 focus:bg-white"
-                  >
-                    {statusOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {hasActiveFilters && (
-                  <button
-                    onClick={clearFilters}
-                    className="rounded-xl px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-[#056db3] hover:bg-blue-50 transition-colors"
-                  >
-                    Clear filters
-                  </button>
-                )}
+          {/* ── Transactions Table ── */}
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            {error ? (
+              <div className="p-10 text-center">
+                <AlertCircle className="mx-auto h-12 w-12 text-red-500" />
+                <p className="mt-2 text-red-600">{error}</p>
                 <button
-                  onClick={() => downloadCSV(filteredTransactions)}
-                  disabled={filteredTransactions.length === 0}
-                  className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:border-[#056db3] hover:text-[#056db3] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  onClick={() => fetchTransactions()}
+                  className="mt-4 rounded-xl bg-[#056db3] px-4 py-2 text-white hover:bg-[#045a94]"
                 >
-                  <Download className="h-4 w-4" />
-                  Export CSV
+                  Try Again
                 </button>
               </div>
-            </div>
-
-            {/* ── Results summary ── */}
-            <p className="mb-4 px-1 text-sm text-gray-500">
-              Showing <span className="font-mono font-semibold text-gray-700">{filteredTransactions.length}</span> of{" "}
-              <span className="font-mono font-semibold text-gray-700">{transactions.length}</span> transactions
-            </p>
-
-            {/* ── Transactions Table ── */}
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-              {error ? (
-                <div className="p-10 text-center">
-                  <AlertCircle className="mx-auto h-12 w-12 text-red-500" />
-                  <p className="mt-2 text-red-600">{error}</p>
-                  <button
-                    onClick={() => fetchTransactions()}
-                    className="mt-4 rounded-xl bg-[#056db3] px-4 py-2 text-white hover:bg-[#045a94]"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              ) : filteredTransactions.length === 0 ? (
-                <EmptyState
-                  icon={Receipt}
-                  title="No Transactions"
-                  description={searchTerm || statusFilter !== "All Status"
-                    ? "No transactions match your filters. Try adjusting your search."
-                    : "There are no transactions yet. Payments will appear here once clients pay for bookings."}
-                />
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full table-auto">
-                    <thead className="border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
-                      <tr>
-                        <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">ID</th>
-                        <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Booking</th>
-                        <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Client</th>
-                        <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Provider</th>
-                        <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Gross</th>
-                        <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Commission</th>
-                        <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Net</th>
-                        <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
-                        <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {filteredTransactions.map((t) => {
-                        const isFailed = (t.status || "").toUpperCase() === "FAILED";
-                        return (
-                          <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-4 text-sm font-mono text-gray-500">#{t.id}</td>
-                            <td className="px-4 py-4">
-                              <span className="text-sm font-mono font-medium text-[#056db3]">#{t.bookingId}</span>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-[#056db3]">
-                                  {getInitials(t.clientName)}
-                                </div>
-                                <span className="text-sm font-medium text-gray-800">
-                                  {t.clientName || `Client #${t.clientId}`}
-                                </span>
+            ) : filteredTransactions.length === 0 ? (
+              <EmptyState
+                icon={Receipt}
+                title="No Transactions"
+                description={searchTerm || statusFilter !== "All Status"
+                  ? "No transactions match your filters. Try adjusting your search."
+                  : "There are no transactions yet. Payments will appear here once clients pay for bookings."}
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full table-auto min-w-275">
+                  <thead className="border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">ID</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Booking</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Client</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Provider</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Gross</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Commission</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Net</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredTransactions.map((t) => {
+                      const isFailed = (t.status || "").toUpperCase() === "FAILED";
+                      return (
+                        <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-4 text-sm font-mono text-gray-500 whitespace-nowrap">#{t.id}</td>
+                          <td className="px-4 py-4">
+                            <span className="text-sm font-mono font-medium text-[#056db3] whitespace-nowrap">#{t.bookingId}</span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2.5 whitespace-nowrap">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-[#056db3]">
+                                {getInitials(t.clientName)}
                               </div>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-100 text-xs font-bold text-purple-600">
-                                  {getInitials(t.providerName)}
-                                </div>
-                                <span className="text-sm font-medium text-gray-800">
-                                  {t.providerName || `Provider #${t.providerId}`}
-                                </span>
+                              <span className="text-sm font-medium text-gray-800">
+                                {t.clientName || `Client #${t.clientId}`}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2.5 whitespace-nowrap">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-100 text-xs font-bold text-purple-600">
+                                {getInitials(t.providerName)}
                               </div>
-                            </td>
-                            <td className="px-4 py-4 text-sm font-mono font-semibold text-gray-800">
-                              {formatCurrency(t.grossAmount)}
-                            </td>
-                            <td className="px-4 py-4 text-sm font-mono font-semibold text-[#056db3]">
-                              {formatCurrency(t.commissionAmount)}
-                            </td>
-                            <td className="px-4 py-4 text-sm font-mono font-semibold text-green-600">
-                              {formatCurrency(t.netAmount)}
-                            </td>
-                            <td className="px-4 py-4">{getStatusBadge(t.status)}</td>
-                            <td className="px-4 py-4">
-                              <div className="flex items-center gap-1 whitespace-nowrap">
-                                <button
-                                  onClick={() => setDetailTransaction(t)}
-                                  className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-[#056db3] transition-colors"
-                                  title="View details"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </button>
-                                {isFailed && (
-                                  <>
-                                    <button
-                                      onClick={() => setRetryTransaction(t)}
-                                      className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-[#056db3] transition-colors"
-                                      title="Retry payout"
-                                    >
-                                      <RotateCcw className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        setResolveTransactionTarget(t);
-                                        setResolveNote("");
-                                      }}
-                                      className="rounded-lg p-1.5 text-gray-400 hover:bg-green-50 hover:text-green-600 transition-colors"
-                                      title="Mark resolved"
-                                    >
-                                      <CheckCircle2 className="h-4 w-4" />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+                              <span className="text-sm font-medium text-gray-800">
+                                {t.providerName || `Provider #${t.providerId}`}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-sm font-mono font-semibold text-gray-800 whitespace-nowrap">
+                            {formatCurrency(t.grossAmount)}
+                          </td>
+                          <td className="px-4 py-4 text-sm font-mono font-semibold text-[#056db3] whitespace-nowrap">
+                            {formatCurrency(t.commissionAmount)}
+                          </td>
+                          <td className="px-4 py-4 text-sm font-mono font-semibold text-green-600 whitespace-nowrap">
+                            {formatCurrency(t.netAmount)}
+                          </td>
+                          <td className="px-4 py-4">{getStatusBadge(t.status)}</td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-1 whitespace-nowrap">
+                              <button
+                                onClick={() => setDetailTransaction(t)}
+                                className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-[#056db3] transition-colors"
+                                title="View details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                              {isFailed && (
+                                <>
+                                  <button
+                                    onClick={() => setRetryTransaction(t)}
+                                    className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-[#056db3] transition-colors"
+                                    title="Retry payout"
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setResolveTransactionTarget(t);
+                                      setResolveNote("");
+                                    }}
+                                    className="rounded-lg p-1.5 text-gray-400 hover:bg-green-50 hover:text-green-600 transition-colors"
+                                    title="Mark resolved"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </main>
       </div>

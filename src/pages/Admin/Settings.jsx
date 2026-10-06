@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 import authService from "../../services/api";
+import { useToast } from "../../components/ui/ToastProvider";
 
 const BRAND = "#056db3";
 const BRAND_DARK = "#04599a";
@@ -72,14 +73,6 @@ const Label = ({ children }) => (
     {children}
   </label>
 );
-const Toast = ({ msg, ok }) => (
-  <div
-    className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium text-white flex items-center gap-2 ${ok ? "bg-green-500" : "bg-red-500"}`}
-  >
-    {ok ? "✓" : "✕"} {msg}
-  </div>
-);
-
 const NAV = [
   { id: "profile", label: "My Profile", icon: <UserIcon /> },
   { id: "security", label: "Security", icon: <LockIcon /> },
@@ -90,6 +83,7 @@ const NAV = [
 
 // ── My Profile ─────────────────────────────────────────────────────
 const MyProfile = ({ user, onSaved }) => {
+  const toast = useToast();
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -97,7 +91,6 @@ const MyProfile = ({ user, onSaved }) => {
     phone_number: "",
   });
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
   const fileRef = useRef();
   const [avatar, setAvatar] = useState(null);
 
@@ -116,11 +109,6 @@ const MyProfile = ({ user, onSaved }) => {
   const initials =
     `${user?.first_name?.[0] || ""}${user?.last_name?.[0] || ""}`.toUpperCase() ||
     "?";
-  const showToast = (msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  };
-
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -139,9 +127,9 @@ const MyProfile = ({ user, onSaved }) => {
       const updated = await res.json();
       localStorage.setItem("user", JSON.stringify({ ...user, ...updated }));
       onSaved?.({ ...user, ...updated });
-      showToast("Profile updated successfully.");
+      toast.success("Profile updated successfully");
     } catch (e) {
-      showToast(e.message || "Save failed.", false);
+      toast.error("Save failed", e.message || "Please try again.");
     } finally {
       setSaving(false);
     }
@@ -149,7 +137,6 @@ const MyProfile = ({ user, onSaved }) => {
 
   return (
     <div>
-      {toast && <Toast msg={toast.msg} ok={toast.ok} />}
       <h2 className="text-xl font-bold text-gray-900 mb-1">My Profile</h2>
       <p className="text-sm text-gray-400 mb-6">
         Update your admin account details
@@ -276,6 +263,7 @@ const MyProfile = ({ user, onSaved }) => {
 
 // ── Security ───────────────────────────────────────────────────────
 const Security = () => {
+  const toast = useToast();
   const [form, setForm] = useState({
     current_password: "",
     new_password: "",
@@ -283,20 +271,14 @@ const Security = () => {
   });
   const [vis, setVis] = useState({ cur: false, nw: false, cf: false });
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
-  const showToast = (msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.new_password !== form.confirm_password) {
-      showToast("Passwords don't match.", false);
+      toast.error("Password change failed", "Passwords don't match.");
       return;
     }
     if (form.new_password.length < 6) {
-      showToast("Password must be at least 6 characters.", false);
+      toast.error("Password change failed", "Password must be at least 6 characters.");
       return;
     }
     setSaving(true);
@@ -317,9 +299,9 @@ const Security = () => {
         throw new Error(e.detail);
       }
       setForm({ current_password: "", new_password: "", confirm_password: "" });
-      showToast("Password changed successfully.");
+      toast.success("Password changed successfully");
     } catch (e) {
-      showToast(e.message || "Failed.", false);
+      toast.error("Password change failed", e.message || "Please try again.");
     } finally {
       setSaving(false);
     }
@@ -349,7 +331,6 @@ const Security = () => {
 
   return (
     <div>
-      {toast && <Toast msg={toast.msg} ok={toast.ok} />}
       <h2 className="text-xl font-bold text-gray-900 mb-1">Security</h2>
       <p className="text-sm text-gray-400 mb-6">
         Keep your admin account secure
@@ -490,6 +471,7 @@ const Notifications = () => {
 
 // ── Platform Settings ──────────────────────────────────────────────
 const PlatformSettings = () => {
+  const toast = useToast();
   const [settings, setSettings] = useState({
     allow_registrations: true,
     require_id_verification: false,
@@ -498,12 +480,6 @@ const PlatformSettings = () => {
     support_email: "support@servicehub.co.ke",
   });
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
-  const showToast = (msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  };
-
   const Toggle = ({ label, desc, k }) => (
     <div className="flex items-center justify-between py-4 border-b border-gray-50 last:border-0">
       <div>
@@ -525,7 +501,6 @@ const PlatformSettings = () => {
 
   return (
     <div>
-      {toast && <Toast msg={toast.msg} ok={toast.ok} />}
       <h2 className="text-xl font-bold text-gray-900 mb-1">
         Platform Settings
       </h2>
@@ -592,7 +567,7 @@ const PlatformSettings = () => {
           setSaving(true);
           setTimeout(() => {
             setSaving(false);
-            showToast("Platform settings saved.");
+            toast.success("Platform settings saved");
           }, 800);
         }}
         disabled={saving}
@@ -685,7 +660,7 @@ function Settings() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           <div className="mb-6">

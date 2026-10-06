@@ -1,8 +1,8 @@
 // src/pages/ServiceProvider/Jobs/CompletedJobDetails.jsx - With Proper Error Handling
 
 import { useState, useEffect } from "react";
-import { 
-  Mail, Phone, Calendar, Clock3, MapPin, 
+import {
+  Mail, Phone, Calendar, Clock3, MapPin,
   MessageSquare, Loader2, CheckCircle2, Star, Download,
   Eye
 } from "lucide-react";
@@ -12,6 +12,7 @@ import ratingService from "../../../api/ratingService";
 import reviewService from "../../../api/reviewService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 // ─────────────────────────────────────────────
 // DATE / TIME FORMATTERS
@@ -74,7 +75,7 @@ function CompletedJobSkeleton() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           <div className="animate-pulse">
@@ -201,24 +202,24 @@ function CompletedJobSkeleton() {
 function CompletedJobDetails() {
   const { id: bookingId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [rating, setRating] = useState(null);
   const [review, setReview] = useState(null);
-  const [loadingReview, setLoadingReview] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    
+
     bookingService.getBooking(bookingId)
       .then((b) => {
         if (!mounted) return;
-        
+
         // ── Extract the raw amount ──
         let serviceFeeRaw = 0;
-        
+
         if (b.amountRaw !== undefined && b.amountRaw !== null) {
           serviceFeeRaw = typeof b.amountRaw === 'string' ? parseFloat(b.amountRaw) : b.amountRaw;
         } else if (b.raw?.amount !== undefined && b.raw?.amount !== null) {
@@ -229,22 +230,22 @@ function CompletedJobDetails() {
           const clean = b.amount.replace(/[^0-9.]/g, '');
           serviceFeeRaw = parseFloat(clean) || 0;
         }
-        
+
         if (isNaN(serviceFeeRaw) || serviceFeeRaw <= 0) {
           serviceFeeRaw = 0;
         }
-        
+
         // ── Calculate commission and earnings ──
         const commissionRate = 10;
         const commissionRaw = serviceFeeRaw * (commissionRate / 100);
         const earningsRaw = serviceFeeRaw - commissionRaw;
-        
+
         const clientName = b.client || b.clientName || b.client_full_name || b.raw?.client_full_name || `Client #${b.clientId}`;
-        
+
         // ── Format date and time ──
         const formattedDate = formatDate(b.date || b.scheduled_date || '');
         const formattedTime = formatTimeRange(b.time || (b.scheduled_start_time && `${b.scheduled_start_time} - ${b.scheduled_end_time}`) || '');
-        
+
         const mapped = {
           id: b.id || bookingId,
           service: b.service || b.service_name || '',
@@ -276,10 +277,8 @@ function CompletedJobDetails() {
           raw: b
         };
         setJob(mapped);
-        
+
         // ── Fetch rating for this booking (silently handle 404) ──
-        setLoadingReview(true);
-        
         // Fetch rating
         ratingService.getBookingRating(bookingId)
           .then((ratingData) => {
@@ -296,7 +295,7 @@ function CompletedJobDetails() {
             }
             setRating(null);
           });
-        
+
         // Fetch review
         reviewService.getBookingReview(bookingId)
           .then((reviewData) => {
@@ -313,9 +312,6 @@ function CompletedJobDetails() {
             }
             setReview(null);
           })
-          .finally(() => {
-            if (mounted) setLoadingReview(false);
-          });
       })
       .catch((e) => {
         console.error(e);
@@ -329,7 +325,7 @@ function CompletedJobDetails() {
 
   // ── Handle Download Invoice ──
   const handleDownloadInvoice = () => {
-    alert("📄 Invoice download feature coming soon!");
+    toast.info("Invoice download coming soon", "This feature is not available yet.");
   };
 
   // ── Handle View More Jobs ──
@@ -346,7 +342,7 @@ function CompletedJobDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 flex items-center justify-center">
             <p className="text-red-500">Error: {error}</p>
@@ -360,7 +356,7 @@ function CompletedJobDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-72">
+        <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6 flex items-center justify-center">
             <p className="text-gray-500">No booking found.</p>
@@ -379,7 +375,7 @@ function CompletedJobDetails() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           {/* ── Header ── */}
@@ -485,7 +481,7 @@ function CompletedJobDetails() {
               {/* ── Client Review (with empty state) ── */}
               <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Client Review</h2>
-                
+
                 {hasRating && ratingScore ? (
                   <>
                     <div className="flex items-center gap-4 mb-4">

@@ -1,3 +1,5 @@
+// src/api/bookingService.js
+
 import axios from "axios";
 
 const API_URL = "/api";
@@ -22,27 +24,20 @@ client.interceptors.request.use((config) => {
 // ─────────────────────────────────────────────
 
 function normalizeBooking(apiBooking) {
-    // Handle both lowercase and uppercase statuses from API
     const rawStatus = apiBooking.status || "";
     const statusLower = rawStatus.toLowerCase();
-    
-    // Map backend enum values (lowercase) to frontend display names
+
     const statusMap = {
-        "pending": "New Requests",
+        "pending": "Pending",
         "accepted": "Accepted",
         "in_progress": "In Progress",
         "completed": "Completed",
         "rescheduled": "Rescheduled",
         "cancelled": "Cancelled",
         "paid": "Paid",
-        // Handle old uppercase values just in case
-        "pending": "New Requests",
-        "accepted": "Accepted",
-        "in_progress": "In Progress",
-        "completed": "Completed",
-        "rescheduled": "Rescheduled",
-        "cancelled": "Cancelled",
-        "paid": "Paid",
+        "reschedule_requested": "Reschedule Requested",
+        "reschedule_proposed": "Reschedule Proposed",
+        "reschedule_confirmed": "Reschedule Confirmed",
     };
 
     const providerName = apiBooking.provider_full_name || apiBooking.provider_name || "Provider";
@@ -58,6 +53,9 @@ function normalizeBooking(apiBooking) {
         clientName: clientName,
         clientId: apiBooking.client_id || null,
         serviceProviderId: apiBooking.service_provider_id || null,
+        // ✅ Add provider user ID from the API response
+        providerUserId: apiBooking.provider_user_id || null,
+        clientBookingCount: apiBooking.client_booking_count || 0,
         initials: providerName
             .split(" ")
             .map((s) => s[0])
@@ -74,13 +72,25 @@ function normalizeBooking(apiBooking) {
                 ? `${apiBooking.scheduled_start_time} - ${apiBooking.scheduled_end_time}`
                 : apiBooking.scheduled_start_time || "",
         location: apiBooking.location || "",
-        status: statusMap[statusLower] || rawStatus || "New Requests",
+        status: statusMap[statusLower] || rawStatus || "Pending",
         amount:
             typeof apiBooking.amount === "number"
                 ? `KES ${apiBooking.amount.toLocaleString()}`
                 : apiBooking.amount || "",
         amountRaw: apiBooking.amount,
         paidAt: apiBooking.paid_at || null,
+        originalDate: apiBooking.original_scheduled_date || null,
+        originalTime: apiBooking.original_scheduled_start_time && apiBooking.original_scheduled_end_time
+            ? `${apiBooking.original_scheduled_start_time} - ${apiBooking.original_scheduled_end_time}`
+            : apiBooking.original_scheduled_start_time || "",
+        proposedDate: apiBooking.proposed_scheduled_date || null,
+        proposedTime: apiBooking.proposed_scheduled_start_time && apiBooking.proposed_scheduled_end_time
+            ? `${apiBooking.proposed_scheduled_start_time} - ${apiBooking.proposed_scheduled_end_time}`
+            : apiBooking.proposed_scheduled_start_time || "",
+        rescheduleReason: apiBooking.reschedule_reason || null,
+        rescheduleInitiatedBy: apiBooking.reschedule_initiated_by || null,
+        rescheduleRequestedAt: apiBooking.reschedule_requested_at || null,
+        rescheduleRespondedAt: apiBooking.reschedule_responded_at || null,
         raw: apiBooking,
     };
 }
@@ -120,6 +130,11 @@ async function normalizeBookingAsync(apiBooking) {
 // ─────────────────────────────────────────────
 // BOOKING ENDPOINTS
 // ─────────────────────────────────────────────
+
+export async function createBooking(bookingData) {
+    const resp = await client.post("/bookings/", bookingData);
+    return normalizeBooking(resp.data);
+}
 
 export async function listClientBookings(clientId) {
     try {
@@ -186,22 +201,22 @@ export async function listActiveBookings() {
 }
 
 // ─────────────────────────────────────────────
-// STATUS UPDATE - FIXED FOR LOWERCASE ENUM VALUES
+// STATUS UPDATE
 // ─────────────────────────────────────────────
 
 export async function updateBookingStatus(bookingId, newStatus) {
     try {
-        // Map frontend display status to backend enum values (LOWERCASE)
         const statusMap = {
-            // Frontend display names -> Backend enum values (lowercase)
-            "New Requests": "pending",
+            "Pending": "pending",
             "Accepted": "accepted",
             "In Progress": "in_progress",
             "Completed": "completed",
             "Rescheduled": "rescheduled",
             "Cancelled": "cancelled",
             "Paid": "paid",
-            // Handle if someone passes uppercase values
+            "Reschedule Requested": "reschedule_requested",
+            "Reschedule Proposed": "reschedule_proposed",
+            "Reschedule Confirmed": "reschedule_confirmed",
             "PENDING": "pending",
             "ACCEPTED": "accepted",
             "IN_PROGRESS": "in_progress",
@@ -209,11 +224,13 @@ export async function updateBookingStatus(bookingId, newStatus) {
             "RESCHEDULED": "rescheduled",
             "CANCELLED": "cancelled",
             "PAID": "paid",
+            "RESCHEDULE_REQUESTED": "reschedule_requested",
+            "RESCHEDULE_PROPOSED": "reschedule_proposed",
+            "RESCHEDULE_CONFIRMED": "reschedule_confirmed",
         };
-        
-        // Get the backend status value (lowercase)
+
         const backendStatus = statusMap[newStatus] || newStatus.toLowerCase();
-        
+
         const resp = await client.patch(`/bookings/${bookingId}/status`, {
             status: backendStatus
         });
@@ -239,6 +256,54 @@ export async function cancelBooking(bookingId) {
     }
 }
 
+// ─────────────────────────────────────────────
+// RESCHEDULE ENDPOINTS
+// ─────────────────────────────────────────────
+
+export async function requestReschedule(bookingId, data) {
+    try {
+        const resp = await client.patch(`/bookings/${bookingId}/request-reschedule`, data);
+        return normalizeBooking(resp.data);
+    } catch (error) {
+        console.error('Failed to request reschedule:', error);
+        throw error;
+    }
+}
+
+export async function proposeReschedule(bookingId, data) {
+    try {
+        const resp = await client.patch(`/bookings/${bookingId}/propose-reschedule`, data);
+        return normalizeBooking(resp.data);
+    } catch (error) {
+        console.error('Failed to propose reschedule:', error);
+        throw error;
+    }
+}
+
+export async function acceptReschedule(bookingId) {
+    try {
+        const resp = await client.patch(`/bookings/${bookingId}/accept-reschedule`);
+        return normalizeBooking(resp.data);
+    } catch (error) {
+        console.error('Failed to accept reschedule:', error);
+        throw error;
+    }
+}
+
+export async function declineReschedule(bookingId) {
+    try {
+        const resp = await client.patch(`/bookings/${bookingId}/decline-reschedule`);
+        return normalizeBooking(resp.data);
+    } catch (error) {
+        console.error('Failed to decline reschedule:', error);
+        throw error;
+    }
+}
+
+// ─────────────────────────────────────────────
+// LEGACY RESCHEDULE (Keep for backward compatibility)
+// ─────────────────────────────────────────────
+
 export async function rescheduleBooking(bookingId, data) {
     try {
         const resp = await client.patch(`/bookings/${bookingId}/reschedule`, data);
@@ -251,15 +316,29 @@ export async function rescheduleBooking(bookingId, data) {
     }
 }
 
+// ─────────────────────────────────────────────
+// PROVIDER AVAILABILITY
+// ─────────────────────────────────────────────
+
 export async function listProviders() {
     return [];
 }
 
 export async function getProviderAvailability(providerId) {
-    return null;
+    const response = await client.get(`/providers/${providerId}/availability`);
+    return response.data;
+}
+
+export async function updateProviderAvailability(providerId, availability) {
+    const response = await client.put(
+        `/providers/${providerId}/availability`,
+        availability,
+    );
+    return response.data;
 }
 
 export default {
+    createBooking,
     listClientBookings,
     listProviderBookings,
     getBooking,
@@ -267,6 +346,11 @@ export default {
     updateBookingStatus,
     cancelBooking,
     rescheduleBooking,
+    requestReschedule,
+    proposeReschedule,
+    acceptReschedule,
+    declineReschedule,
     listProviders,
     getProviderAvailability,
+    updateProviderAvailability,
 };

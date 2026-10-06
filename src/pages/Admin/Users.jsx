@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
+import { useToast } from "../../components/ui/ToastProvider";
 
 const API = "http://localhost:8000/api";
 const authHeaders = () => ({
@@ -216,15 +217,8 @@ const UserModal = ({ user, onClose }) => {
   );
 };
 
-const Toast = ({ msg, ok }) => (
-  <div
-    className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium text-white ${ok ? "bg-green-500" : "bg-red-500"}`}
-  >
-    {ok ? "✓" : "✕"} {msg}
-  </div>
-);
-
 function Users() {
+  const toast = useToast();
   const [users, setUsers] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -233,11 +227,9 @@ function Users() {
   const [selected, setSelected] = useState(new Set());
   const [viewUser, setViewUser] = useState(null);
   const [confirm, setConfirm] = useState(null);
-  const [toast, setToast] = useState(null);
-
   const showToast = (msg, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
+    if (ok) toast.success(msg);
+    else toast.error("Action failed", msg);
   };
 
   // Fetch users
@@ -362,10 +354,9 @@ function Users() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
-          {toast && <Toast msg={toast.msg} ok={toast.ok} />}
           {viewUser && (
             <UserModal user={viewUser} onClose={() => setViewUser(null)} />
           )}

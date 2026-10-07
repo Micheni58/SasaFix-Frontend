@@ -182,6 +182,33 @@ function SkeletonTable() {
   );
 }
 
+function BookingTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+
+  const isDark = document.documentElement.dataset.theme === "dark";
+  const foreground = isDark ? "#f8fafc" : "#1f2937";
+
+  return (
+    <div
+      style={{
+        backgroundColor: isDark ? "#1e293b" : "#ffffff",
+        border: `1px solid ${isDark ? "#64748b" : "#e5e7eb"}`,
+        borderRadius: 8,
+        boxShadow: "0 12px 28px rgb(2 6 23 / 30%)",
+        color: foreground,
+        padding: "10px 14px",
+      }}
+    >
+      <p style={{ color: foreground, fontWeight: 700, margin: "0 0 6px" }}>{label}</p>
+      {payload.map((item) => (
+        <p key={item.dataKey} style={{ color: foreground, fontSize: 13, margin: 0 }}>
+          {item.name || "Bookings"}: {item.value}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────
 // STAT CARD COMPONENT
 // ─────────────────────────────────────────────
@@ -251,13 +278,7 @@ function BookingChart({ data }) {
             allowDecimals={false}
           />
           <Tooltip
-            contentStyle={{
-              backgroundColor: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px",
-              padding: "8px 12px",
-            }}
-            formatter={(value) => [value, "Bookings"]}
+            content={<BookingTooltip />}
           />
           <Legend />
           <Line
@@ -686,7 +707,7 @@ function AdminDashboard() {
                   </div>
                   <TrendingUp className="h-5 w-5 text-green-500" />
                 </div>
-                <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                <div className="admin-active-providers-stat flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-orange-100 rounded-lg">
                       <Users className="h-5 w-5 text-orange-600" />

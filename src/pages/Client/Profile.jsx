@@ -5,6 +5,7 @@ import { useLocation } from "react-router-dom";
 import { getSidebarRole } from "../../utils/sidebarRole";
 import authService from "../../services/api";
 import { useToast } from "../../components/ui/ToastProvider";
+import ThemeSettings from "../../components/profile/ThemeSettings";
 
 const BRAND = "#056db3";
 const BRAND_DARK = "#04599a";
@@ -82,6 +83,7 @@ const NAV = [
   { id: "locations", label: "Saved Locations", icon: <PinIcon /> },
   { id: "notifications", label: "Notifications", icon: <BellIcon /> },
   { id: "security", label: "Security", icon: <LockIcon /> },
+  { id: "theme", label: "Theme", icon: <Ico circle={[12, 12, 4]} d="M12 2v2m0 16v2m10-10h-2M4 12H2m17.07 7.07-1.42-1.42M6.35 6.35 4.93 4.93m14.14 0-1.42 1.42M6.35 17.65l-1.42 1.42" /> },
   { id: "help", label: "Help & Support", icon: <HelpIcon /> },
 ];
 
@@ -606,11 +608,11 @@ const HelpSupport = () => (
         Our team is available Mon–Fri, 8am–6pm EAT.
       </p>
       <a
-        href="mailto:support@servicehub.co.ke"
+        href="mailto:info@sasafix.co.ke"
         className="text-sm font-semibold hover:underline"
         style={{ color: BRAND }}
       >
-        support@servicehub.co.ke
+        info@sasafix.co.ke
       </a>
     </div>
   </div>
@@ -639,6 +641,7 @@ function ClientProfile() {
     locations: <SavedLocations user={user} />,
     notifications: <NotificationSettings />,
     security: <Security />,
+    theme: <ThemeSettings />,
     help: <HelpSupport />,
   };
 

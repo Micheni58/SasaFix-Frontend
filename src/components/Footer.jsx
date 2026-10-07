@@ -22,7 +22,7 @@ export default function Footer() {
         <div>
           <h3 className="font-bold">Contact</h3>
           <div className="mt-4 space-y-2 text-sm text-white/70">
-            <a href="mailto:hello@sasafix.co.ke" className="block hover:text-white">hello@sasafix.co.ke</a>
+            <a href="mailto:info@sasafix.co.ke" className="block hover:text-white">info@sasafix.co.ke</a>
             <a href="tel:+254700000000" className="block hover:text-white">+254 700 000 000</a>
             <p>Nairobi, Kenya</p>
           </div>

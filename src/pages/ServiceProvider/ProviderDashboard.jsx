@@ -24,7 +24,6 @@ import { getProviderTransactions } from "../../api/transactionService";
 import ratingService from "../../api/ratingService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
-import aiService from "../../api/aiService";
 import { getStoredProviderId } from "../../utils/sidebarRole";
 
 // ── Status Colors ──
@@ -273,9 +272,9 @@ function StatCard({ label, value, icon: _Icon, iconBg, isLoading, subText }) {
 }
 
 // ── AI Insight Card ──
-function AIInsightCard({ onGenerate, isLoading, insight }) {
+function AIInsightCard() {
   return (
-    <div className="rounded-xl border border-blue-200 bg-linear-to-r from-blue-50/80 to-indigo-50/80 p-6 transition-all hover:shadow-md">
+    <div className="dark-ai-insight-card rounded-xl border border-blue-200 bg-linear-to-r from-blue-50/80 to-indigo-50/80 p-6 transition-all hover:shadow-md">
       <div className="flex items-start gap-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: '#056db3' }}>
           <Sparkles className="h-5 w-5 text-white" />
@@ -285,51 +284,19 @@ function AIInsightCard({ onGenerate, isLoading, insight }) {
             <h4 className="font-semibold text-gray-800" style={{ color: '#056db3' }}>
               AI Provider Co-Pilot
             </h4>
-            <button
-              onClick={onGenerate}
-              disabled={isLoading}
-              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#045a94] disabled:opacity-50 disabled:cursor-not-allowed"
+            <Link
+              to="/provider/ai-assistant"
+              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#045a94]"
               style={{ backgroundColor: '#056db3' }}
             >
-              {isLoading ? (
-                <>
-                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Get Insights
-                </>
-              )}
-            </button>
+              <Sparkles className="h-3.5 w-3.5" />
+              Get Insights
+            </Link>
           </div>
           <div className="mt-3">
-            {isLoading ? (
-              <div className="flex items-center gap-3">
-                <div className="h-3 w-3 animate-pulse rounded-full" style={{ backgroundColor: '#056db3' }} />
-                <span className="text-sm text-gray-500">AI is analyzing your profile...</span>
-              </div>
-            ) : insight ? (
-              <div className="space-y-2 text-sm text-gray-700">
-                <div className="flex items-start gap-2">
-                  <span className="mt-0.5 text-green-500">✅</span>
-                  <span>{insight}</span>
-                </div>
-                <Link
-                  to="/provider/ai-assistant"
-                  className="inline-flex items-center gap-1 text-xs font-medium transition-colors hover:underline"
-                  style={{ color: '#056db3' }}
-                >
-                  Open AI Assistant
-                  <ChevronRight className="h-3 w-3" />
-                </Link>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">
-                Click <strong>"Get Insights"</strong> to get AI-powered suggestions for your profile and pricing.
-              </p>
-            )}
+            <p className="text-sm text-gray-500">
+              Get AI-powered suggestions for your profile, reviews, and pricing.
+            </p>
           </div>
         </div>
       </div>
@@ -457,8 +424,6 @@ function ProviderDashboard() {
   const [providerRating, setProviderRating] = useState(null);
   const [providerSpecialty, setProviderSpecialty] = useState("Service Provider");
   const [providerLocation, setProviderLocation] = useState("Nairobi, Kenya");
-  const [aiInsight, setAiInsight] = useState(null);
-  const [aiLoading, setAiLoading] = useState(false);
 
   const storedUser = getStoredUser();
   const displayName = storedUser
@@ -607,24 +572,6 @@ function ProviderDashboard() {
     return () => { mounted = false; };
   }, [providerId]);
 
-  // ── AI Insight Generation ──
-  const generateAIInsight = async () => {
-    setAiLoading(true);
-    try {
-      const analysis = await aiService.getReviewAnalysis(providerId);
-      if (analysis && analysis.analysis) {
-        const lines = analysis.analysis.split('\n').filter(line => line.trim());
-        const firstInsight = lines.find(line => line.match(/^\d\./)) || lines[0];
-        setAiInsight(firstInsight || "Your profile is looking great! Keep up the good work.");
-      }
-    } catch (error) {
-      console.error("AI insight generation failed:", error);
-      setAiInsight("We couldn't generate insights right now. Check back later.");
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
   // ── Derived stats ──
   const today = new Date();
 
@@ -733,7 +680,6 @@ function ProviderDashboard() {
     { label: "Earnings", to: "/provider/earnings", icon: Receipt },
     { label: "Messages", to: "/provider/messages", icon: MessageCircle },
     { label: "Availability", to: "/provider/availability", icon: Calendar },
-    { label: "AI Assistant", to: "/provider/ai-assistant", icon: Sparkles },
   ];
 
   return (
@@ -791,11 +737,7 @@ function ProviderDashboard() {
 
           {/* ── AI Insight Card ── */}
           <section className="mb-8">
-            <AIInsightCard
-              onGenerate={generateAIInsight}
-              isLoading={aiLoading}
-              insight={aiInsight}
-            />
+            <AIInsightCard />
           </section>
 
           {/* ── Stat cards ── */}
@@ -971,7 +913,7 @@ function ProviderDashboard() {
                       const isReschedulePending = job.status === "Reschedule Requested" || job.status === "Reschedule Proposed";
                       
                       return (
-                        <li key={job.id} className={`flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between ${isNewRequest ? "bg-amber-50/50" : ""}`}>
+                        <li key={job.id} className={`dark-dashboard-hover flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between ${isNewRequest ? "bg-amber-50/50" : ""}`}>
                           <div className="flex min-w-0 items-center gap-3">
                             <ClientAvatar name={job.client || job.clientName || `Client #${job.clientId}`} size={44} />
                             <div className="min-w-0">

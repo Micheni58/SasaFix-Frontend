@@ -263,12 +263,14 @@ export default function ProviderNotification() {
     // ── Loading state ──
     if (loading) {
         return (
-            <div className="flex min-h-screen bg-[#f8fafc]">
+            <div className="flex min-h-screen w-full overflow-x-hidden bg-[#f8fafc]">
                 <Sidebar role="provider" />
-                <div className="flex-1 ml-0 lg:ml-72">
+                <div className="min-w-0 flex-1 ml-0 lg:ml-72">
                     <Navbar />
-                    <main className="pt-24 px-6 pb-6">
-                        <NotificationSkeleton />
+                    <main className="min-w-0 pt-24 px-6 pb-6">
+                        <div className="mx-auto w-full min-w-0 max-w-5xl">
+                            <NotificationSkeleton />
+                        </div>
                     </main>
                 </div>
             </div>
@@ -276,12 +278,13 @@ export default function ProviderNotification() {
     }
 
     return (
-        <div className="flex min-h-screen bg-[#f8fafc]">
+        <div className="flex min-h-screen w-full overflow-x-hidden bg-[#f8fafc]">
             <Sidebar role="provider" />
-            <div className="flex-1 ml-0 lg:ml-72">
+            <div className="min-w-0 flex-1 ml-0 lg:ml-72">
                 <Navbar />
-                <main className="pt-24 px-6 pb-6">
-                    {/* ── Page Header ── */}
+                <main className="min-w-0 pt-24 px-6 pb-6">
+                    <div className="mx-auto w-full min-w-0 max-w-5xl">
+                        {/* ── Page Header ── */}
                     <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
@@ -409,6 +412,7 @@ export default function ProviderNotification() {
                             </div>
                         )}
                     </section>
+                    </div>
                 </main>
             </div>
         </div>

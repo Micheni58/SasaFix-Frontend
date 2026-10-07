@@ -4,15 +4,17 @@ import Navbar from "../../components/Navbar";
 import { useLocation } from "react-router-dom";
 import { getSidebarRole } from "../../utils/sidebarRole";
 
-const API = "http://localhost:8000/api";
-const authHeaders = () => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-});
+import {
+  getConversations,
+  getMessages,
+  sendMessage as sendMessageApi,
+} from "../../api/messageService";
 
 const BRAND = "#056db3";
+const BRAND_LIGHT = "#e8f3fb";
 
 // ── Helpers ────────────────────────────────────────────────────────
+
 const Avatar = ({ name, size = 10 }) => {
   const initials =
     name
@@ -21,6 +23,7 @@ const Avatar = ({ name, size = 10 }) => {
       .join("")
       .toUpperCase()
       .slice(0, 2) || "?";
+
   const colors = [
     "#7c3aed",
     "#0891b2",
@@ -30,7 +33,9 @@ const Avatar = ({ name, size = 10 }) => {
     "#db2777",
     "#4f46e5",
   ];
+
   const color = colors[(name?.charCodeAt(0) || 0) % colors.length];
+
   return (
     <div
       className={`w-${size} h-${size} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0`}
@@ -48,14 +53,28 @@ const Avatar = ({ name, size = 10 }) => {
 
 const formatTime = (iso) => {
   if (!iso) return "";
+
   const d = new Date(iso);
   const now = new Date();
   const diff = now - d;
+
   if (diff < 60000) return "just now";
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  if (diff < 86400000)
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}m ago`;
+  }
+
+  if (diff < 86400000) {
+    return d.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  return d.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+  });
 };
 
 const SendIcon = () => (
@@ -90,6 +109,7 @@ const MsgIcon = () => (
 );
 
 // ── Main Page ──────────────────────────────────────────────────────
+
 function Messages() {
   const location = useLocation();
   const sidebarRole = getSidebarRole(location.pathname);
@@ -98,93 +118,136 @@ function Messages() {
   const [activeConvo, setActiveConvo] = useState(null);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
+
   const [sending, setSending] = useState(false);
   const [loadingConvos, setLoadingConvos] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+
   const [search, setSearch] = useState("");
+
   const bottomRef = useRef(null);
   const pollRef = useRef(null);
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 
-  // ── Fetch conversations ──────────────────────────────────────────
+  // ────────────────────────────────────────────────────────────────
+  // FETCH CONVERSATIONS
+  // ────────────────────────────────────────────────────────────────
+
   const fetchConversations = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/conversations/`, {
-        headers: authHeaders(),
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      setConversations(data);
+      const data = await getConversations();
+
+      setConversations(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to load conversations:", error);
     }
   }, []);
 
   useEffect(() => {
-    fetchConversations().finally(() => setLoadingConvos(false));
+    const loadConversations = async () => {
+      setLoadingConvos(true);
+
+      try {
+        await fetchConversations();
+      } finally {
+        setLoadingConvos(false);
+      }
+    };
+
+    loadConversations();
   }, [fetchConversations]);
 
-  // ── Fetch messages for active conversation ───────────────────────
+  // ────────────────────────────────────────────────────────────────
+  // FETCH MESSAGES
+  // ────────────────────────────────────────────────────────────────
+
   const fetchMessages = useCallback(async (convoId) => {
     if (!convoId) return;
+
     try {
-      const res = await fetch(`${API}/conversations/${convoId}/messages`, {
-        headers: authHeaders(),
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      setMessages(data);
+      const data = await getMessages(convoId);
+
+      setMessages(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to load messages:", error);
     }
   }, []);
 
-  // Open a conversation
+  // ────────────────────────────────────────────────────────────────
+  // OPEN CONVERSATION
+  // ────────────────────────────────────────────────────────────────
+
   const openConvo = async (convo) => {
     setActiveConvo(convo);
+    setMessages([]);
     setLoadingMessages(true);
-    await fetchMessages(convo.id);
-    setLoadingMessages(false);
-    // Mark as read locally
-    setConversations((prev) =>
-      prev.map((c) => (c.id === convo.id ? { ...c, unread_count: 0 } : c)),
-    );
+
+    try {
+      await fetchMessages(convo.id);
+
+      // Mark locally as read.
+      //
+      // The backend currently returns unread_count, but there is
+      // no separate "mark as read" endpoint yet.
+      setConversations((prev) =>
+        prev.map((c) => (c.id === convo.id ? { ...c, unread_count: 0 } : c)),
+      );
+    } finally {
+      setLoadingMessages(false);
+    }
   };
 
-  // Poll for new messages every 5s when a conversation is open
+  // ────────────────────────────────────────────────────────────────
+  // POLLING
+  // ────────────────────────────────────────────────────────────────
+
   useEffect(() => {
-    if (!activeConvo) return;
-    pollRef.current = setInterval(() => {
-      fetchMessages(activeConvo.id);
-      fetchConversations();
+    if (!activeConvo) {
+      return;
+    }
+
+    pollRef.current = setInterval(async () => {
+      await fetchMessages(activeConvo.id);
+      await fetchConversations();
     }, 5000);
-    return () => clearInterval(pollRef.current);
+
+    return () => {
+      clearInterval(pollRef.current);
+    };
   }, [activeConvo, fetchMessages, fetchConversations]);
 
-  // Scroll to bottom on new messages
+  // ────────────────────────────────────────────────────────────────
+  // SCROLL TO BOTTOM
+  // ────────────────────────────────────────────────────────────────
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
   }, [messages]);
 
-  // ── Send message ─────────────────────────────────────────────────
+  // ────────────────────────────────────────────────────────────────
+  // SEND MESSAGE
+  // ────────────────────────────────────────────────────────────────
+
   const sendMessage = async () => {
-    if (!draft.trim() || !activeConvo || sending) return;
+    const content = draft.trim();
+
+    if (!content || !activeConvo || sending) {
+      return;
+    }
+
     setSending(true);
+
     try {
-      const res = await fetch(
-        `${API}/conversations/${activeConvo.id}/messages`,
-        {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({ content: draft.trim() }),
-        },
-      );
-      if (!res.ok) return;
-      const msg = await res.json();
+      const msg = await sendMessageApi(activeConvo.id, content);
+
       setMessages((prev) => [...prev, msg]);
+
       setDraft("");
-      // Update preview
+
+      // Update conversation preview immediately.
       setConversations((prev) =>
         prev.map((c) =>
           c.id === activeConvo.id
@@ -196,12 +259,32 @@ function Messages() {
             : c,
         ),
       );
+
+      // Keep active conversation's preview in sync.
+      setActiveConvo((prev) =>
+        prev
+          ? {
+              ...prev,
+              last_message: msg.content,
+              last_message_at: msg.created_at,
+            }
+          : prev,
+      );
     } catch (error) {
       console.error("Failed to send message:", error);
+
+      const message =
+        error?.response?.data?.detail || "Failed to send message.";
+
+      alert(message);
     } finally {
       setSending(false);
     }
   };
+
+  // ────────────────────────────────────────────────────────────────
+  // ENTER TO SEND
+  // ────────────────────────────────────────────────────────────────
 
   const handleKey = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -210,11 +293,22 @@ function Messages() {
     }
   };
 
-  const filtered = conversations.filter(
-    (c) =>
-      c.other_name?.toLowerCase().includes(search.toLowerCase()) ||
-      c.last_message?.toLowerCase().includes(search.toLowerCase()),
-  );
+  // ────────────────────────────────────────────────────────────────
+  // SEARCH
+  // ────────────────────────────────────────────────────────────────
+
+  const filtered = conversations.filter((c) => {
+    const searchTerm = search.toLowerCase();
+
+    return (
+      c.other_name?.toLowerCase().includes(searchTerm) ||
+      c.last_message?.toLowerCase().includes(searchTerm)
+    );
+  });
+
+  // ────────────────────────────────────────────────────────────────
+  // TOTAL UNREAD
+  // ────────────────────────────────────────────────────────────────
 
   const totalUnread = conversations.reduce(
     (sum, c) => sum + (c.unread_count || 0),
@@ -224,32 +318,44 @@ function Messages() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role={sidebarRole} />
+
       <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
+
         <main className="pt-24 px-6 pb-6">
+          {/* Page heading */}
           <div className="mb-5">
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
               Messages
               {totalUnread > 0 && (
                 <span
                   className="px-2.5 py-0.5 rounded-full text-xs font-bold text-white"
-                  style={{ backgroundColor: BRAND }}
+                  style={{
+                    backgroundColor: BRAND,
+                  }}
                 >
                   {totalUnread}
                 </span>
               )}
             </h1>
+
             <p className="text-sm text-gray-400 mt-0.5">
               Your conversations with{" "}
               {sidebarRole === "client" ? "service providers" : "clients"}
             </p>
           </div>
 
+          {/* Main messaging panel */}
           <div
             className="flex gap-0 bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden"
-            style={{ height: "calc(100vh - 200px)" }}
+            style={{
+              height: "calc(100vh - 200px)",
+            }}
           >
-            {/* ── Conversation list ── */}
+            {/* ──────────────────────────────────────────────── */}
+            {/* CONVERSATION LIST */}
+            {/* ──────────────────────────────────────────────── */}
+
             <div className="w-80 flex-shrink-0 border-r border-gray-100 flex flex-col">
               {/* Search */}
               <div className="p-3 border-b border-gray-100">
@@ -261,7 +367,7 @@ function Messages() {
                 />
               </div>
 
-              {/* List */}
+              {/* Conversation list */}
               <div className="flex-1 overflow-y-auto">
                 {loadingConvos ? (
                   <div className="flex items-center justify-center h-32 text-sm text-gray-400">
@@ -270,9 +376,11 @@ function Messages() {
                 ) : filtered.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 gap-2">
                     <MsgIcon />
+
                     <p className="text-sm text-gray-400">
                       No conversations yet
                     </p>
+
                     {sidebarRole === "client" && (
                       <p className="text-xs text-gray-300 text-center px-4">
                         Book a service to start chatting with a provider
@@ -282,6 +390,7 @@ function Messages() {
                 ) : (
                   filtered.map((convo) => {
                     const isActive = activeConvo?.id === convo.id;
+
                     return (
                       <button
                         key={convo.id}
@@ -292,27 +401,41 @@ function Messages() {
                         }}
                       >
                         <Avatar name={convo.other_name} size={10} />
+
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-0.5">
                             <span
-                              className={`text-sm truncate ${convo.unread_count > 0 ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}
+                              className={`text-sm truncate ${
+                                convo.unread_count > 0
+                                  ? "font-bold text-gray-900"
+                                  : "font-medium text-gray-700"
+                              }`}
                             >
                               {convo.other_name}
                             </span>
+
                             <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
                               {formatTime(convo.last_message_at)}
                             </span>
                           </div>
+
                           <div className="flex items-center justify-between">
                             <p
-                              className={`text-xs truncate ${convo.unread_count > 0 ? "text-gray-700 font-medium" : "text-gray-400"}`}
+                              className={`text-xs truncate ${
+                                convo.unread_count > 0
+                                  ? "text-gray-700 font-medium"
+                                  : "text-gray-400"
+                              }`}
                             >
                               {convo.last_message || "No messages yet"}
                             </p>
+
                             {convo.unread_count > 0 && (
                               <span
                                 className="ml-2 w-5 h-5 rounded-full text-xs font-bold text-white flex items-center justify-center flex-shrink-0"
-                                style={{ backgroundColor: BRAND }}
+                                style={{
+                                  backgroundColor: BRAND,
+                                }}
                               >
                                 {convo.unread_count}
                               </span>
@@ -326,11 +449,15 @@ function Messages() {
               </div>
             </div>
 
-            {/* ── Message thread ── */}
+            {/* ──────────────────────────────────────────────── */}
+            {/* MESSAGE THREAD */}
+            {/* ──────────────────────────────────────────────── */}
+
             <div className="flex-1 flex flex-col">
               {!activeConvo ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-300">
                   <MsgIcon />
+
                   <p className="text-sm">
                     Select a conversation to start messaging
                   </p>
@@ -340,13 +467,21 @@ function Messages() {
                   {/* Thread header */}
                   <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3">
                     <Avatar name={activeConvo.other_name} size={9} />
+
                     <div>
                       <p className="font-semibold text-gray-900 text-sm">
                         {activeConvo.other_name}
                       </p>
+
                       {activeConvo.booking_id && (
                         <p className="text-xs text-gray-400">
                           Booking #{activeConvo.booking_id}
+                        </p>
+                      )}
+
+                      {activeConvo.is_closed && (
+                        <p className="text-xs text-red-500 font-medium mt-0.5">
+                          Conversation closed
                         </p>
                       )}
                     </div>
@@ -365,10 +500,12 @@ function Messages() {
                     ) : (
                       messages.map((msg, i) => {
                         const isMe = msg.sender_id === currentUser.id;
+
                         const showDate =
                           i === 0 ||
                           new Date(msg.created_at).toDateString() !==
                             new Date(messages[i - 1].created_at).toDateString();
+
                         return (
                           <div key={msg.id}>
                             {showDate && (
@@ -385,33 +522,45 @@ function Messages() {
                                 </span>
                               </div>
                             )}
+
                             <div
-                              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                              className={`flex ${
+                                isMe ? "justify-end" : "justify-start"
+                              }`}
                             >
-                              <div
-                                className={`max-w-xs lg:max-w-md xl:max-w-lg`}
-                              >
+                              <div className="max-w-xs lg:max-w-md xl:max-w-lg">
                                 {!isMe && (
                                   <p className="text-xs text-gray-400 mb-1 ml-1">
                                     {msg.sender_name}
                                   </p>
                                 )}
+
                                 <div
                                   className={`px-4 py-2.5 rounded-2xl text-sm ${
                                     isMe
                                       ? "text-white rounded-br-sm"
                                       : "bg-gray-100 text-gray-800 rounded-bl-sm"
                                   }`}
-                                  style={isMe ? { backgroundColor: BRAND } : {}}
+                                  style={
+                                    isMe
+                                      ? {
+                                          backgroundColor: BRAND,
+                                        }
+                                      : {}
+                                  }
                                 >
                                   {msg.content}
                                 </div>
+
                                 <div
-                                  className={`flex items-center gap-1 mt-1 ${isMe ? "justify-end" : "justify-start"}`}
+                                  className={`flex items-center gap-1 mt-1 ${
+                                    isMe ? "justify-end" : "justify-start"
+                                  }`}
                                 >
                                   <span className="text-xs text-gray-400">
                                     {formatTime(msg.created_at)}
                                   </span>
+
                                   {isMe && (
                                     <span
                                       className="text-xs"
@@ -429,29 +578,48 @@ function Messages() {
                         );
                       })
                     )}
+
                     <div ref={bottomRef} />
                   </div>
 
                   {/* Input */}
-                  <div className="px-4 py-3 border-t border-gray-100 flex items-end gap-3">
-                    <textarea
-                      className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl outline-none resize-none focus:border-blue-400 transition-colors"
-                      placeholder="Type a message..."
-                      rows={1}
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      onKeyDown={handleKey}
-                      style={{ maxHeight: 120 }}
-                    />
-                    <button
-                      onClick={sendMessage}
-                      disabled={!draft.trim() || sending}
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white transition-colors disabled:opacity-40 flex-shrink-0"
-                      style={{ backgroundColor: BRAND }}
-                    >
-                      <SendIcon />
-                    </button>
-                  </div>
+                  {activeConvo.is_closed ? (
+                    <div className="px-4 py-4 border-t border-gray-100 text-center">
+                      <p className="text-sm text-gray-500">
+                        This conversation is closed.
+                      </p>
+
+                      <p className="text-xs text-gray-400 mt-1">
+                        Messaging is unavailable for this completed or cancelled
+                        booking.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3 border-t border-gray-100 flex items-end gap-3">
+                      <textarea
+                        className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl outline-none resize-none focus:border-blue-400 transition-colors"
+                        placeholder="Type a message..."
+                        rows={1}
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onKeyDown={handleKey}
+                        style={{
+                          maxHeight: 120,
+                        }}
+                      />
+
+                      <button
+                        onClick={sendMessage}
+                        disabled={!draft.trim() || sending}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white transition-colors disabled:opacity-40 flex-shrink-0"
+                        style={{
+                          backgroundColor: BRAND,
+                        }}
+                      >
+                        <SendIcon />
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -461,8 +629,5 @@ function Messages() {
     </div>
   );
 }
-
-// missing BRAND_LIGHT — define at module level
-const BRAND_LIGHT = "#e8f3fb";
 
 export default Messages;

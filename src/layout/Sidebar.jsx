@@ -168,7 +168,7 @@ function Sidebar({ role = "client" }) {
                 ${
                   isActive
                     ? "bg-[#056db3] text-white shadow-sm font-semibold"
-                    : "text-gray-600 hover:bg-blue-50 hover:text-[#056db3]"
+                    : "text-gray-600 hover:bg-blue-50 hover:text-[#056db3] dark-sidebar-link"
                 }`
               }
             >
@@ -188,7 +188,7 @@ function Sidebar({ role = "client" }) {
                   ${
                     isManagementActive
                       ? "bg-[#056db3] text-white shadow-sm font-semibold"
-                      : "text-gray-600 hover:bg-blue-50 hover:text-[#056db3]"
+                      : "text-gray-600 hover:bg-blue-50 hover:text-[#056db3] dark-sidebar-link"
                   }
                 `}
               >
@@ -215,8 +215,8 @@ function Sidebar({ role = "client" }) {
                         transition-all duration-200 text-[14px]
                         ${
                           isActive
-                            ? "bg-blue-50 text-[#056db3] font-semibold"
-                            : "text-gray-500 hover:bg-blue-50 hover:text-[#056db3]"
+                            ? "bg-blue-50 text-[#056db3] font-semibold dark-sidebar-active"
+                            : "text-gray-500 hover:bg-blue-50 hover:text-[#056db3] dark-sidebar-link"
                         }`
                       }
                     >

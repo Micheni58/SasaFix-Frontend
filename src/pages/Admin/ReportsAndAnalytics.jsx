@@ -71,7 +71,7 @@ const ReportsAnalytics = () => {
 
         <main className="pt-24 px-6 pb-6">
           <div className="min-h-screen bg-[#f8fafc]">
-            <div className="mx-auto max-w-[1400px] px-8 py-8">
+            <div className="mx-auto max-w-350 px-8 py-8">
               {/* Page heading */}
               <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
                 <div>

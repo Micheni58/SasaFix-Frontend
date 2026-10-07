@@ -5,6 +5,7 @@ import { useLocation } from "react-router-dom";
 import { getSidebarRole, getStoredProviderId } from "../utils/sidebarRole";
 import authService from "../services/api";
 import { useToast } from "../components/ui/ToastProvider";
+import ThemeSettings from "../components/profile/ThemeSettings";
 
 const BRAND = "#056db3";
 const BRAND_DARK = "#04599a";
@@ -151,6 +152,7 @@ const NAV = [
   { id: "availability", label: "Availability", icon: <CalIcon /> },
   { id: "location", label: "Location", icon: <PinIcon /> },
   { id: "security", label: "Security", icon: <LockIcon /> },
+  { id: "theme", label: "Theme", icon: <Ico circle={[12, 12, 4]} d="M12 2v2m0 16v2m10-10h-2M4 12H2m17.07 7.07-1.42-1.42M6.35 6.35 4.93 4.93m14.14 0-1.42 1.42M6.35 17.65l-1.42 1.42" /> },
   { id: "help", label: "Help & Support", icon: <HelpIcon /> },
 ];
 
@@ -746,7 +748,7 @@ const Availability = () => {
         {slots.map((slot, index) => (
           <div
             key={slot.day_of_week}
-            className="flex items-center gap-3 p-3 rounded-xl border transition-colors"
+            className="provider-profile-availability-day flex items-center gap-3 p-3 rounded-xl border transition-colors"
             style={{
               borderColor: slot.enabled ? BRAND : "#e5e7eb",
               backgroundColor: slot.enabled ? BRAND_LIGHT : "#f9fafb",
@@ -1153,11 +1155,11 @@ const HelpSupport = () => (
       </p>
 
       <a
-        href="mailto:providers@servicehub.co.ke"
+        href="mailto:info@sasafix.co.ke"
         className="text-sm font-semibold hover:underline"
         style={{ color: BRAND }}
       >
-        providers@servicehub.co.ke
+        info@sasafix.co.ke
       </a>
     </div>
   </div>
@@ -1209,6 +1211,8 @@ function Profile() {
     location: <Location user={user} />,
 
     security: <Security />,
+
+    theme: <ThemeSettings />,
 
     help: <HelpSupport />,
   };

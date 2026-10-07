@@ -32,6 +32,7 @@ import {
 } from "recharts";
 import bookingService from "../../api/bookingService";
 import transactionService from "../../api/transactionService";
+import apiClient from "../../api/apiClient";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 
@@ -181,11 +182,38 @@ function SkeletonTable() {
   );
 }
 
+function BookingTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+
+  const isDark = document.documentElement.dataset.theme === "dark";
+  const foreground = isDark ? "#f8fafc" : "#1f2937";
+
+  return (
+    <div
+      style={{
+        backgroundColor: isDark ? "#1e293b" : "#ffffff",
+        border: `1px solid ${isDark ? "#64748b" : "#e5e7eb"}`,
+        borderRadius: 8,
+        boxShadow: "0 12px 28px rgb(2 6 23 / 30%)",
+        color: foreground,
+        padding: "10px 14px",
+      }}
+    >
+      <p style={{ color: foreground, fontWeight: 700, margin: "0 0 6px" }}>{label}</p>
+      {payload.map((item) => (
+        <p key={item.dataKey} style={{ color: foreground, fontSize: 13, margin: 0 }}>
+          {item.name || "Bookings"}: {item.value}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────
 // STAT CARD COMPONENT
 // ─────────────────────────────────────────────
 
-function StatCard({ title, value, icon: Icon, iconBg, trend, isLoading, onClick }) {
+function StatCard({ title, value, icon: Icon, iconBg, isLoading, onClick }) {
   return (
     <div
       onClick={onClick}
@@ -193,11 +221,6 @@ function StatCard({ title, value, icon: Icon, iconBg, trend, isLoading, onClick 
         onClick ? "cursor-pointer hover:border-[#056db3]" : ""
       }`}
     >
-      {trend && !isLoading && (
-        <div className="absolute top-4 right-4">
-          <span className="text-sm text-green-600 font-medium">{trend}</span>
-        </div>
-      )}
       <div className="flex flex-col items-start">
         <div className={`p-3 ${iconBg} rounded-full mb-3`}>
           <Icon className="w-6 h-6" />
@@ -255,13 +278,7 @@ function BookingChart({ data }) {
             allowDecimals={false}
           />
           <Tooltip
-            contentStyle={{
-              backgroundColor: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px",
-              padding: "8px 12px",
-            }}
-            formatter={(value) => [value, "Bookings"]}
+            content={<BookingTooltip />}
           />
           <Legend />
           <Line
@@ -311,12 +328,10 @@ function AdminDashboard() {
       // ── Fetch Users ──
       let totalUsers = 0;
       try {
-        const resp = await fetch("/api/users");
-        if (resp.ok) {
-          const data = await resp.json();
-          const users = Array.isArray(data) ? data : data.users || [];
-          totalUsers = users.length;
-        }
+        const resp = await apiClient.get("/users/");
+        const data = resp.data;
+        const users = Array.isArray(data) ? data : data.users || [];
+        totalUsers = users.length;
       } catch (e) {
         console.info("Users endpoint not yet available");
       }
@@ -324,12 +339,10 @@ function AdminDashboard() {
       // ── Fetch Providers ──
       let totalProviders = 0;
       try {
-        const resp = await fetch("/api/service-providers");
-        if (resp.ok) {
-          const data = await resp.json();
-          const providers = Array.isArray(data) ? data : data.service_providers || [];
-          totalProviders = providers.length;
-        }
+        const resp = await apiClient.get("/admin/service-providers");
+        const data = resp.data;
+        const providers = Array.isArray(data) ? data : data.service_providers || [];
+        totalProviders = providers.length;
       } catch (e) {
         console.info("Service providers endpoint not yet available");
       }
@@ -598,7 +611,6 @@ function AdminDashboard() {
               value={stats.totalUsers.toLocaleString()}
               icon={Users}
               iconBg="bg-blue-100 text-blue-600"
-              trend="+12.5%"
               isLoading={loading}
               onClick={() => navigateTo("/admin/users")}
             />
@@ -607,7 +619,6 @@ function AdminDashboard() {
               value={stats.totalProviders.toLocaleString()}
               icon={Briefcase}
               iconBg="bg-purple-100 text-purple-600"
-              trend="+8.2%"
               isLoading={loading}
               onClick={() => navigateTo("/admin/service-providers")}
             />
@@ -616,7 +627,6 @@ function AdminDashboard() {
               value={stats.activeBookings.toLocaleString()}
               icon={Calendar}
               iconBg="bg-orange-100 text-orange-600"
-              trend="+15.3%"
               isLoading={loading}
               onClick={() => navigateTo("/admin/bookings-payments")}
             />
@@ -625,7 +635,6 @@ function AdminDashboard() {
               value={formatCurrency(stats.platformCommission)}
               icon={DollarSign}
               iconBg="bg-green-100 text-green-600"
-              trend={stats.platformCommission > 0 ? "+18.7%" : "0%"}
               isLoading={loading}
               onClick={() => navigateTo("/admin/bookings-payments")}
             />
@@ -698,7 +707,7 @@ function AdminDashboard() {
                   </div>
                   <TrendingUp className="h-5 w-5 text-green-500" />
                 </div>
-                <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                <div className="admin-active-providers-stat flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-orange-100 rounded-lg">
                       <Users className="h-5 w-5 text-orange-600" />

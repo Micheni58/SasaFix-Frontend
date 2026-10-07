@@ -96,7 +96,14 @@ const Label = ({ children }) => (
   </label>
 );
 
-const PasswordField = ({ label, value, onChange, show, toggleShow, placeholder }) => (
+const PasswordField = ({
+  label,
+  value,
+  onChange,
+  show,
+  toggleShow,
+  placeholder,
+}) => (
   <div className="mb-4">
     <Label>{label}</Label>
 
@@ -220,7 +227,10 @@ const PersonalInfo = ({ user, onSaved }) => {
 
       onSaved?.(mergedUser);
 
-      toast.success("Changes saved", "Your personal information has been updated.");
+      toast.success(
+        "Changes saved",
+        "Your personal information has been updated.",
+      );
     } catch (e) {
       toast.error("Save failed", e.message || "Please try again.");
     } finally {
@@ -431,7 +441,10 @@ const ProfessionalInfo = () => {
 
   const handleSave = async () => {
     if (!providerId) {
-      toast.error("Provider profile not found", "Unable to save professional information.");
+      toast.error(
+        "Provider profile not found",
+        "Unable to save professional information.",
+      );
       return;
     }
 
@@ -459,7 +472,10 @@ const ProfessionalInfo = () => {
         throw new Error(e.detail || "Failed to update professional info");
       }
 
-      toast.success("Professional info updated", "Your professional details have been saved.");
+      toast.success(
+        "Professional info updated",
+        "Your professional details have been saved.",
+      );
     } catch (e) {
       toast.error("Save failed", e.message || "Please try again.");
     } finally {
@@ -639,7 +655,10 @@ const Availability = () => {
           }),
         );
       } catch (error) {
-        toast.error("Failed to load availability", error.message || "Showing default availability.");
+        toast.error(
+          "Failed to load availability",
+          error.message || "Showing default availability.",
+        );
       } finally {
         setLoading(false);
       }
@@ -659,7 +678,7 @@ const Availability = () => {
               enabled: !slot.enabled,
             }
           : slot,
-          ),
+      ),
     );
   };
 
@@ -710,7 +729,10 @@ const Availability = () => {
         throw new Error(data.detail || "Failed to update availability");
       }
 
-      toast.success("Availability updated", "Your working hours have been saved.");
+      toast.success(
+        "Availability updated",
+        "Your working hours have been saved.",
+      );
     } catch (error) {
       toast.error("Save failed", error.message || "Please try again.");
     } finally {
@@ -730,8 +752,8 @@ const Availability = () => {
         <div className="bg-gray-50 rounded-xl p-10 text-center">
           <p className="text-sm text-gray-500">Loading availability...</p>
         </div>
-        </div>
-      );
+      </div>
+    );
   }
 
   return (
@@ -979,7 +1001,10 @@ const Security = memo(() => {
       e.preventDefault();
 
       if (newPassword !== confirmPassword) {
-        toast.warning("Passwords do not match", "Enter the same new password in both fields.");
+        toast.warning(
+          "Passwords do not match",
+          "Enter the same new password in both fields.",
+        );
         return;
       }
 
@@ -1012,7 +1037,10 @@ const Security = memo(() => {
         setNewPassword("");
         setConfirmPassword("");
 
-        toast.success("Password changed", "Your password has been updated successfully.");
+        toast.success(
+          "Password changed",
+          "Your password has been updated successfully.",
+        );
       } catch (e) {
         toast.error("Password change failed", e.message || "Please try again.");
       } finally {
@@ -1193,7 +1221,8 @@ function Profile() {
           ...currentUser,
           provider_id: currentUser.provider_id ?? previousUser?.provider_id,
           service_provider_id:
-            currentUser.service_provider_id ?? previousUser?.service_provider_id,
+            currentUser.service_provider_id ??
+            previousUser?.service_provider_id,
         }));
       })
       .catch(() => {});

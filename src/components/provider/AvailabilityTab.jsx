@@ -74,8 +74,8 @@ const AvailabilityTab = ({ provider }) => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-b-xl border border-gray-200 border-t-0 p-8">
-        <h2 className="text-2xl font-bold mb-6">Availability</h2>
+      <div className="rounded-b-xl border border-gray-200 border-t-0 bg-white p-5 sm:p-6">
+        <h2 className="mb-5 text-xl font-bold">Availability</h2>
 
         <div className="bg-gray-50 rounded-xl p-10 text-center">
           <p className="text-gray-500">Loading availability...</p>
@@ -86,8 +86,8 @@ const AvailabilityTab = ({ provider }) => {
 
   if (error) {
     return (
-      <div className="bg-white rounded-b-xl border border-gray-200 border-t-0 p-8">
-        <h2 className="text-2xl font-bold mb-6">Availability</h2>
+      <div className="rounded-b-xl border border-gray-200 border-t-0 bg-white p-5 sm:p-6">
+        <h2 className="mb-5 text-xl font-bold">Availability</h2>
 
         <div className="bg-red-50 border border-red-200 rounded-xl p-6">
           <p className="text-red-600">{error}</p>
@@ -97,11 +97,11 @@ const AvailabilityTab = ({ provider }) => {
   }
 
   return (
-    <div className="bg-white rounded-b-xl border border-gray-200 border-t-0 p-8">
-      <h2 className="text-2xl font-bold mb-6">Availability</h2>
+    <div className="rounded-b-xl border border-gray-200 border-t-0 bg-white p-5 sm:p-6">
+      <h2 className="mb-5 text-xl font-bold">Availability</h2>
 
       {availability.length === 0 ? (
-        <div className="bg-gray-50 rounded-xl p-10 text-center">
+        <div className="rounded-lg bg-gray-50 p-6 text-center">
           <p className="text-gray-500">No availability has been added yet.</p>
         </div>
       ) : (

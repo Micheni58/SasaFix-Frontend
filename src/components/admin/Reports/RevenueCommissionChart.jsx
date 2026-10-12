@@ -1,4 +1,7 @@
+import { useState } from "react";
+
 const RevenueCommissionChart = ({ data = [] }) => {
+  const [hoveredBar, setHoveredBar] = useState(null);
   const maxValue = Math.max(
     800000,
     ...data.flatMap((item) => [
@@ -51,7 +54,7 @@ const RevenueCommissionChart = ({ data = [] }) => {
             </div>
 
             <div className="absolute inset-x-0 bottom-10 top-0 flex items-end justify-between px-2">
-              {data.map((item) => {
+              {data.map((item, index) => {
                 const revenueHeight =
                   (Number(item.revenue || 0) / maxValue) * 100;
 
@@ -61,10 +64,12 @@ const RevenueCommissionChart = ({ data = [] }) => {
                 return (
                   <div
                     key={item.month}
-                    className="flex h-full flex-1 items-end justify-center gap-1"
+                    className="relative flex h-full flex-1 items-end justify-center gap-1"
+                    onMouseEnter={() => setHoveredBar(index)}
+                    onMouseLeave={() => setHoveredBar(null)}
                   >
                     <div
-                      className="w-5 rounded-t-md bg-[#5b00ff]"
+                      className={`w-5 cursor-pointer rounded-t-md bg-[#5b00ff] transition-all ${hoveredBar === index ? "brightness-110 shadow-lg" : ""}`}
                       style={{
                         height: `${Math.max(revenueHeight, 2)}%`,
                       }}
@@ -74,7 +79,7 @@ const RevenueCommissionChart = ({ data = [] }) => {
                     />
 
                     <div
-                      className="w-5 rounded-t-md bg-[#10b981]"
+                      className={`w-5 cursor-pointer rounded-t-md bg-[#10b981] transition-all ${hoveredBar === index ? "brightness-110 shadow-lg" : ""}`}
                       style={{
                         height: `${Math.max(commissionHeight, 2)}%`,
                       }}
@@ -82,6 +87,14 @@ const RevenueCommissionChart = ({ data = [] }) => {
                         item.commission || 0
                       ).toLocaleString()}`}
                     />
+
+                    {hoveredBar === index && (
+                      <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-36 -translate-x-1/2 rounded-md bg-slate-900 px-3 py-2 text-center text-[11px] text-white shadow-lg">
+                        <p className="mb-1 font-semibold text-slate-300">{item.month}</p>
+                        <p>Revenue: KES {Number(item.revenue || 0).toLocaleString()}</p>
+                        <p>Commission: KES {Number(item.commission || 0).toLocaleString()}</p>
+                      </div>
+                    )}
                   </div>
                 );
               })}

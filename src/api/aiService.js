@@ -1,11 +1,39 @@
 // src/api/aiService.js
 
 import axios from 'axios';
+import apiClient from './apiClient';
 
-// ✅ Vite environment variables (must start with VITE_)
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// VITE_API_URL is the backend origin; the API routes are mounted under /api.
+const API_BASE_URL = `${(
+  import.meta.env.VITE_API_URL || 'http://localhost:8000'
+).replace(/\/+$/, '')}/api`;
+const configuredApiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
+const clientAiPath = `${configuredApiBase.endsWith('/api') ? '' : '/api'}/ai/improve-job-description`;
 
 const aiService = {
+  /** Improve a client's rough booking request. */
+  async improveJobDescription(description) {
+    try {
+      const response = await apiClient.post(clientAiPath, {
+        description,
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        const detail = error.response.data?.detail;
+        throw new Error(
+          error.response.status === 503
+            ? 'The AI backend could not generate a suggestion. Check the backend AI provider configuration and logs.'
+            : detail || `The AI request failed with status ${error.response.status}.`
+        );
+      }
+
+      throw new Error(
+        'Could not reach the API server. Check that the backend is running and the API URL is correct.'
+      );
+    }
+  },
+
   /**
    * Generate a professional service description from a raw bio
    */
@@ -64,7 +92,7 @@ const aiService = {
       const params = {};
       if (serviceCategory) params.service_category = serviceCategory;
       if (location) params.location = location;
-      
+
       const response = await axios.get(
         `${API_BASE_URL}/providers/ai/market-data`,
         { params }

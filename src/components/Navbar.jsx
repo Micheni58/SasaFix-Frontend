@@ -2,14 +2,10 @@ import { useState, useEffect } from "react";
 import {
   Bell,
   ChevronDown,
-  Search,
   User,
   LogOut,
 } from "lucide-react";
-import {
-  useNavigate,
-  useLocation,
-} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import authService from "../services/api";
 
@@ -17,10 +13,8 @@ function Navbar() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
 
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -72,12 +66,15 @@ function Navbar() {
     }
   };
 
-  const handleSearch = (e) => {
-    if (e.key === "Enter" && search.trim()) {
-      navigate(
-        `/client/find-services?search=${encodeURIComponent(search)}`
-      );
-    }
+  const handleNotifications = () => {
+    const notificationRoutes = {
+      client: "/client/notifications",
+      service_provider: "/provider/notifications",
+      provider: "/provider/notifications",
+      admin: "/admin/notifications",
+    };
+
+    navigate(notificationRoutes[user?.role] || "/client/notifications");
   };
 
   return (
@@ -101,59 +98,13 @@ function Navbar() {
         z-30
       "
     >
-      {/* Search */}
-
-
-      <div className="flex-1 max-w-2xl pl-14 sm:pl-0">
-        <div className="relative">
-
-          <Search
-            size={18}
-            className="
-              absolute
-              left-5
-              top-1/2
-              -translate-y-1/2
-              text-gray-400
-            "
-          />
-
-          <input
-            type="text"
-            value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
-            onKeyDown={handleSearch}
-            placeholder="Search services or providers..."
-            className="
-              w-full
-              h-12
-              rounded-2xl
-              bg-[#F8FAFC]
-              border
-              border-gray-200
-              pl-12
-              pr-4
-              text-sm
-              focus:outline-none
-              focus:ring-2
-              focus:ring-[#056db3]
-              focus:border-[#056db3]
-              transition
-            "
-          />
-
-        </div>
-
-      </div>
-
-      {/* Right Side */}
-
-      <div className="flex items-center gap-6 relative">
+      <div className="ml-auto flex items-center gap-4 sm:gap-6 relative">
         {/* Notifications */}
 
         <button
+          type="button"
+          onClick={handleNotifications}
+          aria-label="Open notifications"
           className="
             relative
             w-11

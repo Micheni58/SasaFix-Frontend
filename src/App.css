@@ -80,7 +80,7 @@ html[data-theme="dark"] .dark-dashboard-hover:hover {
 
 html[data-theme="dark"] .dark-ai-insight-card {
 	border-color: #1e4970 !important;
-	background: linear-gradient(110deg, #102a43, #172554) !important;
+	background: linear-gradient(110deg, #102a43, #123b5d) !important;
 }
 
 html[data-theme="dark"] .dark-ai-insight-card p {

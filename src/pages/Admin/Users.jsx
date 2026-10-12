@@ -3,7 +3,7 @@ import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 import { useToast } from "../../components/ui/ToastProvider";
 
-const API = "http://localhost:8000/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 const authHeaders = () => ({
   "Content-Type": "application/json",
   Authorization: `Bearer ${localStorage.getItem("access_token")}`,

@@ -274,7 +274,7 @@ function StatCard({ label, value, icon: _Icon, iconBg, isLoading, subText }) {
 // ── AI Insight Card ──
 function AIInsightCard() {
   return (
-    <div className="dark-ai-insight-card rounded-xl border border-blue-200 bg-linear-to-r from-blue-50/80 to-indigo-50/80 p-6 transition-all hover:shadow-md">
+    <div className="dark-ai-insight-card rounded-xl border border-blue-200 bg-linear-to-r from-sky-50/80 to-blue-100/80 p-6 transition-all hover:shadow-md">
       <div className="flex items-start gap-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: '#056db3' }}>
           <Sparkles className="h-5 w-5 text-white" />

@@ -1,4 +1,5 @@
 import authService from "./api";
+import apiClient from "../api/apiClient";
 
 const reportsService = {
   getReports: async (period = "6months") => {
@@ -6,24 +7,17 @@ const reportsService = {
   },
 
   exportCSV: async (period = "6months") => {
-    const token = localStorage.getItem("access_token");
-
-    const response = await fetch(
-      `http://localhost:8000/api/admin/reports/export/csv?period=${period}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await apiClient.get(
+      `/admin/reports/export/csv?period=${period}`,
+      { responseType: "blob", validateStatus: () => true },
     );
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+    if (response.status < 200 || response.status >= 300) {
+      const error = await response.data.text().then(JSON.parse).catch(() => ({}));
       throw new Error(error.detail || "Failed to export CSV");
     }
 
-    const blob = await response.blob();
+    const blob = response.data;
 
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -39,24 +33,17 @@ const reportsService = {
   },
 
   exportPDF: async (period = "6months") => {
-    const token = localStorage.getItem("access_token");
-
-    const response = await fetch(
-      `http://localhost:8000/api/admin/reports/export/pdf?period=${period}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await apiClient.get(
+      `/admin/reports/export/pdf?period=${period}`,
+      { responseType: "blob", validateStatus: () => true },
     );
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+    if (response.status < 200 || response.status >= 300) {
+      const error = await response.data.text().then(JSON.parse).catch(() => ({}));
       throw new Error(error.detail || "Failed to export PDF");
     }
 
-    const blob = await response.blob();
+    const blob = response.data;
 
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");

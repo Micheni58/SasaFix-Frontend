@@ -1,5 +1,5 @@
 // Base URL for your backend API
-const API_URL = "http://localhost:8000/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 // Helper function to handle responses
 const handleResponse = async (response) => {

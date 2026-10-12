@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { useLocation } from "react-router-dom";
 import { getSidebarRole, getStoredProviderId } from "../utils/sidebarRole";
 import authService from "../services/api";
+import apiClient from "../api/apiClient";
 import { useToast } from "../components/ui/ToastProvider";
 import ThemeSettings from "../components/profile/ThemeSettings";
 
@@ -194,21 +195,16 @@ const PersonalInfo = ({ user, onSaved }) => {
     setSaving(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/users/me", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify(form),
+      const res = await apiClient.patch("/users/me", form, {
+        validateStatus: () => true,
       });
 
-      if (!res.ok) {
-        const e = await res.json();
+      if (res.status < 200 || res.status >= 300) {
+        const e = res.data;
         throw new Error(e.detail || "Failed to save changes");
       }
 
-      const updated = await res.json();
+      const updated = res.data;
 
       const mergedUser = {
         ...user,
@@ -409,16 +405,13 @@ const ProfessionalInfo = () => {
   useEffect(() => {
     if (!providerId) return;
 
-    fetch(`http://localhost:8000/api/providers/${providerId}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-      },
-    })
-      .then(async (response) => {
-        if (!response.ok) {
+    apiClient
+      .get(`/providers/${providerId}`, { validateStatus: () => true })
+      .then((response) => {
+        if (response.status < 200 || response.status >= 300) {
           throw new Error("Failed to load provider profile");
         }
-        return response.json();
+        return response.data;
       })
       .then((data) => {
         setForm({
@@ -440,24 +433,18 @@ const ProfessionalInfo = () => {
     setSaving(true);
 
     try {
-      const res = await fetch(
-        `http://localhost:8000/api/providers/${providerId}`,
+      const res = await apiClient.patch(
+        `/providers/${providerId}`,
         {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify({
-            ...form,
-            years_of_experience: parseInt(form.years_of_experience, 10) || 0,
-            hourly_rate: parseFloat(form.hourly_rate) || 0,
-          }),
+          ...form,
+          years_of_experience: parseInt(form.years_of_experience, 10) || 0,
+          hourly_rate: parseFloat(form.hourly_rate) || 0,
         },
+        { validateStatus: () => true },
       );
 
-      if (!res.ok) {
-        const e = await res.json();
+      if (res.status < 200 || res.status >= 300) {
+        const e = res.data;
         throw new Error(e.detail || "Failed to update professional info");
       }
 
@@ -603,21 +590,17 @@ const Availability = () => {
     const loadAvailability = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `http://localhost:8000/api/providers/${providerId}/availability`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-            },
-          },
+        const response = await apiClient.get(
+          `/providers/${providerId}/availability`,
+          { validateStatus: () => true },
         );
 
-        if (!response.ok) {
-          const data = await response.json();
+        if (response.status < 200 || response.status >= 300) {
+          const data = response.data;
           throw new Error(data.detail || "Failed to load availability");
         }
 
-        const data = await response.json();
+        const data = response.data;
 
         setSlots(
           DAYS.map((day) => {
@@ -694,20 +677,14 @@ const Availability = () => {
         is_available: slot.enabled,
       }));
 
-      const response = await fetch(
-        `http://localhost:8000/api/providers/${providerId}/availability`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify(payload),
-        },
+      const response = await apiClient.put(
+        `/providers/${providerId}/availability`,
+        payload,
+        { validateStatus: () => true },
       );
 
-      if (!response.ok) {
-        const data = await response.json();
+      if (response.status < 200 || response.status >= 300) {
+        const data = response.data;
 
         throw new Error(data.detail || "Failed to update availability");
       }
@@ -850,35 +827,26 @@ const Location = ({ user }) => {
     setSaving(true);
 
     try {
-      const userResponse = await fetch("http://localhost:8000/api/users/me", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify(form),
-      });
+      const userResponse = await apiClient.patch(
+        "/users/me",
+        form,
+        { validateStatus: () => true },
+      );
 
-      if (!userResponse.ok) {
-        const data = await userResponse.json();
+      if (userResponse.status < 200 || userResponse.status >= 300) {
+        const data = userResponse.data;
         throw new Error(data.detail || "Failed to update user location");
       }
 
       if (providerId) {
-        const providerResponse = await fetch(
-          `http://localhost:8000/api/providers/${providerId}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-            },
-            body: JSON.stringify(form),
-          },
+        const providerResponse = await apiClient.patch(
+          `/providers/${providerId}`,
+          form,
+          { validateStatus: () => true },
         );
 
-        if (!providerResponse.ok) {
-          const data = await providerResponse.json();
+        if (providerResponse.status < 200 || providerResponse.status >= 300) {
+          const data = providerResponse.data;
           throw new Error(data.detail || "Failed to update provider location");
         }
       }
@@ -993,20 +961,17 @@ const Security = memo(() => {
       setSaving(true);
 
       try {
-        const res = await fetch("http://localhost:8000/api/users/me/password", {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify({
+        const res = await apiClient.patch(
+          "/users/me/password",
+          {
             current_password: currentPassword,
             new_password: newPassword,
-          }),
-        });
+          },
+          { validateStatus: () => true },
+        );
 
-        if (!res.ok) {
-          const e = await res.json();
+        if (res.status < 200 || res.status >= 300) {
+          const e = res.data;
           throw new Error(e.detail || "Failed to change password");
         }
 

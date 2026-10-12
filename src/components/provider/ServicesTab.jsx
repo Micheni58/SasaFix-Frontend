@@ -2,11 +2,11 @@
 
 const ServicesTab = ({ provider }) => {
   return (
-    <div className="bg-white rounded-b-xl border border-gray-200 border-t-0 p-8">
-      <h2 className="text-2xl font-bold mb-6">Services Offered</h2>
+    <div className="rounded-b-xl border border-gray-200 border-t-0 bg-white p-5 sm:p-6">
+      <h2 className="mb-5 text-xl font-bold">Services Offered</h2>
 
-      <div className="bg-blue-50 border border-blue-100 rounded-xl p-6">
-        <h3 className="text-xl font-semibold text-blue-700">
+      <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 sm:p-5">
+        <h3 className="text-lg font-semibold text-blue-700">
           {provider.service_category}
         </h3>
 
@@ -15,10 +15,10 @@ const ServicesTab = ({ provider }) => {
           services.
         </p>
 
-        <div className="mt-6 flex justify-between items-center">
+        <div className="mt-5 flex items-center justify-between gap-4">
           <span className="text-gray-500">Hourly Rate</span>
 
-          <span className="text-2xl font-bold text-blue-600">
+          <span className="text-lg font-bold text-blue-600">
             KES {provider.hourly_rate}/hr
           </span>
         </div>

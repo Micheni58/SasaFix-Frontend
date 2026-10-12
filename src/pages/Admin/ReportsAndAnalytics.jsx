@@ -69,9 +69,7 @@ const ReportsAnalytics = () => {
       <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
 
-        <main className="pt-24 px-6 pb-6">
-          <div className="min-h-screen bg-[#f8fafc]">
-            <div className="mx-auto max-w-350 px-8 py-8">
+        <main className="px-8 pb-10 pt-24">
               {/* Page heading */}
               <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -253,8 +251,6 @@ const ReportsAnalytics = () => {
                   />
                 </div>
               )}
-            </div>
-          </div>
         </main>
       </div>
     </div>

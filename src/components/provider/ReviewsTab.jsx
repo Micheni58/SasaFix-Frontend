@@ -1,6 +1,7 @@
 // src/components/provider/ReviewsTab.jsx
 
 import { useEffect, useState } from "react";
+import { Star } from "lucide-react";
 import reviewService from "../../api/reviewService";
 import ratingService from "../../api/ratingService";
 
@@ -63,13 +64,13 @@ const ReviewsTab = ({ provider }) => {
   }, [provider]);
 
   return (
-    <div className="bg-white rounded-b-xl border border-gray-200 border-t-0 p-8">
-      <h2 className="text-2xl font-bold mb-6">Reviews</h2>
+    <div className="rounded-b-xl border border-gray-200 border-t-0 bg-white p-5 sm:p-6">
+      <h2 className="mb-5 text-xl font-bold">Reviews</h2>
 
-      <div className="bg-gray-50 rounded-xl p-8 text-center">
-        <h3 className="text-5xl mb-3">⭐</h3>
+      <div className="rounded-lg bg-gray-50 p-5 text-center">
+        <Star className="mx-auto mb-3 h-7 w-7 fill-yellow-400 text-yellow-400" aria-hidden="true" />
 
-        <p className="text-3xl font-bold">{provider.average_rating || "New"}</p>
+        <p className="text-2xl font-bold">{provider.average_rating || "New"}</p>
 
         <p className="text-gray-500 mt-2">
           {provider.total_reviews || 0} Reviews
@@ -81,8 +82,8 @@ const ReviewsTab = ({ provider }) => {
       {error && <p className="mt-8 text-red-600">{error}</p>}
 
       {!loading && !error && reviews.length === 0 && (
-        <div className="mt-8 bg-white border rounded-xl p-8 text-center">
-          <h3 className="font-semibold text-xl">No reviews yet</h3>
+        <div className="mt-6 rounded-lg border border-gray-200 bg-white p-6 text-center">
+          <h3 className="text-base font-semibold">No reviews yet</h3>
           <p className="text-gray-500 mt-3">
             Reviews from completed bookings will appear here.
           </p>
@@ -92,7 +93,7 @@ const ReviewsTab = ({ provider }) => {
       {!loading && !error && reviews.length > 0 && (
         <div className="mt-8 space-y-4">
           {reviews.map((review) => (
-            <article key={review.id} className="border rounded-xl p-6">
+            <article key={review.id} className="rounded-lg border border-gray-200 p-4 sm:p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h3 className="font-semibold text-gray-900">
@@ -103,8 +104,10 @@ const ReviewsTab = ({ provider }) => {
                   </p>
                 </div>
                 {review.rating > 0 && (
-                  <span className="text-yellow-500">
-                    {"★".repeat(review.rating)}
+                  <span className="inline-flex gap-0.5 text-yellow-500" aria-label={`${review.rating} out of 5 stars`}>
+                    {Array.from({ length: review.rating }, (_, index) => (
+                      <Star key={index} className="h-4 w-4 fill-current" aria-hidden="true" />
+                    ))}
                   </span>
                 )}
               </div>

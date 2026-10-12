@@ -1,4 +1,7 @@
+import { useState } from "react";
+
 const MonthlyBookingsChart = ({ data = [] }) => {
+  const [hoveredIndex, setHoveredIndex] = useState(null);
   const width = 900;
   const height = 260;
 
@@ -127,15 +130,36 @@ const MonthlyBookingsChart = ({ data = [] }) => {
             strokeLinejoin="round"
           />
 
-          {points.map((point) => (
+          {points.map((point, index) => (
             <circle
               key={point.month}
               cx={point.x}
               cy={point.y}
-              r="6"
+              r={hoveredIndex === index ? "8" : "6"}
               fill="#5b00ff"
+              className="cursor-pointer transition-all"
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
             />
           ))}
+
+          {hoveredIndex !== null && points[hoveredIndex] && (
+            <g
+              pointerEvents="none"
+              transform={`translate(${Math.min(
+                Math.max(points[hoveredIndex].x - 54, 4),
+                width - 112
+              )} ${Math.max(points[hoveredIndex].y - 48, 4)})`}
+            >
+              <rect width="108" height="34" rx="6" fill="#0f172a" />
+              <text x="54" y="14" textAnchor="middle" fontSize="11" fill="#cbd5e1">
+                {points[hoveredIndex].month}
+              </text>
+              <text x="54" y="27" textAnchor="middle" fontSize="12" fontWeight="600" fill="#ffffff">
+                {Number(points[hoveredIndex].bookings || 0).toLocaleString()} bookings
+              </text>
+            </g>
+          )}
         </svg>
       </div>
     </div>

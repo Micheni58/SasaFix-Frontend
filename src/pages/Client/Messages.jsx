@@ -15,7 +15,21 @@ const BRAND_LIGHT = "#e8f3fb";
 
 // ── Helpers ────────────────────────────────────────────────────────
 
-const Avatar = ({ name, size = 10 }) => {
+const Avatar = ({ name, photoUrl, size = 10 }) => {
+  const [failed, setFailed] = useState(false);
+
+  if (photoUrl && !failed) {
+    return (
+      <img
+        src={photoUrl}
+        alt={name || "avatar"}
+        onError={() => setFailed(true)}
+        className="rounded-full object-cover flex-shrink-0"
+        style={{ width: size * 4, height: size * 4 }}
+      />
+    );
+  }
+
   const initials =
     name
       ?.split(" ")
@@ -400,7 +414,11 @@ function Messages() {
                           backgroundColor: isActive ? BRAND_LIGHT : undefined,
                         }}
                       >
-                        <Avatar name={convo.other_name} size={10} />
+                        <Avatar
+                          name={convo.other_name}
+                          photoUrl={convo.other_photo_url}
+                          size={10}
+                        />
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-0.5">
@@ -466,7 +484,11 @@ function Messages() {
                 <>
                   {/* Thread header */}
                   <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3">
-                    <Avatar name={activeConvo.other_name} size={9} />
+                    <Avatar
+                      name={activeConvo.other_name}
+                      photoUrl={activeConvo.other_photo_url}
+                      size={9}
+                    />
 
                     <div>
                       <p className="font-semibold text-gray-900 text-sm">

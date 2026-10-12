@@ -60,6 +60,7 @@ import AIAssistant from "../pages/ServiceProvider/AIAssistant";
 import AdminReportsDisputes from "../pages/Admin/AdminReportsDisputes";
 import NotFound from "../pages/NotFound";
 import NotAuthorized from "../pages/NotAuthorized";
+import Categories from "../pages/Admin/Categories";
 import { getStoredUserRole } from "../utils/sidebarRole";
 
 function RoleGuard({ allowedRoles, children }) {
@@ -96,11 +97,24 @@ export default function AppRouter() {
           path="/email-verification-sent"
           element={<EmailVerificationSent />}
         />
+        <Route
+          path="/admin/categories"
+          element={protectedRoute("admin", <Categories />)}
+        />
 
         {/* Protected/Dashboard Routes */}
-        <Route path="/admin" element={protectedRoute("admin", <AdminDashboard />)} />
-        <Route path="/admin/settings" element={protectedRoute("admin", <AdminSettings />)} />
-        <Route path="/admin/notifications" element={protectedRoute("admin", <AdminNotification />)} />
+        <Route
+          path="/admin"
+          element={protectedRoute("admin", <AdminDashboard />)}
+        />
+        <Route
+          path="/admin/settings"
+          element={protectedRoute("admin", <AdminSettings />)}
+        />
+        <Route
+          path="/admin/notifications"
+          element={protectedRoute("admin", <AdminNotification />)}
+        />
         <Route
           path="/admin/bookings-payments"
           element={protectedRoute("admin", <BookingsAndPayments />)}
@@ -109,25 +123,64 @@ export default function AppRouter() {
           path="/admin/bookings-payments/:bookingId"
           element={protectedRoute("admin", <BookingsAndPaymentsDetails />)}
         />
-        <Route path="/admin/payouts/:payoutId" element={protectedRoute("admin", <PayoutDetails />)} />
-        <Route path="/admin/users" element={protectedRoute("admin", <Users />)} />
-        <Route path="/admin/service-providers" element={protectedRoute("admin", <ServiceProviders />)} />
-        <Route path="/admin/transactions" element={protectedRoute("admin", <AdminTransactions />)} />
-        <Route path="/admin/reports-disputes" element={protectedRoute("admin", <AdminReportsDisputes />)} />
-        <Route path="/admin/analytics" element={protectedRoute("admin", <ReportAndAnalytics />)} />
+        <Route
+          path="/admin/payouts/:payoutId"
+          element={protectedRoute("admin", <PayoutDetails />)}
+        />
+        <Route
+          path="/admin/users"
+          element={protectedRoute("admin", <Users />)}
+        />
+        <Route
+          path="/admin/service-providers"
+          element={protectedRoute("admin", <ServiceProviders />)}
+        />
+        <Route
+          path="/admin/transactions"
+          element={protectedRoute("admin", <AdminTransactions />)}
+        />
+        <Route
+          path="/admin/reports-disputes"
+          element={protectedRoute("admin", <AdminReportsDisputes />)}
+        />
+        <Route
+          path="/admin/analytics"
+          element={protectedRoute("admin", <ReportAndAnalytics />)}
+        />
         {/* Client Routes */}
 
-        <Route path="/client" element={protectedRoute("client", <ClientDashboard />)} />
-        <Route path="/client/find-services" element={protectedRoute("client", <FindServices />)} />
+        <Route
+          path="/client"
+          element={protectedRoute("client", <ClientDashboard />)}
+        />
+        <Route
+          path="/client/find-services"
+          element={protectedRoute("client", <FindServices />)}
+        />
         <Route
           path="/providers/:providerId"
           element={<ProviderProfilePage />}
         />
-        <Route path="/client/messages" element={protectedRoute("client", <ClientMessages />)} />
-        <Route path="/client/transactions" element={protectedRoute("client", <ClientTransactions />)} />
-        <Route path="/client/notifications" element={protectedRoute("client", <ClientNotification />)} />
-        <Route path="/client/profile" element={protectedRoute("client", <ClientProfile />)} />
-        <Route path="/client/my-bookings" element={protectedRoute("client", <MyBookings />)} />
+        <Route
+          path="/client/messages"
+          element={protectedRoute("client", <ClientMessages />)}
+        />
+        <Route
+          path="/client/transactions"
+          element={protectedRoute("client", <ClientTransactions />)}
+        />
+        <Route
+          path="/client/notifications"
+          element={protectedRoute("client", <ClientNotification />)}
+        />
+        <Route
+          path="/client/profile"
+          element={protectedRoute("client", <ClientProfile />)}
+        />
+        <Route
+          path="/client/my-bookings"
+          element={protectedRoute("client", <MyBookings />)}
+        />
         <Route
           path="/client/bookings/create/:providerId"
           element={protectedRoute("client", <CreateBooking />)}
@@ -161,18 +214,42 @@ export default function AppRouter() {
           element={protectedRoute("client", <PaidBookingDetails />)}
         />
 
-        <Route path="/provider" element={protectedRoute("provider", <ProviderDashboard />)} />
-        <Route path="/provider/messages" element={protectedRoute("provider", <ClientMessages />)} />
-        <Route path="/provider/earnings" element={protectedRoute("provider", <ProviderEarnings />)} />
-        <Route path="/provider/profile" element={protectedRoute("provider", <Profile />)} />
-        <Route path="/provider/availability" element={protectedRoute("provider", <Availability />)} />
+        <Route
+          path="/provider"
+          element={protectedRoute("provider", <ProviderDashboard />)}
+        />
+        <Route
+          path="/provider/messages"
+          element={protectedRoute("provider", <ClientMessages />)}
+        />
+        <Route
+          path="/provider/earnings"
+          element={protectedRoute("provider", <ProviderEarnings />)}
+        />
+        <Route
+          path="/provider/profile"
+          element={protectedRoute("provider", <Profile />)}
+        />
+        <Route
+          path="/provider/availability"
+          element={protectedRoute("provider", <Availability />)}
+        />
         <Route
           path="/provider/notifications"
           element={protectedRoute("provider", <ProviderNotification />)}
         />
-        <Route path="/provider/my-reviews" element={protectedRoute("provider", <Reviews />)} />
-        <Route path="/provider/subscription" element={protectedRoute("provider", <Subscription />)} />
-        <Route path="/provider/ai-assistant" element={protectedRoute("provider", <AIAssistant />)} />
+        <Route
+          path="/provider/my-reviews"
+          element={protectedRoute("provider", <Reviews />)}
+        />
+        <Route
+          path="/provider/subscription"
+          element={protectedRoute("provider", <Subscription />)}
+        />
+        <Route
+          path="/provider/ai-assistant"
+          element={protectedRoute("provider", <AIAssistant />)}
+        />
 
         <Route
           path="/provider/subscription"
@@ -181,7 +258,10 @@ export default function AppRouter() {
 
         <Route path="/profile" element={<Profile />} />
 
-        <Route path="/provider/my-jobs" element={protectedRoute("provider", <MyJobs />)} />
+        <Route
+          path="/provider/my-jobs"
+          element={protectedRoute("provider", <MyJobs />)}
+        />
         <Route
           path="/provider/my-jobs/new/:id"
           element={protectedRoute("provider", <NewJobRequestDetails />)}
@@ -206,8 +286,17 @@ export default function AppRouter() {
           path="/provider/my-jobs/cancelled/:id"
           element={protectedRoute("provider", <CancelledJobDetails />)}
         />
-        <Route path="/provider/my-jobs/reschedule-requested/:id" element={protectedRoute("provider", <RescheduleRequestedJobDetails />)} />
-        <Route path="/provider/my-jobs/reschedule-proposed/:id" element={protectedRoute("provider", <RescheduleProposedJobDetails />)} />
+        <Route
+          path="/provider/my-jobs/reschedule-requested/:id"
+          element={protectedRoute(
+            "provider",
+            <RescheduleRequestedJobDetails />,
+          )}
+        />
+        <Route
+          path="/provider/my-jobs/reschedule-proposed/:id"
+          element={protectedRoute("provider", <RescheduleProposedJobDetails />)}
+        />
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<NotFound />} />

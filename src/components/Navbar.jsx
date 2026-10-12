@@ -1,15 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  Bell,
-  ChevronDown,
-  Search,
-  User,
-  LogOut,
-} from "lucide-react";
-import {
-  useNavigate,
-  useLocation,
-} from "react-router-dom";
+import { Bell, ChevronDown, Search, User, LogOut } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import authService from "../services/api";
 
@@ -25,13 +16,11 @@ function Navbar() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const currentUser =
-          await authService.getCurrentUser();
+        const currentUser = await authService.getCurrentUser();
 
         setUser(currentUser);
       } catch (err) {
-        const storedUser =
-          authService.getStoredUser();
+        const storedUser = authService.getStoredUser();
 
         if (storedUser) {
           setUser(storedUser);
@@ -43,16 +32,24 @@ function Navbar() {
 
     loadUser();
   }, []);
+  useEffect(() => {
+    const syncUser = () => {
+      const stored = authService.getStoredUser();
+      if (stored) setUser((prev) => ({ ...prev, ...stored }));
+    };
+
+    window.addEventListener("user-updated", syncUser);
+    return () => window.removeEventListener("user-updated", syncUser);
+  }, []);
 
   const handleLogout = () => {
     authService.logout();
     navigate("/login");
   };
 
-  const initials =
-    user
-      ? `${user.first_name?.charAt(0) ?? ""}${user.last_name?.charAt(0) ?? ""}`
-      : "U";
+  const initials = user
+    ? `${user.first_name?.charAt(0) ?? ""}${user.last_name?.charAt(0) ?? ""}`
+    : "U";
 
   const displayRole = () => {
     if (!user) return "";
@@ -74,9 +71,7 @@ function Navbar() {
 
   const handleSearch = (e) => {
     if (e.key === "Enter" && search.trim()) {
-      navigate(
-        `/client/find-services?search=${encodeURIComponent(search)}`
-      );
+      navigate(`/client/find-services?search=${encodeURIComponent(search)}`);
     }
   };
 
@@ -103,10 +98,8 @@ function Navbar() {
     >
       {/* Search */}
 
-
       <div className="flex-1 max-w-2xl pl-14 sm:pl-0">
         <div className="relative">
-
           <Search
             size={18}
             className="
@@ -121,9 +114,7 @@ function Navbar() {
           <input
             type="text"
             value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
+            onChange={(e) => setSearch(e.target.value)}
             onKeyDown={handleSearch}
             placeholder="Search services or providers..."
             className="
@@ -143,9 +134,7 @@ function Navbar() {
               transition
             "
           />
-
         </div>
-
       </div>
 
       {/* Right Side */}
@@ -168,10 +157,7 @@ function Navbar() {
             transition
           "
         >
-          <Bell
-            size={20}
-            className="text-gray-600"
-          />
+          <Bell size={20} className="text-gray-600" />
 
           <span
             className="
@@ -189,11 +175,8 @@ function Navbar() {
         {/* Profile */}
 
         <div className="relative">
-
           <button
-            onClick={() =>
-              setShowDropdown(!showDropdown)
-            }
+            onClick={() => setShowDropdown(!showDropdown)}
             className="
               flex
               items-center
@@ -205,9 +188,7 @@ function Navbar() {
               transition
             "
           >
-
             {/* Avatar */}
-
             <div
               className="
                 w-11
@@ -219,29 +200,34 @@ function Navbar() {
                 justify-center
                 text-white
                 font-semibold
+                overflow-hidden
               "
             >
-              {loading ? "..." : initials}
+              {loading ? (
+                "..."
+              ) : user?.profile_photo_url ? (
+                <img
+                  src={user.profile_photo_url}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                initials
+              )}
             </div>
 
             {/* User */}
 
             <div className="hidden md:block text-left">
-
               <h3 className="text-sm font-semibold text-gray-900">
-
                 {loading
                   ? "Loading..."
                   : `${user?.first_name ?? ""} ${user?.last_name ?? ""}`}
-
               </h3>
 
               <p className="text-xs text-gray-500">
-
                 {loading ? "" : displayRole()}
-
               </p>
-
             </div>
 
             <ChevronDown
@@ -252,13 +238,11 @@ function Navbar() {
                 ${showDropdown ? "rotate-180" : ""}
               `}
             />
-
           </button>
 
           {/* Dropdown */}
 
           {showDropdown && (
-
             <div
               className="
                 absolute
@@ -274,22 +258,17 @@ function Navbar() {
                 z-50
               "
             >
-
               <button
                 onClick={() => {
-
                   if (user?.role === "client") {
                     navigate("/client/profile");
-                  } else if (
-                    user?.role === "service_provider"
-                  ) {
+                  } else if (user?.role === "service_provider") {
                     navigate("/provider/profile");
                   } else {
                     navigate("/profile");
                   }
 
                   setShowDropdown(false);
-
                 }}
                 className="
                   w-full
@@ -302,14 +281,8 @@ function Navbar() {
                   transition
                 "
               >
-
-                <User
-                  size={18}
-                  className="text-[#056db3]"
-                />
-
+                <User size={18} className="text-[#056db3]" />
                 My Profile
-
               </button>
 
               <button
@@ -326,21 +299,13 @@ function Navbar() {
                   transition
                 "
               >
-
                 <LogOut size={18} />
-
                 Logout
-
               </button>
-
             </div>
-
           )}
-
         </div>
-
       </div>
-
     </nav>
   );
 }

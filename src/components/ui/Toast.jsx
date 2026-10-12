@@ -53,7 +53,7 @@ export function Toast({ id, variant = "success", title, message, duration = 4500
       role="status"
       aria-live="polite"
       className={`
-        w-90 bg-white border border-gray-200 border-l-4 ${borderColor}
+        theme-toast w-90 bg-white border border-gray-200 border-l-4 ${borderColor}
         rounded-xl shadow-lg shadow-gray-900/5
         p-3.5 flex items-start gap-2.5
         animate-toast-in

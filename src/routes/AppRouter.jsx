@@ -3,7 +3,9 @@ import {
   Navigate,
   Routes,
   Route,
+  useLocation,
 } from "react-router-dom";
+import { useLayoutEffect } from "react";
 
 import Home from "../pages/Home";
 import Login from "../pages/Login";
@@ -61,6 +63,17 @@ import AdminSubscriptions from "../pages/Admin/Subscriptions";
 import NotFound from "../pages/NotFound";
 import NotAuthorized from "../pages/NotAuthorized";
 import { getStoredUserRole } from "../utils/sidebarRole";
+import { syncThemeWithRoute } from "../utils/theme";
+
+function RouteThemeSync() {
+  const location = useLocation();
+
+  useLayoutEffect(() => {
+    syncThemeWithRoute(location.pathname);
+  }, [location.pathname]);
+
+  return null;
+}
 
 function RoleGuard({ allowedRoles, children }) {
   const token = localStorage.getItem("access_token");
@@ -84,6 +97,7 @@ const protectedRoute = (role, element) => (
 export default function AppRouter() {
   return (
     <Router>
+      <RouteThemeSync />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />

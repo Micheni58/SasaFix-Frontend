@@ -19,7 +19,7 @@ const PremiumCurrentPlan = ({ subscription }) => {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="overflow-hidden rounded-2xl border border-orange-300 bg-white shadow-sm">
-        <div className="bg-gradient-to-r from-orange-400 to-amber-500 px-8 py-8 text-center text-white">
+        <div className="bg-linear-to-r from-orange-400 to-amber-500 px-8 py-8 text-center text-white">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/20">
             <Crown className="h-7 w-7" />
           </div>
@@ -302,7 +302,7 @@ const Subscription = () => {
           {isPremium ? (
             <>
               <div className="mb-8 text-center">
-                <h1 className="text-[36px] font-bold tracking-tight text-[#111827]">
+                <h1 className="subscription-page-heading text-[36px] font-bold tracking-tight text-[#111827]">
                   Your Subscription
                 </h1>
 
@@ -323,7 +323,7 @@ const Subscription = () => {
             <>
               {/* HEADING */}
               <div className="mb-8 text-center">
-                <h1 className="text-[36px] font-bold tracking-tight text-[#111827]">
+                <h1 className="subscription-page-heading text-[36px] font-bold tracking-tight text-[#111827]">
                   Upgrade to Premium
                 </h1>
 
@@ -468,8 +468,8 @@ const Subscription = () => {
                 </div>
 
                 {/* PREMIUM */}
-                <div className="relative rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 p-8 text-white shadow-sm">
-                  <div className="absolute right-4 top-4 rounded-full bg-white px-4 py-1 text-xs font-medium text-orange-600">
+                <div className="relative rounded-xl bg-linear-to-br from-orange-400 to-amber-500 p-8 text-white shadow-sm">
+                  <div className="subscription-recommended-badge absolute right-4 top-4 rounded-full bg-white px-4 py-1 text-xs font-medium text-orange-600">
                     ♕ RECOMMENDED
                   </div>
 
@@ -524,7 +524,7 @@ const Subscription = () => {
                   <button
                     onClick={handleUpgrade}
                     disabled={upgrading}
-                    className="mt-8 h-11 w-full rounded-lg bg-white text-sm font-medium text-orange-600 transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="subscription-upgrade-button mt-8 h-11 w-full rounded-lg bg-white text-sm font-medium text-orange-600 transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {upgrading ? "Waiting for M-Pesa..." : "Upgrade to Premium"}
                   </button>
@@ -550,7 +550,7 @@ const Subscription = () => {
                         Free
                       </th>
 
-                      <th className="bg-orange-50 px-6 py-4 text-center text-sm font-medium text-slate-700">
+                      <th className="subscription-premium-table-head bg-orange-50 px-6 py-4 text-center text-sm font-medium text-slate-700">
                         Premium
                       </th>
                     </tr>

@@ -7,6 +7,7 @@ import {
   XCircle, AlertCircle, CreditCard, ArrowLeft
 } from "lucide-react";
 import bookingService from "../../../api/bookingService";
+import apiClient from "../../../api/apiClient";
 import paymentsService from "../../../api/paymentsService";
 import reportService from "../../../api/reportService";
 import Sidebar from "../../../layout/Sidebar";
@@ -402,8 +403,11 @@ function CompletedBookingDetails() {
 
                 // Check transaction status
                 try {
-                    const response = await fetch(`/api/transactions/booking/${bookingId}`);
-                    const data = await response.json();
+                    const response = await apiClient.get(
+                        `/transactions/booking/${bookingId}`,
+                        { validateStatus: () => true },
+                    );
+                    const data = response.data;
                     if (mounted && data && data.length > 0) {
                         const transaction = data[0];
                         const status = transaction.status;

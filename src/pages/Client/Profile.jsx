@@ -4,7 +4,9 @@ import Navbar from "../../components/Navbar";
 import { useLocation } from "react-router-dom";
 import { getSidebarRole } from "../../utils/sidebarRole";
 import authService from "../../services/api";
+import apiClient from "../../api/apiClient";
 import { useToast } from "../../components/ui/ToastProvider";
+import ThemeSettings from "../../components/profile/ThemeSettings";
 
 const BRAND = "#056db3";
 const BRAND_DARK = "#04599a";
@@ -82,6 +84,7 @@ const NAV = [
   { id: "locations", label: "Saved Locations", icon: <PinIcon /> },
   { id: "notifications", label: "Notifications", icon: <BellIcon /> },
   { id: "security", label: "Security", icon: <LockIcon /> },
+  { id: "theme", label: "Theme", icon: <Ico circle={[12, 12, 4]} d="M12 2v2m0 16v2m10-10h-2M4 12H2m17.07 7.07-1.42-1.42M6.35 6.35 4.93 4.93m14.14 0-1.42 1.42M6.35 17.65l-1.42 1.42" /> },
   { id: "help", label: "Help & Support", icon: <HelpIcon /> },
 ];
 
@@ -154,19 +157,14 @@ const PersonalInfo = ({ user, onSaved }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("http://localhost:8000/api/users/me", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify(form),
+      const res = await apiClient.patch("/users/me", form, {
+        validateStatus: () => true,
       });
-      if (!res.ok) {
-        const e = await res.json();
+      if (res.status < 200 || res.status >= 300) {
+        const e = res.data;
         throw new Error(e.detail);
       }
-      const updated = await res.json();
+      const updated = res.data;
       localStorage.setItem("user", JSON.stringify({ ...user, ...updated }));
       onSaved?.({ ...user, ...updated });
       toast.success("Changes saved", "Your personal information has been updated.");
@@ -313,16 +311,11 @@ const SavedLocations = ({ user }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("http://localhost:8000/api/users/me", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify(form),
+      const res = await apiClient.patch("/users/me", form, {
+        validateStatus: () => true,
       });
-      if (!res.ok) {
-        const e = await res.json();
+      if (res.status < 200 || res.status >= 300) {
+        const e = res.data;
         throw new Error(e.detail);
       }
       toast.success("Location saved");
@@ -472,19 +465,16 @@ const Security = () => {
     }
     setSaving(true);
     try {
-      const res = await fetch("http://localhost:8000/api/users/me/password", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({
+      const res = await apiClient.patch(
+        "/users/me/password",
+        {
           current_password: form.current_password,
           new_password: form.new_password,
-        }),
-      });
-      if (!res.ok) {
-        const e = await res.json();
+        },
+        { validateStatus: () => true },
+      );
+      if (res.status < 200 || res.status >= 300) {
+        const e = res.data;
         throw new Error(e.detail);
       }
       setForm({ current_password: "", new_password: "", confirm_password: "" });
@@ -606,11 +596,11 @@ const HelpSupport = () => (
         Our team is available Mon–Fri, 8am–6pm EAT.
       </p>
       <a
-        href="mailto:support@servicehub.co.ke"
+        href="mailto:info@sasafix.co.ke"
         className="text-sm font-semibold hover:underline"
         style={{ color: BRAND }}
       >
-        support@servicehub.co.ke
+        info@sasafix.co.ke
       </a>
     </div>
   </div>
@@ -639,6 +629,7 @@ function ClientProfile() {
     locations: <SavedLocations user={user} />,
     notifications: <NotificationSettings />,
     security: <Security />,
+    theme: <ThemeSettings />,
     help: <HelpSupport />,
   };
 

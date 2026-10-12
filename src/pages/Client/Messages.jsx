@@ -4,7 +4,7 @@ import Navbar from "../../components/Navbar";
 import { useLocation } from "react-router-dom";
 import { getSidebarRole } from "../../utils/sidebarRole";
 
-const API = "http://localhost:8000/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 const authHeaders = () => ({
   "Content-Type": "application/json",
   Authorization: `Bearer ${localStorage.getItem("access_token")}`,

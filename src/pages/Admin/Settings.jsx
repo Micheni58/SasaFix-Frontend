@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 import authService from "../../services/api";
+import apiClient from "../../api/apiClient";
 import { useToast } from "../../components/ui/ToastProvider";
+import ThemeSettings from "../../components/profile/ThemeSettings";
 
 const BRAND = "#056db3";
 const BRAND_DARK = "#04599a";
@@ -76,6 +78,7 @@ const Label = ({ children }) => (
 const NAV = [
   { id: "profile", label: "My Profile", icon: <UserIcon /> },
   { id: "security", label: "Security", icon: <LockIcon /> },
+  { id: "theme", label: "Theme", icon: <Ico circle={[12, 12, 4]} d="M12 2v2m0 16v2m10-10h-2M4 12H2m17.07 7.07-1.42-1.42M6.35 6.35 4.93 4.93m14.14 0-1.42 1.42M6.35 17.65l-1.42 1.42" /> },
   { id: "notifications", label: "Notifications", icon: <BellIcon /> },
   { id: "platform", label: "Platform Settings", icon: <ShieldIcon /> },
   { id: "help", label: "Help & Support", icon: <HelpIcon /> },
@@ -112,19 +115,14 @@ const MyProfile = ({ user, onSaved }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("http://localhost:8000/api/users/me", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify(form),
+      const res = await apiClient.patch("/users/me", form, {
+        validateStatus: () => true,
       });
-      if (!res.ok) {
-        const e = await res.json();
+      if (res.status < 200 || res.status >= 300) {
+        const e = res.data;
         throw new Error(e.detail);
       }
-      const updated = await res.json();
+      const updated = res.data;
       localStorage.setItem("user", JSON.stringify({ ...user, ...updated }));
       onSaved?.({ ...user, ...updated });
       toast.success("Profile updated successfully");
@@ -145,7 +143,7 @@ const MyProfile = ({ user, onSaved }) => {
       {/* Avatar */}
       <div className="flex items-center gap-5 mb-7">
         <div
-          className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0 overflow-hidden"
+          className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold shrink-0 overflow-hidden"
           style={{ backgroundColor: BRAND }}
         >
           {avatar ? (
@@ -283,19 +281,16 @@ const Security = () => {
     }
     setSaving(true);
     try {
-      const res = await fetch("http://localhost:8000/api/users/me/password", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({
+      const res = await apiClient.patch(
+        "/users/me/password",
+        {
           current_password: form.current_password,
           new_password: form.new_password,
-        }),
-      });
-      if (!res.ok) {
-        const e = await res.json();
+        },
+        { validateStatus: () => true },
+      );
+      if (res.status < 200 || res.status >= 300) {
+        const e = res.data;
         throw new Error(e.detail);
       }
       setForm({ current_password: "", new_password: "", confirm_password: "" });
@@ -403,7 +398,7 @@ const Notifications = () => {
       </div>
       <button
         onClick={() => toggle(k)}
-        className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ml-6"
+        className="relative w-11 h-6 rounded-full transition-colors shrink-0 ml-6"
         style={{ backgroundColor: prefs[k] ? BRAND : "#d1d5db" }}
       >
         <span
@@ -477,7 +472,7 @@ const PlatformSettings = () => {
     require_id_verification: false,
     maintenance_mode: false,
     commission_rate: "10",
-    support_email: "support@servicehub.co.ke",
+    support_email: "info@sasafix.co.ke",
   });
   const [saving, setSaving] = useState(false);
   const Toggle = ({ label, desc, k }) => (
@@ -488,7 +483,7 @@ const PlatformSettings = () => {
       </div>
       <button
         onClick={() => setSettings((p) => ({ ...p, [k]: !p[k] }))}
-        className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ml-6"
+        className="relative w-11 h-6 rounded-full transition-colors shrink-0 ml-6"
         style={{ backgroundColor: settings[k] ? BRAND : "#d1d5db" }}
       >
         <span
@@ -623,11 +618,11 @@ const HelpSupport = () => (
         For backend or infrastructure issues contact the dev team.
       </p>
       <a
-        href="mailto:dev@servicehub.co.ke"
+        href="mailto:info@sasafix.co.ke"
         className="text-sm font-semibold hover:underline"
         style={{ color: BRAND }}
       >
-        dev@servicehub.co.ke
+        info@sasafix.co.ke
       </a>
     </div>
   </div>
@@ -652,6 +647,7 @@ function Settings() {
   const sections = {
     profile: <MyProfile user={user} onSaved={setUser} />,
     security: <Security />,
+    theme: <ThemeSettings />,
     notifications: <Notifications />,
     platform: <PlatformSettings />,
     help: <HelpSupport />,
@@ -672,7 +668,7 @@ function Settings() {
 
           <div className="flex gap-5 items-start">
             {/* Nav */}
-            <div className="w-52 flex-shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
+            <div className="w-52 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
               {NAV.map(({ id, label, icon }) => (
                 <button
                   key={id}

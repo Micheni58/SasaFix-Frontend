@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import apiClient from "../../api/apiClient";
 
 const WEEK_DAYS = [
   "Monday",
@@ -34,20 +35,16 @@ const AvailabilityTab = ({ provider }) => {
 
         const providerId =
           provider.id || provider.provider_id || provider.service_provider_id;
-        const response = await fetch(
-          `http://localhost:8000/api/providers/${providerId}/availability`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("access_token") || ""}`,
-            },
-          },
+        const response = await apiClient.get(
+          `/providers/${providerId}/availability`,
+          { validateStatus: () => true },
         );
 
-        if (!response.ok) {
+        if (response.status < 200 || response.status >= 300) {
           throw new Error("Failed to load availability");
         }
 
-        const data = await response.json();
+        const data = response.data;
         const slots = Array.isArray(data) ? data : data.availability || [];
         setAvailability(
           [...slots].sort(

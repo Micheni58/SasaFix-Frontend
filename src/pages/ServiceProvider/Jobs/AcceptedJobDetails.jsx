@@ -474,7 +474,7 @@ function AcceptedJobDetails() {
                   Propose New Time
                 </button>
 
-                <div className="mt-6 pt-6 border-t border-gray-200 bg-[#fdffe9] rounded-2xl p-4">
+                <div className="provider-important-notes mt-6 pt-6 border-t border-gray-200 bg-[#fdffe9] rounded-2xl p-4">
                   <p className="text-sm font-semibold text-gray-800 mb-3">Important Notes</p>
                   <ul className="space-y-2 text-sm text-gray-700">
                     <li className="flex gap-2">

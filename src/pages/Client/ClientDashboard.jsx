@@ -631,7 +631,7 @@ function ClientDashboard() {
                     return (
                       <li
                         key={booking.id}
-                        className="flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
+                        className="dark-dashboard-hover flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="flex min-w-0 items-center gap-3">
                           <ProviderAvatar

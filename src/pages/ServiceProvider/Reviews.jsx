@@ -454,7 +454,7 @@ function Reviews() {
                                                 <button
                                                     onClick={() => !review.thanked && handleThank(review.id)}
                                                     disabled={review.thanked}
-                                                    className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                                                    className={`provider-review-thank inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
                                                         review.thanked
                                                             ? "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
                                                             : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
@@ -476,7 +476,7 @@ function Reviews() {
 
                                         {/* Existing Response */}
                                         {review.response && (
-                                            <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-4">
+                                            <div className="provider-review-response mt-4 rounded-lg border border-blue-100 bg-blue-50 p-4">
                                                 <p className="text-sm font-semibold text-blue-800">
                                                     Your response
                                                 </p>
@@ -488,7 +488,7 @@ function Reviews() {
 
                                         {/* Reply Box */}
                                         {replyingTo === review.id && (
-                                            <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                            <div className="provider-review-reply mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
                                                 <textarea
                                                     value={replyText}
                                                     onChange={(e) => setReplyText(e.target.value)}

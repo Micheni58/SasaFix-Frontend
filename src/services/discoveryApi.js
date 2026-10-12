@@ -1,6 +1,6 @@
 // src/services/discoveryApi.js
 
-const API_URL = "http://127.0.0.1:8000/api/discovery";
+const API_URL = `${(import.meta.env.VITE_API_URL || "/api").replace(/\/+$/, "")}/discovery`;
 
 /**
  * Search providers

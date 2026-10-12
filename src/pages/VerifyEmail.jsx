@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const BRAND = "#056db3";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
@@ -21,21 +23,21 @@ const VerifyEmail = () => {
       }
 
       try {
-        const response = await fetch(
-          `http://localhost:8000/api/users/verify-email?token=${encodeURIComponent(token)}`,
+        const response = await axios.get(
+          `${API_BASE_URL}/users/verify-email?token=${encodeURIComponent(token)}`,
         );
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.detail || "Email verification failed.");
-        }
+        const data = response.data;
 
         setStatus("success");
         setMessage(data.message || "Email verified successfully.");
       } catch (error) {
         setStatus("error");
-        setMessage(error.message);
+        setMessage(
+          error.response
+            ? error.response.data?.detail || "Email verification failed."
+            : error.message,
+        );
       }
     };
 

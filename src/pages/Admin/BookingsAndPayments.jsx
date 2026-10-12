@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import bookingService from "../../api/bookingService";
+import apiClient from "../../api/apiClient";
 import transactionService from "../../api/transactionService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
@@ -219,9 +220,11 @@ function BookingsAndPayments() {
       let totalCommission = 0;
 
       try {
-        const resp = await fetch("/api/bookings/admin/all");
-        if (resp.ok) {
-          const data = await resp.json();
+        const resp = await apiClient.get("/bookings/admin/all", {
+          validateStatus: () => true,
+        });
+        if (resp.status >= 200 && resp.status < 300) {
+          const data = resp.data;
           allBookings = Array.isArray(data) ? data : [];
         } else {
           const bookingsData = await bookingService.listActiveBookings();

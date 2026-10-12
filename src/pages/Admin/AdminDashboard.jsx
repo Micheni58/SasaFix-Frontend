@@ -350,9 +350,11 @@ function AdminDashboard() {
       // ── Fetch ALL Bookings from admin endpoint ──
       let allBookings = [];
       try {
-        const resp = await fetch("/api/bookings/admin/all");
-        if (resp.ok) {
-          const data = await resp.json();
+        const resp = await apiClient.get("/bookings/admin/all", {
+          validateStatus: () => true,
+        });
+        if (resp.status >= 200 && resp.status < 300) {
+          const data = resp.data;
           allBookings = Array.isArray(data) ? data : [];
         } else {
           const active = await bookingService.listActiveBookings();

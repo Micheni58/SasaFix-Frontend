@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 import authService from "../../services/api";
+import apiClient from "../../api/apiClient";
 import { useToast } from "../../components/ui/ToastProvider";
 import ThemeSettings from "../../components/profile/ThemeSettings";
 
@@ -114,19 +115,14 @@ const MyProfile = ({ user, onSaved }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("http://localhost:8000/api/users/me", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify(form),
+      const res = await apiClient.patch("/users/me", form, {
+        validateStatus: () => true,
       });
-      if (!res.ok) {
-        const e = await res.json();
+      if (res.status < 200 || res.status >= 300) {
+        const e = res.data;
         throw new Error(e.detail);
       }
-      const updated = await res.json();
+      const updated = res.data;
       localStorage.setItem("user", JSON.stringify({ ...user, ...updated }));
       onSaved?.({ ...user, ...updated });
       toast.success("Profile updated successfully");
@@ -285,19 +281,16 @@ const Security = () => {
     }
     setSaving(true);
     try {
-      const res = await fetch("http://localhost:8000/api/users/me/password", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({
+      const res = await apiClient.patch(
+        "/users/me/password",
+        {
           current_password: form.current_password,
           new_password: form.new_password,
-        }),
-      });
-      if (!res.ok) {
-        const e = await res.json();
+        },
+        { validateStatus: () => true },
+      );
+      if (res.status < 200 || res.status >= 300) {
+        const e = res.data;
         throw new Error(e.detail);
       }
       setForm({ current_password: "", new_password: "", confirm_password: "" });

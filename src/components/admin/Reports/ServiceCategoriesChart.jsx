@@ -1,4 +1,7 @@
+import { useState } from "react";
+
 const ServiceCategoriesChart = ({ data = [] }) => {
+  const [hoveredIndex, setHoveredIndex] = useState(null);
   const colors = [
     "#5b00ff",
     "#913cff",
@@ -31,10 +34,10 @@ const ServiceCategoriesChart = ({ data = [] }) => {
         </p>
       </div>
 
-      <div className="flex min-h-[340px] items-center justify-center px-5 pb-8 pt-3">
+      <div className="relative flex min-h-[340px] items-center justify-center px-5 pb-8 pt-3">
         <div className="relative h-48 w-48 shrink-0">
           <div
-            className="h-full w-full rounded-full"
+            className={`h-full w-full rounded-full transition-transform ${hoveredIndex !== null ? "scale-105" : ""}`}
             style={{
               background: `conic-gradient(${gradient})`,
             }}
@@ -49,7 +52,9 @@ const ServiceCategoriesChart = ({ data = [] }) => {
           {data.map((item, index) => (
             <div
               key={item.name}
-              className="flex items-center gap-2 text-sm"
+              className={`flex cursor-pointer items-center gap-2 text-sm transition-opacity ${hoveredIndex !== null && hoveredIndex !== index ? "opacity-40" : ""}`}
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
             >
               <span
                 className="h-3 w-3 rounded-full"
@@ -69,6 +74,13 @@ const ServiceCategoriesChart = ({ data = [] }) => {
             </div>
           ))}
         </div>
+
+        {hoveredIndex !== null && data[hoveredIndex] && (
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+            <p className="max-w-20 text-xs font-medium text-slate-500">{data[hoveredIndex].name}</p>
+            <p className="text-lg font-bold text-slate-900">{data[hoveredIndex].percentage}%</p>
+          </div>
+        )}
       </div>
     </div>
   );

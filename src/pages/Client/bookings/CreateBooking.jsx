@@ -20,11 +20,15 @@ import {
   Wrench,
   Lock,
   ChevronRight,
+  Sparkles,
+  Check,
+  X as CloseIcon,
 } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import { format, isSameDay } from "date-fns";
 import "react-day-picker/dist/style.css";
 import bookingService from "../../../api/bookingService";
+import aiService from "../../../api/aiService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
 import { getProvider } from "../../../services/discoveryApi";
@@ -146,6 +150,9 @@ function CreateBooking() {
   const [selectedTime, setSelectedTime] = useState(null);
   const [serviceLocation, setServiceLocation] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  const [suggestedDescription, setSuggestedDescription] = useState("");
+  const [isImprovingDescription, setIsImprovingDescription] = useState(false);
+  const [descriptionAiError, setDescriptionAiError] = useState("");
   const [urgency, setUrgency] = useState("normal");
   const [providerId, setProviderId] = useState(null);
   const [providerName, setProviderName] = useState("");
@@ -172,6 +179,28 @@ function CreateBooking() {
     { value: 6, label: "6 hrs" },
     { value: 8, label: "Full day" },
   ];
+
+  const improveJobDescription = async () => {
+    if (!jobDescription.trim()) return;
+
+    setIsImprovingDescription(true);
+    setDescriptionAiError("");
+    setSuggestedDescription("");
+
+    try {
+      const result = await aiService.improveJobDescription(jobDescription.trim());
+      setSuggestedDescription(result.improved_description || "");
+      if (!result.improved_description) {
+        setDescriptionAiError("AI did not return a suggestion. Please try again.");
+      }
+    } catch (aiError) {
+      setDescriptionAiError(
+        aiError.message || aiError.detail || "Unable to improve the description right now. Please try again."
+      );
+    } finally {
+      setIsImprovingDescription(false);
+    }
+  };
 
   // Fetch provider data on mount
   useEffect(() => {
@@ -787,12 +816,70 @@ function CreateBooking() {
                         </label>
                         <textarea
                           id="jobDescription"
-                          rows="3"
+                          rows={Math.min(12, Math.max(3, Math.ceil(jobDescription.length / 85)))}
                           placeholder="Describe what needs to be done"
                           value={jobDescription}
                           onChange={(e) => setJobDescription(e.target.value)}
                           className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-800 focus:outline-none focus:border-[#056db3] focus:ring-2 focus:ring-[#056db3]/20 transition-colors"
                         />
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs text-gray-500">
+                            Turn rough notes into a clearer request for your provider.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={improveJobDescription}
+                            disabled={!jobDescription.trim() || isImprovingDescription}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#056db3]/20 bg-blue-50 px-3 py-2 text-sm font-medium text-[#056db3] transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Sparkles className={`h-4 w-4 ${isImprovingDescription ? "animate-pulse" : ""}`} />
+                            {isImprovingDescription ? "Improving..." : "Improve with AI"}
+                          </button>
+                        </div>
+
+                        {descriptionAiError && (
+                          <p role="alert" className="mt-2 text-sm text-red-600">
+                            {descriptionAiError}
+                          </p>
+                        )}
+
+                        {suggestedDescription && (
+                          <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/60 p-3">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <p className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+                                <Sparkles className="h-4 w-4 text-[#056db3]" />
+                                Suggested description
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setSuggestedDescription("")}
+                                className="rounded p-1 text-gray-400 hover:bg-white hover:text-gray-700"
+                                aria-label="Dismiss suggested description"
+                              >
+                                <CloseIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                            <textarea
+                              value={suggestedDescription}
+                              onChange={(event) => setSuggestedDescription(event.target.value)}
+                              rows={Math.min(12, Math.max(4, Math.ceil(suggestedDescription.length / 85)))}
+                              aria-label="Edit suggested description"
+                              className="w-full resize-y rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm text-gray-700 focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-[#056db3]/20"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setJobDescription(suggestedDescription);
+                                setSuggestedDescription("");
+                              }}
+                              disabled={!suggestedDescription.trim()}
+                              className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#056db3] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#045a94] disabled:opacity-50"
+                            >
+                              <Check className="h-4 w-4" />
+                              Accept & edit description
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Urgency */}

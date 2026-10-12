@@ -1,7 +1,8 @@
 // src/pages/ServiceDiscovery/ProviderProfilePage.jsx
 
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
@@ -18,6 +19,7 @@ import AvailabilityTab from "../../components/provider/AvailabilityTab";
 
 const ProviderProfilePage = () => {
   const { providerId } = useParams();
+  const navigate = useNavigate();
 
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,7 @@ const ProviderProfilePage = () => {
         <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
 
-          <main className="pt-24 px-4 sm:px-6 lg:px-8">
+          <main className="px-6 pb-6 pt-24">
             <div className="bg-white rounded-xl p-10 text-center shadow-sm">
               Loading provider...
             </div>
@@ -68,7 +70,7 @@ const ProviderProfilePage = () => {
         <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
 
-          <main className="pt-24 px-4 sm:px-6 lg:px-8">
+          <main className="px-6 pb-6 pt-24">
             <div className="bg-red-50 border border-red-200 rounded-xl p-10 text-red-600">
               {error || "Provider not found"}
             </div>
@@ -85,18 +87,18 @@ const ProviderProfilePage = () => {
       <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
 
-        <main className="pt-24 px-4 sm:px-6 lg:px-8 pb-12">
-
-          {/* Header */}
-
+        <main className="px-6 pb-6 pt-24">
+          <button
+            type="button"
+            onClick={() => navigate("/client/find-services")}
+            className="group mb-3 inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-[#056db3]"
+          >
+            <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            Back to Find Services
+          </button>
           <ProfileHeader provider={provider} />
 
-          {/* Main Content */}
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-6 sm:mt-8">
-
-            {/* Left */}
-
+          <div className="mt-8 grid grid-cols-1 items-start gap-5 lg:grid-cols-3 lg:gap-6">
             <div className="lg:col-span-2">
 
               <ProviderTabs
@@ -121,8 +123,6 @@ const ProviderProfilePage = () => {
               )}
 
             </div>
-
-            {/* Right */}
 
             <div>
 

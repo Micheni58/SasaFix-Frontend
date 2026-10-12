@@ -1,4 +1,7 @@
+import { useState } from "react";
+
 const UserGrowthChart = ({ data = [] }) => {
+  const [hoveredIndex, setHoveredIndex] = useState(null);
   const width = 500;
   const height = 260;
 
@@ -110,8 +113,11 @@ const UserGrowthChart = ({ data = [] }) => {
               key={`client-${index}`}
               cx={point.x}
               cy={point.y}
-              r="4"
+              r={hoveredIndex === index ? "7" : "4"}
               fill="#5b00ff"
+              className="cursor-pointer transition-all"
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
             />
           ))}
 
@@ -120,10 +126,34 @@ const UserGrowthChart = ({ data = [] }) => {
               key={`provider-${index}`}
               cx={point.x}
               cy={point.y}
-              r="4"
+              r={hoveredIndex === index ? "7" : "4"}
               fill="#10b981"
+              className="cursor-pointer transition-all"
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
             />
           ))}
+
+          {hoveredIndex !== null && data[hoveredIndex] && (
+            <g
+              pointerEvents="none"
+              transform={`translate(${Math.min(
+                Math.max(clientPoints[hoveredIndex].x - 58, 4),
+                width - 120
+              )} ${Math.max(clientPoints[hoveredIndex].y - 54, 4)})`}
+            >
+              <rect width="116" height="42" rx="6" fill="#0f172a" />
+              <text x="58" y="14" textAnchor="middle" fontSize="11" fill="#cbd5e1">
+                {data[hoveredIndex].month}
+              </text>
+              <text x="58" y="27" textAnchor="middle" fontSize="11" fill="#ffffff">
+                Clients {Number(data[hoveredIndex].clients || 0).toLocaleString()}
+              </text>
+              <text x="58" y="38" textAnchor="middle" fontSize="11" fill="#ffffff">
+                Providers {Number(data[hoveredIndex].providers || 0).toLocaleString()}
+              </text>
+            </g>
+          )}
 
           {data.map((item, index) => {
             const x =

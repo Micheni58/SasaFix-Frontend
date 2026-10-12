@@ -1,6 +1,7 @@
 // src/pages/ServiceDiscovery/FindServices.jsx
 
 import { useState, useEffect } from "react";
+import { Search } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import FilterSidebar from "../../components/filters/FilterSidebar";
@@ -31,14 +32,19 @@ const FindServices = () => {
   const [searchParams] = useSearchParams();
 
   const [showMap, setShowMap] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
 
   useEffect(() => {
     const search = searchParams.get("search");
 
-    if (search) {
-      set("search", search);
-    }
-  }, [searchParams]);
+    setSearchTerm(search || "");
+    set("search", search || "");
+  }, [searchParams, set]);
+
+  const handleSearch = (event) => {
+    event.preventDefault();
+    set("search", searchTerm.trim());
+  };
 
   const page = filters.page;
 
@@ -49,26 +55,48 @@ const FindServices = () => {
     <div className="flex-1 ml-0 lg:ml-72 min-w-0">
       <Navbar />
 
-      <main className="pt-24 pb-6 px-4 sm:px-6 lg:px-8">
-        <div className="min-h-full bg-gray-50">
-
-      {/* Header */}
-      <div className="bg-gray-50 pt-6 pb-4 border-b border-gray-100">
-        <h1 className="text-2xl font-bold text-gray-900">
+      <main className="px-6 pb-6 pt-24">
+        <section className="mb-8">
+          <div className="mb-5">
+        <h1 className="text-3xl font-bold text-gray-800">
           {filters.search
             ? `Search Results for "${filters.search}"`
             : "Find Services"}
         </h1>
 
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="mt-2 text-base text-gray-600">
           {filters.search
             ? `Showing providers matching "${filters.search}"`
             : "Discover verified workers in your area"}
         </p>
       </div>
 
+        <form onSubmit={handleSearch} className="max-w-2xl">
+          <label htmlFor="provider-search" className="sr-only">
+            Search services or providers
+          </label>
+          <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-2 shadow-sm focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+            <Search size={19} className="ml-2 shrink-0 text-gray-400" aria-hidden="true" />
+            <input
+              id="provider-search"
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search services or providers"
+              className="h-10 min-w-0 flex-1 border-0 bg-transparent px-2 text-sm text-gray-900 outline-none placeholder:text-gray-400"
+            />
+            <button
+              type="submit"
+              className="h-10 shrink-0 rounded-md bg-[#056db3] px-4 text-sm font-semibold text-white transition hover:bg-[#045b96] focus:outline-none focus:ring-2 focus:ring-[#056db3] focus:ring-offset-2"
+            >
+              Search
+            </button>
+          </div>
+        </form>
+        </section>
+
       {/* Main */}
-      <div className="flex gap-3 sm:gap-5 py-5 items-start">
+      <div className="flex items-start gap-3 sm:gap-5">
 
         {/* Sidebar */}
         <FilterSidebar
@@ -330,8 +358,6 @@ const FindServices = () => {
           )}
 
         </div>
-
-      </div>
 
       </div>
 

@@ -1,4 +1,5 @@
 // src/components/provider/ProfileHeader.jsx
+import { BadgeCheck, Star } from "lucide-react";
 
 const formatJoinedDate = (dateValue) => {
   if (!dateValue) return "-";
@@ -9,11 +10,11 @@ const formatJoinedDate = (dateValue) => {
 
 const ProfileHeader = ({ provider }) => {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 px-8 py-8">
-      <div className="flex items-center gap-8">
+    <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
         {/* Avatar */}
 
-        <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-600 sm:h-24 sm:w-24">
           {provider.profile_photo_url ? (
             <img
               src={provider.profile_photo_url}
@@ -21,7 +22,7 @@ const ProfileHeader = ({ provider }) => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <span className="text-white text-3xl font-bold">
+            <span className="text-2xl font-bold text-white sm:text-3xl">
               {provider.first_name?.charAt(0)}
               {provider.last_name?.charAt(0)}
             </span>
@@ -30,30 +31,31 @@ const ProfileHeader = ({ provider }) => {
 
         {/* Provider Information */}
 
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           {/* Name + Badge */}
 
-          <div className="flex items-center gap-4 flex-wrap">
-            <h1 className="text-2xl font-bold text-gray-900">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-800">
               {provider.first_name} {provider.last_name}
             </h1>
 
             {provider.is_verified && (
-              <span className="bg-blue-100 text-blue-600 px-4 py-2 rounded-full text-sm font-semibold">
-                ✓ Verified Professional
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-600">
+                <BadgeCheck className="h-4 w-4" aria-hidden="true" />
+                Verified Professional
               </span>
             )}
           </div>
 
           {/* Category */}
 
-          <p className="text-blue-600 text-sm mt-1 font-medium">
+          <p className="mt-1 text-base font-medium text-blue-600">
             {provider.service_category}
           </p>
 
           {/* Details Row */}
 
-          <div className="flex flex-wrap items-center gap-6 mt-5 text-gray-500">
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-500">
             <span>{provider.location || "Location unavailable"}</span>
 
             <span>Joined {formatJoinedDate(provider.member_since)}</span>
@@ -67,8 +69,12 @@ const ProfileHeader = ({ provider }) => {
 
           {/* Rating */}
 
-          <div className="flex items-center gap-3 mt-6">
-            <div className="text-yellow-400 text-base">★★★★★</div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-0.5 text-yellow-400" aria-label="Provider rating">
+              {Array.from({ length: 5 }, (_, index) => (
+                <Star key={index} className="h-4 w-4 fill-current" aria-hidden="true" />
+              ))}
+            </div>
 
             <span className="text-sm font-semibold text-gray-800">
               {provider.average_rating || "New"}
@@ -80,7 +86,7 @@ const ProfileHeader = ({ provider }) => {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

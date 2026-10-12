@@ -21,8 +21,8 @@ const tabs = [
 
 const ProviderTabs = ({ activeTab, setActiveTab }) => {
   return (
-    <div className="bg-white rounded-t-xl border border-gray-200 border-b-0 mt-8">
-      <div className="flex px-8">
+    <div className="mt-8 rounded-t-xl border border-gray-200 border-b-0 bg-white">
+      <div className="flex overflow-x-auto px-4 sm:px-6">
         {tabs.map((tab) => {
           const active = activeTab === tab.id;
 
@@ -32,9 +32,7 @@ const ProviderTabs = ({ activeTab, setActiveTab }) => {
               onClick={() => setActiveTab(tab.id)}
               className={`
                 relative
-                py-6
-                mr-12
-                text-lg
+                whitespace-nowrap py-4 mr-7 text-sm sm:mr-9 sm:text-base
                 font-semibold
                 transition-all
                 ${

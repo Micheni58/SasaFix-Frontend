@@ -81,7 +81,7 @@ const ProviderProfilePage = () => {
   }
 
   return (
-    <div className="flex min-h-screen overflow-x-hidden bg-[#F8FAFC]">
+    <div className="provider-public-profile flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
       <Sidebar role="client" />
 
       <div className="min-w-0 flex-1 ml-0 lg:ml-72">

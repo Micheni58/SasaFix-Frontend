@@ -162,15 +162,19 @@ function Sidebar({ role = "client" }) {
                 link.path === "/provider"
               }
               onClick={() => setIsOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-4 px-5 py-3.5 rounded-2xl
+              className={({ isActive }) => {
+                const isFindServicesActive =
+                  link.path === "/client/find-services" &&
+                  location.pathname.startsWith("/providers/");
+
+                return `flex items-center gap-4 px-5 py-3.5 rounded-2xl
                 transition-all duration-200
                 ${
-                  isActive
+                  isActive || isFindServicesActive
                     ? "bg-[#056db3] text-white shadow-sm font-semibold"
                     : "text-gray-600 hover:bg-blue-50 hover:text-[#056db3] dark-sidebar-link"
-                }`
-              }
+                }`;
+              }}
             >
               <span>{link.icon}</span>
               <span className="text-[15px]">{link.name}</span>

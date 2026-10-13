@@ -161,6 +161,14 @@ html[data-theme="dark"] [class~="text-slate-400"] {
 	color: #cbd5e1 !important;
 }
 
+html[data-theme="dark"] .provider-public-profile [class~="text-blue-700"] {
+	color: #93c5fd !important;
+}
+
+html[data-theme="dark"] .provider-public-profile [class~="bg-blue-50"] {
+	background-color: #102a43 !important;
+}
+
 html[data-theme="dark"] [class~="bg-slate-50"] {
 	background-color: #1e293b !important;
 }

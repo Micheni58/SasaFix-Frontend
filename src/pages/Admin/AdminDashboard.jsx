@@ -528,9 +528,9 @@ function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="min-w-0 flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6">
             <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
@@ -562,7 +562,7 @@ function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
         <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
@@ -585,7 +585,7 @@ function AdminDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
       <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />

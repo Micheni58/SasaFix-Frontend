@@ -285,7 +285,7 @@ function ReportDetailModal({ report, onClose, onStatusChange, onPriorityChange, 
               </div>
 
               {/* People */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-gray-200 p-4">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Reported by</p>
                   <div className="flex items-center gap-2.5 mb-2">
@@ -700,7 +700,7 @@ function AdminReportsDisputes() {
   // ── Loading state ──
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
         <div className="flex-1 ml-0 lg:ml-72 min-w-0">
           <Navbar />
@@ -746,7 +746,7 @@ function AdminReportsDisputes() {
   const isUpdating = isFiltering || refreshing;
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
       <div className="flex-1 ml-0 lg:ml-72 min-w-0">
         <Navbar />
@@ -969,7 +969,7 @@ function AdminReportsDisputes() {
                         <tr
                           key={r.id}
                           onClick={() => setSelectedReport(r)}
-                          className="hover:bg-blue-50/40 transition-colors cursor-pointer"
+                          className="cursor-pointer transition-colors hover:bg-gray-50"
                         >
                           {/* Report ID */}
                           <td className="px-4 py-4">

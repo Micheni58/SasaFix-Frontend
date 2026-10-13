@@ -9,7 +9,7 @@ const BookingSidebar = ({ provider }) => {
     provider.id || provider.provider_id || provider.service_provider_id;
 
   return (
-    <div className="sticky top-24">
+    <div className="lg:sticky lg:top-24">
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
         {/* Price */}
 

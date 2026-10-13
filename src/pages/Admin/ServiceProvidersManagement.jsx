@@ -232,24 +232,24 @@ const ServiceProvidersManagement = () => {
 
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="admin-layout-shell flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
       <Sidebar role="admin" />
 
-      <div className="ml-0 lg:ml-72 flex-1">
+      <div className="ml-0 min-w-0 flex-1 lg:ml-72">
         <Navbar />
 
-        <main className="px-8 pb-10 pt-24">
+        <main className="admin-page-main px-4 pb-10 pt-24 sm:px-6 lg:px-8">
           {loading ? (
             <ServiceProvidersSkeleton />
           ) : (
             <>
               {/* PAGE HEADING */}
               <div className="mb-7">
-                <h1 className="text-[30px] font-bold tracking-tight text-[#0f172a]">
+                <h1 className="text-[30px] font-bold tracking-tight text-gray-800">
                   Service Providers Management
                 </h1>
 
-                <p className="mt-1 text-[16px] text-slate-500">
+                <p className="mt-1 text-[16px] text-gray-600">
                   Manage and verify service providers on the platform
                 </p>
               </div>
@@ -264,7 +264,7 @@ const ServiceProvidersManagement = () => {
 
 
               {/* TABS */}
-              <div className="mb-6 flex items-end gap-8 border-b border-slate-200">
+              <div className="mb-6 flex flex-wrap items-end gap-x-6 gap-y-2 border-b border-gray-200">
                 <button
                   type="button"
                   onClick={() =>
@@ -273,7 +273,7 @@ const ServiceProvidersManagement = () => {
                   className={`relative pb-4 text-sm font-medium ${
                     activeTab === "all"
                       ? "text-[#5b00ff]"
-                      : "text-slate-500 hover:text-slate-700"
+                      : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
                   All Providers ({providers.length})
@@ -292,7 +292,7 @@ const ServiceProvidersManagement = () => {
                   className={`relative pb-4 text-sm font-medium ${
                     activeTab === "pending"
                       ? "text-[#5b00ff]"
-                      : "text-slate-500 hover:text-slate-700"
+                      : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
                   Pending Verification (
@@ -311,9 +311,9 @@ const ServiceProvidersManagement = () => {
 
 
               {/* SEARCH + FILTER */}
-              <div className="mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1">
+              <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="relative min-w-0 flex-1">
                     <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
 
                     <input
@@ -330,7 +330,7 @@ const ServiceProvidersManagement = () => {
                   </div>
 
 
-                  <Filter className="h-5 w-5 text-slate-400" />
+                  <Filter className="hidden h-5 w-5 shrink-0 text-gray-400 sm:block" />
 
 
                   <select
@@ -340,7 +340,7 @@ const ServiceProvidersManagement = () => {
                         event.target.value
                       )
                     }
-                    className="h-12 w-40 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-700 outline-none focus:border-[#5b00ff]"
+                    className="h-12 w-full rounded-lg border border-gray-300 bg-white px-4 text-sm text-gray-700 outline-none focus:border-[#5b00ff] sm:w-40"
                   >
                     <option value="all">
                       All Verification
@@ -363,10 +363,10 @@ const ServiceProvidersManagement = () => {
 
 
               {/* PROVIDERS TABLE */}
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1100px]">
-                    <thead className="bg-slate-50">
+                  <table className="w-full min-w-275">
+                    <thead className="bg-gray-50">
                       <tr>
                         {[
                           "Provider",
@@ -381,7 +381,7 @@ const ServiceProvidersManagement = () => {
                           (heading) => (
                             <th
                               key={heading}
-                              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+                              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
                             >
                               {heading}
                             </th>
@@ -416,7 +416,7 @@ const ServiceProvidersManagement = () => {
                                   provider.provider_id ||
                                   provider.id
                                 }
-                                className="border-t border-slate-200 transition-colors hover:bg-slate-50"
+                                className="border-t border-gray-100 transition-colors hover:bg-gray-50"
                               >
                                 {/* PROVIDER */}
                                 <td className="px-6 py-4">
@@ -439,7 +439,7 @@ const ServiceProvidersManagement = () => {
                                       </div>
                                     )}
 
-                                    <span className="whitespace-nowrap text-sm font-medium text-[#0f172a]">
+                                    <span className="whitespace-nowrap text-sm font-medium text-gray-800">
                                       {
                                         provider.first_name
                                       }{" "}
@@ -452,7 +452,7 @@ const ServiceProvidersManagement = () => {
 
 
                                 {/* CATEGORY */}
-                                <td className="px-6 py-4 text-sm text-[#17345f]">
+                                <td className="px-6 py-4 text-sm text-gray-700">
                                   {provider.service_category ||
                                     provider.category ||
                                     "-"}
@@ -461,7 +461,7 @@ const ServiceProvidersManagement = () => {
 
                                 {/* LOCATION */}
                                 <td className="px-6 py-4">
-                                  <span className="inline-flex items-center gap-1 whitespace-nowrap text-sm text-slate-600">
+                                  <span className="inline-flex items-center gap-1 whitespace-nowrap text-sm text-gray-600">
                                     <MapPin className="h-4 w-4" />
 
                                     {provider.location ||
@@ -489,7 +489,7 @@ const ServiceProvidersManagement = () => {
                                   Number(
                                     provider.rating
                                   ) > 0 ? (
-                                    <span className="inline-flex items-center gap-1 text-sm text-slate-700">
+                                    <span className="inline-flex items-center gap-1 text-sm text-gray-700">
                                       <Star className="h-4 w-4 fill-[#ffc107] text-[#ffc107]" />
 
                                       {Number(
@@ -497,7 +497,7 @@ const ServiceProvidersManagement = () => {
                                       ).toFixed(1)}
                                     </span>
                                   ) : (
-                                    <span className="text-sm text-slate-500">
+                                    <span className="text-sm text-gray-500">
                                       -
                                     </span>
                                   )}
@@ -505,14 +505,14 @@ const ServiceProvidersManagement = () => {
 
 
                                 {/* JOBS */}
-                                <td className="px-6 py-4 text-sm font-medium text-[#0f172a]">
+                                <td className="px-6 py-4 text-sm font-medium text-gray-800">
                                   {provider.jobs ??
                                     0}
                                 </td>
 
 
                                 {/* EARNINGS */}
-                                <td className="px-6 py-4 text-sm text-[#0f172a]">
+                                <td className="px-6 py-4 text-sm text-gray-800">
                                   {formatEarnings(
                                     provider.earnings
                                   )}

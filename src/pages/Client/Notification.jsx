@@ -97,7 +97,7 @@ function SkeletonNotificationItem() {
                 <div className="h-3 w-64 animate-pulse rounded bg-gray-200" />
                 <div className="h-3 w-24 animate-pulse rounded bg-gray-200" />
             </div>
-            <div className="flex items-center gap-4 shrink-0">
+            <div className="ml-auto flex shrink-0 items-center gap-3 sm:ml-0 sm:gap-4">
                 <div className="h-3 w-16 animate-pulse rounded bg-gray-200" />
                 <div className="h-2 w-2 rounded-full bg-gray-200 animate-pulse" />
                 <div className="h-4 w-4 animate-pulse rounded bg-gray-200" />
@@ -129,7 +129,7 @@ function SkeletonHeader() {
                 <div className="h-9 w-56 animate-pulse rounded bg-gray-200" />
                 <div className="mt-2 h-5 w-72 animate-pulse rounded bg-gray-200" />
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap justify-end gap-2">
                 <div className="h-10 w-32 animate-pulse rounded-lg bg-gray-200" />
                 <div className="h-10 w-24 animate-pulse rounded-lg bg-gray-200" />
             </div>
@@ -289,11 +289,11 @@ export default function ClientNotification() {
     // ── Loading state with skeleton ──
     if (loading) {
         return (
-            <div className="flex min-h-screen bg-[#f8fafc]">
+            <div className="flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
                 <Sidebar role="client" />
-                <div className="flex-1 ml-0 lg:ml-72">
+                <div className="min-w-0 flex-1 ml-0 lg:ml-72">
                     <Navbar />
-                    <main className="pt-24 px-6 pb-6">
+                    <main className="min-w-0 px-4 pb-6 pt-24 sm:px-6">
                         <div className="max-w-5xl mx-auto">
                             <section className="mb-6">
                                 <SkeletonHeader />
@@ -312,11 +312,11 @@ export default function ClientNotification() {
     }
 
     return (
-        <div className="flex min-h-screen bg-[#f8fafc]">
+        <div className="flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
             <Sidebar role="client" />
-            <div className="flex-1 ml-0 lg:ml-72">
+            <div className="min-w-0 flex-1 ml-0 lg:ml-72">
                 <Navbar />
-                <main className="pt-24 px-6 pb-6">
+                <main className="min-w-0 px-4 pb-6 pt-24 sm:px-6">
                     <div className="max-w-5xl mx-auto">
                         {/* ── Page Header ── */}
                         <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
@@ -324,7 +324,7 @@ export default function ClientNotification() {
                                 <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
                                 <p className="mt-2 text-gray-600 max-w-2xl">All your recent activity and messages</p>
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex flex-wrap gap-2">
                                 {unreadCount > 0 && (
                                     <button
                                         onClick={markAllRead}
@@ -406,7 +406,7 @@ export default function ClientNotification() {
                                             <div
                                                 key={n.id}
                                                 onClick={() => markRead(n.id)}
-                                                className={`flex items-center gap-4 rounded-lg px-4 py-3 cursor-pointer transition-colors ${
+                                                className={`flex flex-wrap items-center gap-3 rounded-lg px-3 py-3 cursor-pointer transition-colors sm:flex-nowrap sm:gap-4 sm:px-4 ${
                                                     n.read ? "bg-white hover:bg-gray-50" : "bg-blue-50 hover:bg-blue-100"
                                                 }`}
                                             >
@@ -428,7 +428,7 @@ export default function ClientNotification() {
                                                     )}
                                                 </div>
 
-                                                <div className="flex items-center gap-4 shrink-0">
+                                                <div className="ml-auto flex shrink-0 items-center gap-3 sm:ml-0 sm:gap-4">
                                                     <div className="text-xs text-gray-500">{timeAgo}</div>
                                                     {!n.read && (
                                                         <div className="h-2 w-2 rounded-full bg-[#056db3]" />

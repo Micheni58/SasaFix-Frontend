@@ -46,13 +46,13 @@ const ProviderProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen overflow-x-hidden bg-gray-50">
         <Sidebar role="client" />
 
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="min-w-0 flex-1 ml-0 lg:ml-72">
           <Navbar />
 
-          <main className="px-6 pb-6 pt-24">
+          <main className="px-4 pb-6 pt-24 sm:px-6">
             <div className="bg-white rounded-xl p-10 text-center shadow-sm">
               Loading provider...
             </div>
@@ -64,13 +64,13 @@ const ProviderProfilePage = () => {
 
   if (error || !provider) {
     return (
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen overflow-x-hidden bg-gray-50">
         <Sidebar role="client" />
 
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="min-w-0 flex-1 ml-0 lg:ml-72">
           <Navbar />
 
-          <main className="px-6 pb-6 pt-24">
+          <main className="px-4 pb-6 pt-24 sm:px-6">
             <div className="bg-red-50 border border-red-200 rounded-xl p-10 text-red-600">
               {error || "Provider not found"}
             </div>
@@ -81,13 +81,13 @@ const ProviderProfilePage = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen overflow-x-hidden bg-[#F8FAFC]">
       <Sidebar role="client" />
 
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="min-w-0 flex-1 ml-0 lg:ml-72">
         <Navbar />
 
-        <main className="px-6 pb-6 pt-24">
+        <main className="min-w-0 px-4 pb-6 pt-24 sm:px-6">
           <button
             type="button"
             onClick={() => navigate("/client/find-services")}
@@ -98,7 +98,7 @@ const ProviderProfilePage = () => {
           </button>
           <ProfileHeader provider={provider} />
 
-          <div className="mt-8 grid grid-cols-1 items-start gap-5 lg:grid-cols-3 lg:gap-6">
+          <div className="mt-5 grid min-w-0 grid-cols-1 items-start gap-5 sm:mt-8 lg:grid-cols-3 lg:gap-6">
             <div className="lg:col-span-2">
 
               <ProviderTabs

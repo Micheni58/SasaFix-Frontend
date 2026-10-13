@@ -185,7 +185,7 @@ const PersonalInfo = ({ user, onSaved }) => {
       </p>
       <div className="flex items-center gap-5 mb-7">
         <div
-          className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0 overflow-hidden"
+          className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold shrink-0 overflow-hidden"
           style={{ backgroundColor: BRAND }}
         >
           {avatar ? (
@@ -221,7 +221,7 @@ const PersonalInfo = ({ user, onSaved }) => {
           />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label>First Name</Label>
           <input
@@ -331,7 +331,7 @@ const SavedLocations = ({ user }) => {
       <p className="text-sm text-gray-400 mb-6">
         Your default address for service bookings
       </p>
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label>City</Label>
           <input
@@ -390,7 +390,7 @@ const NotificationSettings = () => {
       </div>
       <button
         onClick={() => toggle(k)}
-        className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ml-4"
+        className="relative w-11 h-6 rounded-full transition-colors shrink-0 ml-4"
         style={{ backgroundColor: prefs[k] ? BRAND : "#d1d5db" }}
       >
         <span
@@ -634,11 +634,11 @@ function ClientProfile() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
       <Sidebar role={sidebarRole} />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="min-w-0 flex-1 ml-0 lg:ml-72">
         <Navbar />
-        <main className="pt-24 px-6 pb-6">
+        <main className="pt-24 px-4 pb-6 sm:px-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
               Profile & Settings
@@ -648,14 +648,14 @@ function ClientProfile() {
             </p>
           </div>
 
-          <div className="flex gap-5 items-start">
+          <div className="flex min-w-0 flex-col items-start gap-4 md:flex-row md:gap-5">
             {/* Settings nav */}
-            <div className="w-52 flex-shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
+            <div className="flex w-full min-w-0 shrink-0 gap-1 overflow-x-auto rounded-2xl border border-gray-100 bg-white p-2 shadow-sm md:w-52 md:flex-col md:overflow-visible">
               {NAV.map(({ id, label, icon }) => (
                 <button
                   key={id}
                   onClick={() => setActive(id)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left"
+                  className="flex w-auto shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors md:w-full md:gap-3"
                   style={{
                     backgroundColor:
                       active === id ? BRAND_LIGHT : "transparent",
@@ -671,7 +671,7 @@ function ClientProfile() {
             </div>
 
             {/* Active section */}
-            <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-7 min-h-96">
+            <div className="min-w-0 w-full flex-1 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 md:w-auto md:p-7 min-h-96">
               {sections[active]}
             </div>
           </div>

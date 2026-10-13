@@ -531,7 +531,7 @@ function BookingsAndPaymentsDetails() {
   // ── Loading state ──
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
         <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
@@ -546,7 +546,7 @@ function BookingsAndPaymentsDetails() {
   // ── Not Found state ──
   if (notFound || !booking) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
         <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
@@ -571,7 +571,7 @@ function BookingsAndPaymentsDetails() {
 
   // ── Main Detail View ──
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
       <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
@@ -617,7 +617,7 @@ function BookingsAndPaymentsDetails() {
           </div>
 
           {/* ── Summary Cards ── */}
-          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <SummaryCard
               icon={ArrowUpRight}
               iconBg="bg-[#dfe6ff]"

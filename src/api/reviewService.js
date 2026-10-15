@@ -22,21 +22,33 @@ client.interceptors.request.use((config) => {
 function normalizeReview(review) {
   return {
     id: review.id,
-    bookingId: review.booking_id,
-    clientId: review.client_id,
-    providerId: review.provider_id,
+    bookingId: review.booking_id ?? review.bookingId,
+    clientId: review.client_id ?? review.clientId,
+    providerId: review.provider_id ?? review.providerId,
     comment: review.comment || "",
-    providerResponse: review.provider_response || "",
-    providerThankedClient: Boolean(review.provider_thanked_client),
-    isFlagged: Boolean(review.is_flagged),
-    createdAt: review.created_at || null,
-    updatedAt: review.updated_at || null,
+    providerResponse: review.provider_response ?? review.providerResponse ?? "",
+    providerThankedClient: Boolean(review.provider_thanked_client ?? review.providerThankedClient),
+    isFlagged: Boolean(review.is_flagged ?? review.isFlagged),
+    createdAt: review.created_at ?? review.createdAt ?? null,
+    updatedAt: review.updated_at ?? review.updatedAt ?? null,
     raw: review,
   };
 }
 
-function normalizeReviews(reviews) {
-  return (reviews || []).map(normalizeReview);
+function extractReviews(payload) {
+  if (Array.isArray(payload)) return payload;
+  for (const key of ["reviews", "data", "items", "results"] ) {
+    if (Array.isArray(payload?.[key])) return payload[key];
+    if (payload?.[key] && typeof payload[key] === "object") {
+      const nested = extractReviews(payload[key]);
+      if (nested.length) return nested;
+    }
+  }
+  return [];
+}
+
+function normalizeReviews(payload) {
+  return extractReviews(payload).map(normalizeReview);
 }
 
 export async function createReview(reviewData) {

@@ -162,11 +162,54 @@ html[data-theme="dark"] [class~="text-slate-400"] {
 }
 
 html[data-theme="dark"] .provider-public-profile [class~="text-blue-700"] {
-	color: #93c5fd !important;
+	color: #bfdbfe !important;
 }
 
 html[data-theme="dark"] .provider-public-profile [class~="bg-blue-50"] {
 	background-color: #102a43 !important;
+}
+
+html[data-theme="dark"] .provider-public-profile [class~="text-[#056db3]"],
+html[data-theme="dark"] .provider-public-profile [class~="text-blue-600"] {
+	color: #60a5fa !important;
+}
+
+html[data-theme="dark"] .provider-public-profile [class~="bg-blue-100"] {
+	background-color: #173554 !important;
+}
+
+html[data-theme="dark"] .service-discovery-page [class~="text-[#056db3]"],
+html[data-theme="dark"] .service-discovery-page [class~="text-blue-600"] {
+	color: #60a5fa !important;
+}
+
+html[data-theme="dark"] .service-discovery-page [class~="bg-blue-50"] {
+	background-color: #102a43 !important;
+}
+
+html[data-theme="dark"] .service-discovery-page [class~="bg-yellow-50"] {
+	background-color: #3f2b1d !important;
+}
+
+html[data-theme="dark"] .service-discovery-page [class~="border-yellow-300"] {
+	border-color: #80522b !important;
+}
+
+html[data-theme="dark"] .service-discovery-page [class~="text-yellow-700"] {
+	color: #fde68a !important;
+}
+
+.loading-skeleton {
+	background-color: #e5e7eb;
+	animation: loading-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes loading-skeleton-pulse {
+	50% { opacity: 0.55; }
+}
+
+html[data-theme="dark"] .loading-skeleton {
+	background-color: #374151 !important;
 }
 
 html[data-theme="dark"] [class~="bg-slate-50"] {

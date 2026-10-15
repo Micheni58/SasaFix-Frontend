@@ -913,7 +913,7 @@ function ProviderDashboard() {
                       const isReschedulePending = job.status === "Reschedule Requested" || job.status === "Reschedule Proposed";
                       
                       return (
-                        <li key={job.id} className={`dark-dashboard-hover flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between ${isNewRequest ? "bg-amber-50/50" : ""}`}>
+                        <li key={job.id} className="dark-dashboard-hover flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex min-w-0 items-center gap-3">
                             <ClientAvatar name={job.client || job.clientName || `Client #${job.clientId}`} size={44} />
                             <div className="min-w-0">

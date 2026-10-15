@@ -95,6 +95,18 @@ function normalizeBooking(apiBooking) {
     };
 }
 
+function extractBookings(payload) {
+    if (Array.isArray(payload)) return payload;
+    for (const key of ["bookings", "data", "items", "results"]) {
+        if (Array.isArray(payload?.[key])) return payload[key];
+        if (payload?.[key] && typeof payload[key] === "object") {
+            const nested = extractBookings(payload[key]);
+            if (nested.length) return nested;
+        }
+    }
+    return [];
+}
+
 // ─────────────────────────────────────────────
 // USER CACHE
 // ─────────────────────────────────────────────
@@ -111,6 +123,10 @@ async function fetchUserById(id) {
     } catch (e) {
         return null;
     }
+}
+
+export async function getUserById(id) {
+    return fetchUserById(id);
 }
 
 async function normalizeBookingAsync(apiBooking) {
@@ -139,7 +155,7 @@ export async function createBooking(bookingData) {
 export async function listClientBookings(clientId) {
     try {
         const resp = await client.get(`/bookings/client/${clientId}`);
-        const list = resp.data || [];
+        const list = extractBookings(resp.data);
         const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
         return results;
     } catch (error) {
@@ -158,7 +174,7 @@ export async function listClientBookings(clientId) {
 export async function listProviderBookings(providerId) {
     try {
         const resp = await client.get(`/bookings/provider/${providerId}`);
-        const list = resp.data || [];
+        const list = extractBookings(resp.data);
         const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
         return results;
     } catch (error) {
@@ -189,7 +205,7 @@ export async function getBooking(bookingId) {
 export async function listActiveBookings() {
     try {
         const resp = await client.get(`/bookings/active`);
-        const list = resp.data || [];
+        const list = extractBookings(resp.data);
         const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
         return results;
     } catch (error) {
@@ -342,6 +358,7 @@ export default {
     listClientBookings,
     listProviderBookings,
     getBooking,
+    getUserById,
     listActiveBookings,
     updateBookingStatus,
     cancelBooking,

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   searchProviders,
   getCategories,
+  getProvider,
 } from "../services/discoveryApi";
 import reviewService from "../api/reviewService";
 import ratingService from "../api/ratingService";
@@ -87,22 +88,35 @@ export const useProviderSearch = () => {
         const providerId = provider.service_provider_id || provider.provider_id || provider.id;
         const needsReviews = !Number.isFinite(Number(provider.total_reviews)) || Number(provider.total_reviews) <= 0;
         const needsRating = !Number.isFinite(Number(provider.average_rating)) || Number(provider.average_rating) <= 0;
-        if (!providerId || (!needsReviews && !needsRating)) return provider;
+        const hasLocation = [provider.address, provider.city, provider.country, provider.location]
+          .some((value) => typeof value === "string" && value.trim());
+        const needsLocation = !hasLocation;
+        if (!providerId || (!needsReviews && !needsRating && !needsLocation)) return provider;
 
-        const [reviewsResult, ratingSummaryResult, ratingsResult] = await Promise.allSettled([
+        const [reviewsResult, ratingSummaryResult, ratingsResult, locationResult] = await Promise.allSettled([
           needsReviews ? reviewService.getProviderReviews(providerId) : Promise.resolve(null),
           needsRating ? ratingService.getProviderAverageRating(providerId) : Promise.resolve(null),
           needsRating ? ratingService.getProviderRatings(providerId) : Promise.resolve(null),
+          needsLocation ? getProvider(providerId) : Promise.resolve(null),
         ]);
 
         const ratings = ratingsResult.status === "fulfilled" ? ratingsResult.value : [];
         const ratingSummary = ratingSummaryResult.status === "fulfilled" ? ratingSummaryResult.value : null;
+        const locationProfile = locationResult.status === "fulfilled" ? locationResult.value : null;
         const ratingsAverage = ratings.length
           ? ratings.reduce((sum, rating) => sum + Number(rating.score || 0), 0) / ratings.length
           : 0;
 
         return {
           ...provider,
+          ...(locationProfile
+            ? {
+                address: provider.address || locationProfile.address,
+                city: provider.city || locationProfile.city,
+                country: provider.country || locationProfile.country,
+                location: provider.location || locationProfile.location,
+              }
+            : {}),
           ...(needsReviews && reviewsResult.status === "fulfilled"
             ? { total_reviews: reviewsResult.value.length }
             : {}),

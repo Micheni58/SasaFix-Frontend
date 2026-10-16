@@ -34,9 +34,8 @@ const getEntityName = (entity) => {
   })?.trim() || "";
 };
 
-const getReviewerName = (review, user, booking) => {
+const getReviewerName = (review, booking) => {
   const candidates = [
-    getEntityName(user?.user || user?.data?.user || user?.data || user),
     getEntityName(review.raw?.client),
     getEntityName(booking?.client),
     [review.raw?.client_first_name, review.raw?.client_last_name].filter(Boolean).join(" "),
@@ -87,24 +86,20 @@ const ReviewsTab = ({ provider }) => {
           reviewService.getProviderReviews(providerId),
           ratingService.getProviderRatings(providerId),
         ]);
-        const clientIds = [...new Set(providerReviews.map((review) => review.clientId).filter(Boolean))];
-        const clients = await Promise.all(clientIds.map((clientId) => bookingService.getUserById(clientId)));
         if (!mounted) return;
 
-        const clientsById = new Map(clientIds.map((clientId, index) => [String(clientId), clients[index]]));
         const ratingsByBooking = new Map(
           ratings.map((rating) => [String(rating.bookingId), rating.score]),
         );
         const enrichedReviews = await Promise.all(providerReviews.map(async (review) => {
-          const user = clientsById.get(String(review.clientId));
           let booking = null;
-          if (getReviewerName(review, user) === `Client #${review.clientId}` && review.bookingId) {
+          if (getReviewerName(review) === `Client #${review.clientId}` && review.bookingId) {
             booking = await bookingService.getBooking(review.bookingId);
           }
 
           return {
             ...review,
-            reviewerName: getReviewerName(review, user, booking?.raw),
+            reviewerName: getReviewerName(review, booking?.raw),
             rating: ratingsByBooking.get(String(review.bookingId)) || 0,
           };
         }));

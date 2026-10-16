@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Bell, ChevronDown, Search, User, LogOut } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import authService from "../services/api";
 
 function Navbar() {
@@ -15,14 +15,10 @@ function Navbar() {
     const loadUser = async () => {
       try {
         const currentUser = await authService.getCurrentUser();
-
         setUser(currentUser);
       } catch (err) {
         const storedUser = authService.getStoredUser();
-
-        if (storedUser) {
-          setUser(storedUser);
-        }
+        if (storedUser) setUser(storedUser);
       } finally {
         setLoading(false);
       }
@@ -30,6 +26,7 @@ function Navbar() {
 
     loadUser();
   }, []);
+
   useEffect(() => {
     const syncUser = () => {
       const stored = authService.getStoredUser();
@@ -55,18 +52,14 @@ function Navbar() {
     switch (user.role) {
       case "client":
         return "Client";
-
       case "service_provider":
         return "Service Provider";
-
       case "admin":
         return "Administrator";
-
       default:
         return user.role;
     }
   };
-
 
   const handleSearch = (e) => {
     if (e.key === "Enter" && search.trim()) {
@@ -106,9 +99,7 @@ function Navbar() {
         z-30
       "
     >
-
       {/* Search */}
-
       <div className="flex-1 max-w-2xl pl-14 sm:pl-0">
         <div className="relative">
           <Search
@@ -149,13 +140,8 @@ function Navbar() {
       </div>
 
       {/* Right Side */}
-
-      <div className="flex items-center gap-6 relative">
-
-      <div className="ml-auto flex items-center gap-4 sm:gap-6 relative">
-
+      <div className="flex items-center gap-4 sm:gap-6">
         {/* Notifications */}
-
         <button
           type="button"
           onClick={handleNotifications}
@@ -190,7 +176,6 @@ function Navbar() {
         </button>
 
         {/* Profile */}
-
         <div className="relative">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
@@ -234,7 +219,6 @@ function Navbar() {
             </div>
 
             {/* User */}
-
             <div className="hidden md:block text-left">
               <h3 className="text-sm font-semibold text-gray-900">
                 {loading
@@ -258,7 +242,6 @@ function Navbar() {
           </button>
 
           {/* Dropdown */}
-
           {showDropdown && (
             <div
               className="
@@ -284,7 +267,6 @@ function Navbar() {
                   } else {
                     navigate("/profile");
                   }
-
                   setShowDropdown(false);
                 }}
                 className="

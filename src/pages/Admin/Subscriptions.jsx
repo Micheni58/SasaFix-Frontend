@@ -164,13 +164,13 @@ export default function Subscriptions() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="admin-layout-shell min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="ml-0 lg:ml-72">
+      <div className="ml-0 min-w-0 lg:ml-72">
         <Navbar />
         <main className="px-4 pb-10 pt-28 sm:px-6 lg:px-8">
           {notice && (
-            <div className="fixed right-6 top-24 z-50 rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white shadow-lg">
+            <div className="fixed left-4 right-4 top-24 z-50 rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white shadow-lg sm:left-auto sm:right-6">
               {notice}
             </div>
           )}
@@ -234,7 +234,7 @@ export default function Subscriptions() {
             {loading ? (
               <div className="p-12 text-center text-sm text-gray-500">Loading subscriptions...</div>
             ) : <div className="overflow-x-auto">
-              <table className="w-full min-w-[920px] text-left">
+              <table className="w-full min-w-230 text-left">
                 <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-400">
                   <tr>
                     <th className="px-5 py-4 font-semibold">Provider</th>
@@ -247,7 +247,7 @@ export default function Subscriptions() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filteredSubscriptions.map((subscription) => (
-                      <tr key={subscription.id} className="align-middle hover:bg-gray-50/70">
+                      <tr key={subscription.id} className="align-middle transition-colors hover:bg-gray-50">
                         <td className="px-5 py-4"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-[#056db3]">{getInitials(subscription)}</div><div><p className="font-semibold text-gray-800">{subscription.provider}</p><p className="text-xs text-gray-400">Provider #{subscription.providerId}</p></div></div></td>
                         <td className="px-5 py-4 text-sm text-gray-600">{subscription.email}</td>
                         <td className="px-5 py-4 text-sm"><p className="font-medium capitalize text-gray-700">{subscription.plan}</p><p className="mt-1 text-xs text-gray-400">{formatDate(subscription.startDate)} – {formatDate(subscription.endDate)}</p></td>

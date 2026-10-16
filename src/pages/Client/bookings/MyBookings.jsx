@@ -581,7 +581,7 @@ function MyBookings() {
                           </td>
                           <td className="px-4 py-5">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white shrink-0">
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#056db3] text-sm font-semibold text-white shadow-sm ring-2 ring-[#056db3]/15">
                                 {providerInitials}
                               </div>
                               <div className="max-w-30 text-sm font-semibold leading-6 text-gray-800 truncate">

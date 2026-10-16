@@ -22,18 +22,30 @@ client.interceptors.request.use((config) => {
 function normalizeRating(rating) {
   return {
     id: rating.id,
-    bookingId: rating.booking_id,
-    clientId: rating.client_id,
-    providerId: rating.provider_id,
+    bookingId: rating.booking_id ?? rating.bookingId,
+    clientId: rating.client_id ?? rating.clientId,
+    providerId: rating.provider_id ?? rating.providerId,
     score: Number(rating.score || 0),
-    createdAt: rating.created_at || null,
-    updatedAt: rating.updated_at || null,
+    createdAt: rating.created_at ?? rating.createdAt ?? null,
+    updatedAt: rating.updated_at ?? rating.updatedAt ?? null,
     raw: rating,
   };
 }
 
-function normalizeRatings(ratings) {
-  return (ratings || []).map(normalizeRating);
+function extractRatings(payload) {
+  if (Array.isArray(payload)) return payload;
+  for (const key of ["ratings", "data", "items", "results"]) {
+    if (Array.isArray(payload?.[key])) return payload[key];
+    if (payload?.[key] && typeof payload[key] === "object") {
+      const nested = extractRatings(payload[key]);
+      if (nested.length) return nested;
+    }
+  }
+  return [];
+}
+
+function normalizeRatings(payload) {
+  return extractRatings(payload).map(normalizeRating);
 }
 
 export async function getProviderRatings(providerId) {
@@ -51,11 +63,14 @@ export async function getProviderRatings(providerId) {
 export async function getProviderAverageRating(providerId) {
   try {
     const response = await client.get(`/ratings/provider/${providerId}/average`);
+    const data = response.data?.data || response.data?.average || response.data;
     return {
-      providerId: response.data.provider_id,
-      averageScore: Number(response.data.average_score || 0),
-      totalRatings: Number(response.data.total_ratings || 0),
-      raw: response.data,
+      providerId: data.provider_id ?? data.providerId ?? providerId,
+      averageScore: Number(typeof data === "number"
+        ? data
+        : data.average_score ?? data.averageScore ?? data.average_rating ?? data.averageRating ?? data.average ?? 0),
+      totalRatings: Number(data.total_ratings ?? data.totalRatings ?? data.total_reviews ?? data.totalReviews ?? data.count ?? 0),
+      raw: data,
     };
   } catch (error) {
     if (error.response?.status === 404) {

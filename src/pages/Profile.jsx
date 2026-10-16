@@ -104,7 +104,14 @@ const Label = ({ children }) => (
   </label>
 );
 
-const PasswordField = ({ label, value, onChange, show, toggleShow, placeholder }) => (
+const PasswordField = ({
+  label,
+  value,
+  onChange,
+  show,
+  toggleShow,
+  placeholder,
+}) => (
   <div className="mb-4">
     <Label>{label}</Label>
 
@@ -178,6 +185,7 @@ const PersonalInfo = ({ user, onSaved }) => {
   });
 
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fileRef = useRef();
   const [avatar, setAvatar] = useState(null);
 
@@ -225,11 +233,69 @@ const PersonalInfo = ({ user, onSaved }) => {
 
       onSaved?.(mergedUser);
 
-      toast.success("Changes saved", "Your personal information has been updated.");
+      toast.success(
+        "Changes saved",
+        "Your personal information has been updated.",
+      );
     } catch (e) {
       toast.error("Save failed", e.message || "Please try again.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File too large", "Maximum size is 5MB.");
+      e.target.value = "";
+      return;
+    }
+
+    const preview = URL.createObjectURL(file);
+    setAvatar(preview); // instant preview
+    setUploading(true);
+
+    try {
+      const body = new FormData();
+      body.append("file", file);
+
+      const res = await fetch("http://localhost:8000/api/users/me/photo", {
+        method: "POST",
+        headers: {
+          // No Content-Type here: the browser sets the multipart boundary
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(
+          Array.isArray(err.detail)
+            ? err.detail.map((d) => d.msg).join(", ")
+            : err.detail || "Upload failed",
+        );
+      }
+
+      const { profile_photo_url } = await res.json();
+      const mergedUser = { ...user, profile_photo_url };
+
+      localStorage.setItem("user", JSON.stringify(mergedUser));
+      window.dispatchEvent(new Event("user-updated"));
+      setAvatar(profile_photo_url);
+      onSaved?.(mergedUser);
+
+      toast.success("Photo updated", "Your profile photo has been saved.");
+    } catch (err) {
+      setAvatar(user?.profile_photo_url || null); // roll back the preview
+      toast.error("Upload failed", err.message || "Please try again.");
+    } finally {
+      URL.revokeObjectURL(preview);
+      setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -262,13 +328,14 @@ const PersonalInfo = ({ user, onSaved }) => {
         <div>
           <button
             onClick={() => fileRef.current.click()}
-            className="px-4 py-1.5 text-sm font-semibold rounded-lg border-2 transition-colors hover:bg-blue-50"
+            disabled={uploading}
+            className="px-4 py-1.5 text-sm font-semibold rounded-lg border-2 transition-colors hover:bg-blue-50 disabled:opacity-60"
             style={{
               borderColor: BRAND,
               color: BRAND,
             }}
           >
-            Change Photo
+            {uploading ? "Uploading..." : "Change Photo"}
           </button>
 
           <p className="text-xs text-gray-400 mt-1.5">
@@ -280,13 +347,7 @@ const PersonalInfo = ({ user, onSaved }) => {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-
-              if (file) {
-                setAvatar(URL.createObjectURL(file));
-              }
-            }}
+            onChange={handlePhotoChange}
           />
         </div>
       </div>
@@ -433,7 +494,10 @@ const ProfessionalInfo = () => {
 
   const handleSave = async () => {
     if (!providerId) {
-      toast.error("Provider profile not found", "Unable to save professional information.");
+      toast.error(
+        "Provider profile not found",
+        "Unable to save professional information.",
+      );
       return;
     }
 
@@ -455,7 +519,10 @@ const ProfessionalInfo = () => {
         throw new Error(e.detail || "Failed to update professional info");
       }
 
-      toast.success("Professional info updated", "Your professional details have been saved.");
+      toast.success(
+        "Professional info updated",
+        "Your professional details have been saved.",
+      );
     } catch (e) {
       toast.error("Save failed", e.message || "Please try again.");
     } finally {
@@ -1020,7 +1087,10 @@ const Availability = () => {
           }),
         );
       } catch (error) {
-        toast.error("Failed to load availability", error.message || "Showing default availability.");
+        toast.error(
+          "Failed to load availability",
+          error.message || "Showing default availability.",
+        );
       } finally {
         setLoading(false);
       }
@@ -1040,7 +1110,7 @@ const Availability = () => {
               enabled: !slot.enabled,
             }
           : slot,
-          ),
+      ),
     );
   };
 
@@ -1085,7 +1155,10 @@ const Availability = () => {
         throw new Error(data.detail || "Failed to update availability");
       }
 
-      toast.success("Availability updated", "Your working hours have been saved.");
+      toast.success(
+        "Availability updated",
+        "Your working hours have been saved.",
+      );
     } catch (error) {
       toast.error("Save failed", error.message || "Please try again.");
     } finally {
@@ -1105,8 +1178,8 @@ const Availability = () => {
         <div className="bg-gray-50 rounded-xl p-10 text-center">
           <p className="text-sm text-gray-500">Loading availability...</p>
         </div>
-        </div>
-      );
+      </div>
+    );
   }
 
   return (
@@ -1345,7 +1418,10 @@ const Security = memo(() => {
       e.preventDefault();
 
       if (newPassword !== confirmPassword) {
-        toast.warning("Passwords do not match", "Enter the same new password in both fields.");
+        toast.warning(
+          "Passwords do not match",
+          "Enter the same new password in both fields.",
+        );
         return;
       }
 
@@ -1375,7 +1451,10 @@ const Security = memo(() => {
         setNewPassword("");
         setConfirmPassword("");
 
-        toast.success("Password changed", "Your password has been updated successfully.");
+        toast.success(
+          "Password changed",
+          "Your password has been updated successfully.",
+        );
       } catch (e) {
         toast.error("Password change failed", e.message || "Please try again.");
       } finally {
@@ -1556,7 +1635,8 @@ function Profile() {
           ...currentUser,
           provider_id: currentUser.provider_id ?? previousUser?.provider_id,
           service_provider_id:
-            currentUser.service_provider_id ?? previousUser?.service_provider_id,
+            currentUser.service_provider_id ??
+            previousUser?.service_provider_id,
         }));
       })
       .catch(() => {});

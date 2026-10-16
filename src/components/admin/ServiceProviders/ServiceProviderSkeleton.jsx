@@ -1,7 +1,5 @@
 const Skeleton = ({ className = "" }) => (
-  <div
-    className={`animate-pulse rounded-md bg-slate-200 ${className}`}
-  />
+  <div className={`animate-pulse rounded-md bg-slate-200 ${className}`} />
 );
 
 const ServiceProvidersSkeleton = () => {
@@ -31,19 +29,13 @@ const ServiceProvidersSkeleton = () => {
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="min-w-275">
-        <div className="grid grid-cols-8 gap-4 bg-slate-50 px-6 py-4">
-          {Array.from({ length: 8 }).map(
-            (_, index) => (
-              <Skeleton
-                key={index}
-                className="h-4 w-20"
-              />
-            )
-          )}
-        </div>
+          <div className="grid grid-cols-8 gap-4 bg-slate-50 px-6 py-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <Skeleton key={index} className="h-4 w-20" />
+            ))}
+          </div>
 
-        {Array.from({ length: 6 }).map(
-          (_, row) => (
+          {Array.from({ length: 6 }).map((_, row) => (
             <div
               key={row}
               className="grid grid-cols-8 items-center gap-4 border-t border-slate-200 px-6 py-5"
@@ -67,8 +59,7 @@ const ServiceProvidersSkeleton = () => {
 
               <Skeleton className="h-6 w-16 rounded-full" />
             </div>
-          )
-        )}
+          ))}
         </div>
       </div>
     </div>

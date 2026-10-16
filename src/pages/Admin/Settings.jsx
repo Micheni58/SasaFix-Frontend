@@ -94,6 +94,7 @@ const MyProfile = ({ user, onSaved }) => {
     phone_number: "",
   });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fileRef = useRef();
   const [avatar, setAvatar] = useState(null);
 
@@ -133,6 +134,61 @@ const MyProfile = ({ user, onSaved }) => {
     }
   };
 
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File too large", "Maximum size is 5MB.");
+      e.target.value = "";
+      return;
+    }
+
+    const preview = URL.createObjectURL(file);
+    setAvatar(preview); // instant preview
+    setUploading(true);
+
+    try {
+      const body = new FormData();
+      body.append("file", file);
+
+      const res = await fetch("http://localhost:8000/api/users/me/photo", {
+        method: "POST",
+        headers: {
+          // No Content-Type here: the browser sets the multipart boundary
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(
+          Array.isArray(err.detail)
+            ? err.detail.map((d) => d.msg).join(", ")
+            : err.detail || "Upload failed",
+        );
+      }
+
+      const { profile_photo_url } = await res.json();
+      const mergedUser = { ...user, profile_photo_url };
+
+      localStorage.setItem("user", JSON.stringify(mergedUser));
+      window.dispatchEvent(new Event("user-updated"));
+      setAvatar(profile_photo_url);
+      onSaved?.(mergedUser);
+
+      toast.success("Photo updated", "Your profile photo has been saved.");
+    } catch (err) {
+      setAvatar(user?.profile_photo_url || null); // roll back the preview
+      toast.error("Upload failed", err.message || "Please try again.");
+    } finally {
+      URL.revokeObjectURL(preview);
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
   return (
     <div>
       <h2 className="text-xl font-bold text-gray-900 mb-1">My Profile</h2>
@@ -160,10 +216,11 @@ const MyProfile = ({ user, onSaved }) => {
           <div className="flex items-center gap-2 mb-1">
             <button
               onClick={() => fileRef.current.click()}
-              className="px-4 py-1.5 text-sm font-semibold rounded-lg border-2 transition-colors hover:bg-blue-50"
+              disabled={uploading}
+              className="px-4 py-1.5 text-sm font-semibold rounded-lg border-2 transition-colors hover:bg-blue-50 disabled:opacity-60"
               style={{ borderColor: BRAND, color: BRAND }}
             >
-              Change Photo
+              {uploading ? "Uploading..." : "Change Photo"}
             </button>
             <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
               Admin
@@ -175,10 +232,7 @@ const MyProfile = ({ user, onSaved }) => {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => {
-              const f = e.target.files[0];
-              if (f) setAvatar(URL.createObjectURL(f));
-            }}
+            onChange={handlePhotoChange}
           />
         </div>
       </div>
@@ -276,7 +330,10 @@ const Security = () => {
       return;
     }
     if (form.new_password.length < 6) {
-      toast.error("Password change failed", "Password must be at least 6 characters.");
+      toast.error(
+        "Password change failed",
+        "Password must be at least 6 characters.",
+      );
       return;
     }
     setSaving(true);

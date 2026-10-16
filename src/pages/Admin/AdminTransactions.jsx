@@ -487,7 +487,7 @@ function AdminTransactions() {
   // ── Loading state ──
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
         <div className="flex-1 ml-0 lg:ml-72 min-w-0">
           <Navbar />
@@ -511,7 +511,7 @@ function AdminTransactions() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
       <div className="flex-1 ml-0 lg:ml-72 min-w-0">
         <Navbar />
@@ -519,7 +519,7 @@ function AdminTransactions() {
           {/* ── Page Header ── */}
           <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-3xl font-bold text-gray-900">Transaction Monitor</h1>
                 <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-[#056db3]">
                   <ShieldCheck className="h-3.5 w-3.5" />

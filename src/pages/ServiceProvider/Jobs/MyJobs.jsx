@@ -327,11 +327,12 @@ function RowSkeleton() {
 
 function JobsSkeleton() {
     return (
-        <div className="flex min-h-screen bg-[#f8fafc]">
+        <div className="flex min-h-screen w-full overflow-x-hidden bg-[#f8fafc]">
             <Sidebar role="provider" />
-            <div className="flex-1 ml-0 lg:ml-72">
+            <div className="min-w-0 flex-1 ml-0 lg:ml-72">
                 <Navbar />
-                <main className="pt-24 px-6 pb-6">
+                <main className="min-w-0 pt-24 px-6 pb-6">
+                    <div className="mx-auto w-full min-w-0 max-w-5xl">
                     <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
                         <div className="space-y-2">
                             <div className="h-7 w-40 animate-pulse rounded bg-gray-200" />
@@ -351,6 +352,7 @@ function JobsSkeleton() {
                             <RowSkeleton key={i} />
                         ))}
                     </section>
+                    </div>
                 </main>
             </div>
         </div>
@@ -642,11 +644,12 @@ function MyJobs() {
     }
 
     return (
-        <div className="flex min-h-screen bg-[#f8fafc]">
+        <div className="flex min-h-screen w-full overflow-x-hidden bg-[#f8fafc]">
             <Sidebar role="provider" />
-            <div className="flex-1 ml-0 lg:ml-72">
+            <div className="min-w-0 flex-1 ml-0 lg:ml-72">
                 <Navbar />
-                <main className="pt-24 px-6 pb-6">
+                <main className="min-w-0 pt-24 px-6 pb-6">
+                    <div className="mx-auto w-full min-w-0 max-w-5xl">
                     <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
                         <div>
                             <h1 className="text-3xl font-semibold text-gray-800">My Jobs</h1>
@@ -772,10 +775,10 @@ function MyJobs() {
                                             const isNewRequest = job.status === "Pending" || job.status === "New Requests";
 
                                             return (
-                                                <tr key={job.id} className={`border-b border-gray-100 align-middle hover:bg-gray-50 transition-colors ${isNewRequest ? "bg-amber-50/30" : ""}`}>
+                                                <tr key={job.id} className="dark-dashboard-hover border-b border-gray-100 align-middle transition-colors hover:bg-gray-50">
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
+                                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#056db3] text-sm font-semibold text-white shadow-sm ring-2 ring-[#056db3]/15">
                                                                 {clientInitials}
                                                             </div>
                                                             <span className="text-sm font-semibold text-gray-800">
@@ -1077,6 +1080,7 @@ function MyJobs() {
                             </div>
                         </div>
                     )}
+                    </div>
                 </main>
             </div>
         </div>

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import bookingService from "../../api/bookingService";
+import apiClient from "../../api/apiClient";
 import transactionService from "../../api/transactionService";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
@@ -219,9 +220,11 @@ function BookingsAndPayments() {
       let totalCommission = 0;
 
       try {
-        const resp = await fetch("/api/bookings/admin/all");
-        if (resp.ok) {
-          const data = await resp.json();
+        const resp = await apiClient.get("/bookings/admin/all", {
+          validateStatus: () => true,
+        });
+        if (resp.status >= 200 && resp.status < 300) {
+          const data = resp.data;
           allBookings = Array.isArray(data) ? data : [];
         } else {
           const bookingsData = await bookingService.listActiveBookings();
@@ -363,7 +366,7 @@ function BookingsAndPayments() {
   // ── Loading state with skeletons ──
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc] overflow-hidden">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc] overflow-hidden">
         <Sidebar role="admin" />
         <div className="flex-1 ml-0 lg:ml-72 min-w-0">
           <Navbar />
@@ -393,9 +396,9 @@ function BookingsAndPayments() {
   // ── Error state ──
   if (error) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="min-w-0 flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6">
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center max-w-2xl mx-auto">
@@ -418,7 +421,7 @@ function BookingsAndPayments() {
 
   // ── Main List View ──
   return (
-    <div className="flex min-h-screen bg-[#f8fafc] overflow-hidden">
+    <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc] overflow-hidden">
       <Sidebar role="admin" />
       <div className="flex-1 ml-0 lg:ml-72 min-w-0">
         <Navbar />

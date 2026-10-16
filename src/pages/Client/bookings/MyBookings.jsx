@@ -455,11 +455,12 @@ function MyBookings() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="flex min-h-screen w-full overflow-x-hidden bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="min-w-0 flex-1 ml-0 lg:ml-72">
         <Navbar />
-        <main className="pt-24 px-6 pb-6">
+        <main className="min-w-0 pt-24 px-6 pb-6">
+          <div className="mx-auto w-full min-w-0 max-w-7xl">
           {/* ── Page Header ── */}
           <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -580,7 +581,7 @@ function MyBookings() {
                           </td>
                           <td className="px-4 py-5">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white shrink-0">
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#056db3] text-sm font-semibold text-white shadow-sm ring-2 ring-[#056db3]/15">
                                 {providerInitials}
                               </div>
                               <div className="max-w-30 text-sm font-semibold leading-6 text-gray-800 truncate">
@@ -724,6 +725,7 @@ function MyBookings() {
               </div>
             )}
           </section>
+          </div>
         </main>
       </div>
     </div>

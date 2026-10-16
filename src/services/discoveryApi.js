@@ -1,6 +1,6 @@
 // src/services/discoveryApi.js
 
-const API_URL = "http://127.0.0.1:8000/api/discovery";
+const API_URL = `${(import.meta.env.VITE_API_URL || "/api").replace(/\/+$/, "")}/discovery`;
 
 /**
  * Search providers
@@ -25,7 +25,28 @@ export async function searchProviders(params = {}) {
     throw new Error("Failed to load providers.");
   }
 
-  return await response.json();
+  const payload = await response.json();
+  const data = payload?.data || payload;
+  const providers = data.providers || data.items || data.results || [];
+
+  return {
+    ...data,
+    providers: providers.map((provider) => ({
+      ...provider,
+      id: provider.id ?? provider.provider_id ?? provider.service_provider_id,
+      provider_id: provider.provider_id ?? provider.id,
+      service_provider_id: provider.service_provider_id ?? provider.id,
+      average_rating:
+        provider.average_rating ?? provider.averageRating ?? provider.average_score ?? provider.averageScore,
+      total_reviews:
+        provider.total_reviews ?? provider.totalReviews ?? provider.review_count ?? provider.reviewCount ??
+        (Array.isArray(provider.reviews) ? provider.reviews.length : undefined),
+      total_jobs_completed:
+        provider.total_jobs_completed ?? provider.totalJobsCompleted ?? provider.completed_jobs ?? provider.completedJobs,
+    })),
+    total: data.total ?? data.count,
+    total_pages: data.total_pages ?? data.totalPages,
+  };
 }
 
 /**
@@ -38,7 +59,8 @@ export async function getProvider(providerId) {
     throw new Error("Provider not found.");
   }
 
-  const provider = await response.json();
+  const payload = await response.json();
+  const provider = payload?.provider || payload?.data?.provider || payload?.data || payload;
   const location =
     [provider.address, provider.city, provider.country]
       .filter(Boolean)
@@ -46,7 +68,18 @@ export async function getProvider(providerId) {
     provider.location ||
     "";
 
-  return { ...provider, location };
+  return {
+    ...provider,
+    id: provider.id ?? provider.provider_id ?? provider.service_provider_id,
+    provider_id: provider.provider_id ?? provider.id,
+    service_provider_id: provider.service_provider_id ?? provider.id,
+    member_since: provider.member_since ?? provider.memberSince ?? provider.created_at ?? provider.createdAt,
+    average_rating: provider.average_rating ?? provider.averageRating ?? provider.average_score ?? provider.averageScore,
+    total_reviews: provider.total_reviews ?? provider.totalReviews ?? provider.review_count ?? provider.reviewCount,
+    total_jobs_completed:
+      provider.total_jobs_completed ?? provider.totalJobsCompleted ?? provider.completed_jobs ?? provider.completedJobs,
+    location,
+  };
 }
 
 /**

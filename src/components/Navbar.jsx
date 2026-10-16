@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Bell, ChevronDown, Search, User, LogOut } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-
 import authService from "../services/api";
 
 function Navbar() {
@@ -11,7 +10,6 @@ function Navbar() {
   const [search, setSearch] = useState("");
 
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -69,10 +67,22 @@ function Navbar() {
     }
   };
 
+
   const handleSearch = (e) => {
     if (e.key === "Enter" && search.trim()) {
       navigate(`/client/find-services?search=${encodeURIComponent(search)}`);
     }
+  };
+
+  const handleNotifications = () => {
+    const notificationRoutes = {
+      client: "/client/notifications",
+      service_provider: "/provider/notifications",
+      provider: "/provider/notifications",
+      admin: "/admin/notifications",
+    };
+
+    navigate(notificationRoutes[user?.role] || "/client/notifications");
   };
 
   return (
@@ -96,6 +106,7 @@ function Navbar() {
         z-30
       "
     >
+
       {/* Search */}
 
       <div className="flex-1 max-w-2xl pl-14 sm:pl-0">
@@ -140,9 +151,15 @@ function Navbar() {
       {/* Right Side */}
 
       <div className="flex items-center gap-6 relative">
+
+      <div className="ml-auto flex items-center gap-4 sm:gap-6 relative">
+
         {/* Notifications */}
 
         <button
+          type="button"
+          onClick={handleNotifications}
+          aria-label="Open notifications"
           className="
             relative
             w-11

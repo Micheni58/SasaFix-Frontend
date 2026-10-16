@@ -3,7 +3,7 @@ import Navbar from "../../components/Navbar";
 
 function ServiceProviders() {
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
       <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />

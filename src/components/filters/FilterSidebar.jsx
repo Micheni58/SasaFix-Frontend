@@ -52,12 +52,12 @@ const FilterSidebar = ({ filters, categories, onSet, onSetLocation, onClearLocat
   const cats = categories.length > 0 ? ["All Services", ...categories] : STATIC_CATS;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 shrink-0" style={{ width: 220 }}>
+    <div className="filter-sidebar shrink-0 rounded-xl border border-gray-200 bg-white p-5 shadow-sm" style={{ width: 220 }}>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <span className="text-base font-bold text-gray-900">Filters</span>
-        <button onClick={onReset} className="text-blue-600 text-sm font-medium hover:text-blue-800">
+        <button onClick={onReset} className="text-sm font-medium text-[#056db3] hover:text-[#045b96]">
           Clear All
         </button>
       </div>
@@ -75,7 +75,7 @@ const FilterSidebar = ({ filters, categories, onSet, onSetLocation, onClearLocat
                 <span
                   onClick={() => onSet("category", val)}
                   className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors
-                    ${active ? "bg-gray-800 border-gray-800" : "bg-gray-700 border-gray-700"}`}
+                    ${active ? "bg-[#056db3] border-[#056db3]" : "bg-white border-gray-400"}`}
                 >
                   {active && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
                 </span>
@@ -98,7 +98,7 @@ const FilterSidebar = ({ filters, categories, onSet, onSetLocation, onClearLocat
         {/* Dropdown matching Figma */}
         <div className="relative mb-2">
           <select
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-300 pr-8"
+            className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#056db3]"
             onChange={(e) => {
               const v = e.target.value;
               if (v === "All Locations") { onClearLocation(); setLocInput(""); }
@@ -120,7 +120,7 @@ const FilterSidebar = ({ filters, categories, onSet, onSetLocation, onClearLocat
             onChange={(e) => handleLocType(e.target.value)}
             onFocus={() => suggestions.length > 0 && setShowDrop(true)}
             onBlur={() => setTimeout(() => setShowDrop(false), 180)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#056db3]"
           />
           {showDrop && suggestions.length > 0 && (
             <ul className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto">
@@ -135,7 +135,7 @@ const FilterSidebar = ({ filters, categories, onSet, onSetLocation, onClearLocat
         </div>
 
         <button onClick={getGPS} disabled={gpsLoad}
-          className="mt-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50">
+          className="mt-1.5 text-xs font-medium text-[#056db3] hover:text-[#045b96] disabled:opacity-50">
           {gpsLoad ? "Detecting..." : "📍 Use my current location"}
         </button>
 
@@ -155,14 +155,14 @@ const FilterSidebar = ({ filters, categories, onSet, onSetLocation, onClearLocat
             type="number"
             value={filters.min_price}
             onChange={(e) => onSet("min_price", Number(e.target.value))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#056db3]"
           />
           <span className="text-gray-400 shrink-0">-</span>
           <input
             type="number"
             value={filters.max_price}
             onChange={(e) => onSet("max_price", Number(e.target.value))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#056db3]"
           />
         </div>
       </div>
@@ -178,7 +178,7 @@ const FilterSidebar = ({ filters, categories, onSet, onSetLocation, onClearLocat
                 onClick={() => onSet("min_rating", active ? null : r.value)}>
                 {/* Radio bullet matching Figma */}
                 <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors
-                  ${active ? "bg-gray-800 border-gray-800" : "bg-gray-700 border-gray-700"}`}>
+                  ${active ? "bg-[#056db3] border-[#056db3]" : "bg-white border-gray-400"}`}>
                   {active && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
                 </span>
                 <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
@@ -199,7 +199,7 @@ const FilterSidebar = ({ filters, categories, onSet, onSetLocation, onClearLocat
           onClick={() => onSet("verified_only", !filters.verified_only)}>
           {/* Square checkbox matching Figma */}
           <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors
-            ${filters.verified_only ? "bg-blue-600 border-blue-600" : "border-gray-400 bg-white"}`}>
+            ${filters.verified_only ? "bg-[#056db3] border-[#056db3]" : "border-gray-400 bg-white"}`}>
             {filters.verified_only && (
               <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/>

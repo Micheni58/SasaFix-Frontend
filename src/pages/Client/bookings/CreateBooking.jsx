@@ -1,7 +1,7 @@
 // src/pages/Client/CreateBooking.jsx
 
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Calendar as CalendarIcon,
   Clock3,
@@ -18,13 +18,17 @@ import {
   Loader2,
   DollarSign,
   Wrench,
-  Lock,
   ChevronRight,
+  Sparkles,
+  Check,
+  X as CloseIcon,
 } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import { format, isSameDay } from "date-fns";
 import "react-day-picker/dist/style.css";
 import bookingService from "../../../api/bookingService";
+import providerServiceApi from "../../../api/providerServiceApi";
+import aiService from "../../../api/aiService";
 import Sidebar from "../../../layout/Sidebar";
 import Navbar from "../../../components/Navbar";
 import { getProvider } from "../../../services/discoveryApi";
@@ -140,12 +144,19 @@ function DurationButton({ value, label, isSelected, onSelect }) {
 function CreateBooking() {
   const navigate = useNavigate();
   const { providerId: routeProviderId } = useParams();
+  const [searchParams] = useSearchParams();
+  const serviceIdParam = searchParams.get("serviceId");
 
   const [serviceType, setServiceType] = useState("");
+  const [selectedService, setSelectedService] = useState(null);
+  const [providerServices, setProviderServices] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [serviceLocation, setServiceLocation] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  const [suggestedDescription, setSuggestedDescription] = useState("");
+  const [isImprovingDescription, setIsImprovingDescription] = useState(false);
+  const [descriptionAiError, setDescriptionAiError] = useState("");
   const [urgency, setUrgency] = useState("normal");
   const [providerId, setProviderId] = useState(null);
   const [providerName, setProviderName] = useState("");
@@ -173,6 +184,30 @@ function CreateBooking() {
     { value: 8, label: "Full day" },
   ];
 
+  const isFixedPrice = Boolean(selectedService);
+
+  const improveJobDescription = async () => {
+    if (!jobDescription.trim()) return;
+
+    setIsImprovingDescription(true);
+    setDescriptionAiError("");
+    setSuggestedDescription("");
+
+    try {
+      const result = await aiService.improveJobDescription(jobDescription.trim());
+      setSuggestedDescription(result.improved_description || "");
+      if (!result.improved_description) {
+        setDescriptionAiError("AI did not return a suggestion. Please try again.");
+      }
+    } catch (aiError) {
+      setDescriptionAiError(
+        aiError.message || aiError.detail || "Unable to improve the description right now. Please try again."
+      );
+    } finally {
+      setIsImprovingDescription(false);
+    }
+  };
+
   // Fetch provider data on mount
   useEffect(() => {
     if (!routeProviderId) {
@@ -188,7 +223,10 @@ function CreateBooking() {
       try {
         setLoading(true);
 
-        const provider = await getProvider(selectedProviderId);
+        const [provider, services] = await Promise.all([
+          getProvider(selectedProviderId),
+          providerServiceApi.listProviderServices(selectedProviderId).catch(() => []),
+        ]);
 
         if (provider) {
           setProviderName(
@@ -196,9 +234,32 @@ function CreateBooking() {
           );
           setProviderTrade(provider.service_category || "");
           setProviderRate(Number(provider.hourly_rate) || 0);
-          setServiceType(provider.service_category || "Service");
           setProviderRating(provider.average_rating || 0);
           setProviderJobsCompleted(provider.total_jobs_completed || 0);
+          const activeServices = services.filter(
+            (service) => service && service.is_active !== false,
+          );
+          setProviderServices(activeServices);
+
+          // Preselect a service when arriving from the provider's services tab.
+          if (serviceIdParam) {
+            const sid = Number(serviceIdParam);
+            const match = activeServices.find((service) => Number(service.id) === sid);
+
+            if (match) {
+              setSelectedService(match);
+              setServiceType(match.service_name || "Service");
+              if (match.duration_minutes) {
+                setDurationHours(Math.max(1, Math.round(match.duration_minutes / 60)));
+              }
+            } else {
+              setSelectedService(null);
+              setServiceType("");
+            }
+          } else {
+            setSelectedService(null);
+            setServiceType("");
+          }
         }
 
         try {
@@ -221,7 +282,25 @@ function CreateBooking() {
     };
 
     fetchProviderData();
-  }, [routeProviderId]);
+  }, [routeProviderId, serviceIdParam]);
+
+  const handleServiceChange = (event) => {
+    const value = event.target.value;
+
+    if (value === "custom") {
+      setSelectedService(null);
+      setServiceType(providerTrade || "Custom service");
+      setDurationHours(1);
+      return;
+    }
+
+    const service = providerServices.find((item) => String(item.id) === value);
+    setSelectedService(service || null);
+    setServiceType(service?.service_name || "");
+    if (service?.duration_minutes) {
+      setDurationHours(Math.max(1, Math.round(service.duration_minutes / 60)));
+    }
+  };
 
   // Generate available dates based on provider's availability
   const generateAvailableDates = (availability) => {
@@ -323,6 +402,10 @@ function CreateBooking() {
   const handleSubmit = (event) => {
     event.preventDefault();
 
+    if (!serviceType) {
+      setError("Please select a service type.");
+      return;
+    }
     if (!selectedDate) {
       setError("Please select a date.");
       return;
@@ -376,7 +459,11 @@ function CreateBooking() {
         scheduled_start_time: selectedTime ? `${selectedTime}:00` : null,
         scheduled_end_time: endTime,
         location: serviceLocation || "",
-        amount: providerRate ? Math.round(providerRate * Number(durationHours || 1)) : 0,
+        amount: isFixedPrice
+          ? Math.round(Number(selectedService.price))
+          : providerRate
+          ? Math.round(providerRate * Number(durationHours || 1))
+          : 0,
       };
 
       await bookingService.createBooking(payload);
@@ -393,18 +480,32 @@ function CreateBooking() {
   };
 
   // ── Cost calculations ──
-  // Platform fee is deducted from the provider's payment — not added to what the client pays.
-  // The client pays only the service fee (rate × duration × urgency multiplier).
-  const baseCost = providerRate ? providerRate * Number(durationHours || 1) : 0;
+  // Fixed-price: total is the service price. No hourly math, no urgency multiplier.
+  // Hourly: rate × duration × urgency multiplier.
+  const baseCost = isFixedPrice
+    ? Number(selectedService.price) || 0
+    : providerRate
+    ? providerRate * Number(durationHours || 1)
+    : 0;
+
   const urgencyMultiplier =
     urgency === "emergency" ? 1.3 : urgency === "urgent" ? 1.15 : 1;
+
   const urgencySurcharge =
-    urgency !== "normal" ? Math.round(baseCost * (urgencyMultiplier - 1)) : 0;
-  const totalCost = providerRate ? Math.round(baseCost * urgencyMultiplier) : 0;
+    !isFixedPrice && urgency !== "normal"
+      ? Math.round(baseCost * (urgencyMultiplier - 1))
+      : 0;
+
+  const totalCost = isFixedPrice
+    ? Math.round(baseCost)
+    : providerRate
+    ? Math.round(baseCost * urgencyMultiplier)
+    : 0;
 
   // Determine if confirm button should be disabled
-  const canSubmit = selectedDate && selectedTime && serviceLocation && !submitting;
+  const canSubmit = serviceType && selectedDate && selectedTime && serviceLocation && !submitting;
   const missingFields = [];
+  if (!serviceType) missingFields.push("a service type");
   if (!selectedDate) missingFields.push("a date");
   if (!selectedTime) missingFields.push("a time");
   if (!serviceLocation) missingFields.push("your location");
@@ -586,21 +687,31 @@ function CreateBooking() {
                   <div className="p-6">
                     <form onSubmit={handleSubmit} className="space-y-6">
 
-                      {/* Service Type - Fixed */}
+                      {/* Service Type */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                           Service Type
                         </label>
-                        <div className="w-full rounded-xl border border-gray-300 bg-gray-100 px-4 py-2.5 text-gray-700 cursor-not-allowed flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <Wrench className="h-4 w-4 text-gray-400" />
-                            {serviceType || "Loading..."}
-                          </span>
-                          <Lock className="h-4 w-4 text-gray-400" />
-                        </div>
-                        <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                          <Lock className="h-3 w-3" />
-                          Fixed to what this provider offers
+                        <select
+                          value={selectedService ? String(selectedService.id) : serviceType ? "custom" : ""}
+                          onChange={handleServiceChange}
+                          required
+                          className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-800 focus:outline-none focus:border-[#056db3] focus:ring-2 focus:ring-[#056db3]/20 transition-colors"
+                        >
+                          <option value="" disabled>
+                            {providerServices.length ? "Select a service" : "Select a service type"}
+                          </option>
+                          {providerServices.map((service) => (
+                            <option key={service.id} value={String(service.id)}>
+                              {service.service_name} — KES {Number(service.price || 0).toLocaleString()}
+                            </option>
+                          ))}
+                          <option value="custom">Custom job (hourly rate)</option>
+                        </select>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {isFixedPrice
+                            ? "This service uses the provider’s listed fixed price."
+                            : "Choose a listed service or request a custom job at the hourly rate."}
                         </p>
                       </div>
 
@@ -620,7 +731,6 @@ function CreateBooking() {
                               Next Available
                               <ChevronRight className="h-3 w-3" />
                             </button>
-                            {/* Next available error shown close to the button */}
                             {nextAvailableError && (
                               <p className="text-xs text-red-500 flex items-center gap-1">
                                 <AlertCircle className="h-3 w-3" />
@@ -738,23 +848,25 @@ function CreateBooking() {
                         )}
                       </div>
 
-                      {/* Duration — preset buttons replacing plain number input */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Estimated Duration
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          {DURATION_PRESETS.map((preset) => (
-                            <DurationButton
-                              key={preset.value}
-                              value={preset.value}
-                              label={preset.label}
-                              isSelected={durationHours === preset.value}
-                              onSelect={setDurationHours}
-                            />
-                          ))}
+                      {/* Duration — hidden for fixed-price services */}
+                      {!isFixedPrice && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Estimated Duration
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {DURATION_PRESETS.map((preset) => (
+                              <DurationButton
+                                key={preset.value}
+                                value={preset.value}
+                                label={preset.label}
+                                isSelected={durationHours === preset.value}
+                                onSelect={setDurationHours}
+                              />
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Location */}
                       <div>
@@ -787,76 +899,136 @@ function CreateBooking() {
                         </label>
                         <textarea
                           id="jobDescription"
-                          rows="3"
+                          rows={Math.min(12, Math.max(3, Math.ceil(jobDescription.length / 85)))}
                           placeholder="Describe what needs to be done"
                           value={jobDescription}
                           onChange={(e) => setJobDescription(e.target.value)}
                           className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-800 focus:outline-none focus:border-[#056db3] focus:ring-2 focus:ring-[#056db3]/20 transition-colors"
                         />
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs text-gray-500">
+                            Turn rough notes into a clearer request for your provider.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={improveJobDescription}
+                            disabled={!jobDescription.trim() || isImprovingDescription}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#056db3]/20 bg-blue-50 px-3 py-2 text-sm font-medium text-[#056db3] transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Sparkles className={`h-4 w-4 ${isImprovingDescription ? "animate-pulse" : ""}`} />
+                            {isImprovingDescription ? "Improving..." : "Improve with AI"}
+                          </button>
+                        </div>
+
+                        {descriptionAiError && (
+                          <p role="alert" className="mt-2 text-sm text-red-600">
+                            {descriptionAiError}
+                          </p>
+                        )}
+
+                        {suggestedDescription && (
+                          <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/60 p-3">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <p className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+                                <Sparkles className="h-4 w-4 text-[#056db3]" />
+                                Suggested description
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setSuggestedDescription("")}
+                                className="rounded p-1 text-gray-400 hover:bg-white hover:text-gray-700"
+                                aria-label="Dismiss suggested description"
+                              >
+                                <CloseIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                            <textarea
+                              value={suggestedDescription}
+                              onChange={(event) => setSuggestedDescription(event.target.value)}
+                              rows={Math.min(12, Math.max(4, Math.ceil(suggestedDescription.length / 85)))}
+                              aria-label="Edit suggested description"
+                              className="w-full resize-y rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm text-gray-700 focus:border-[#056db3] focus:outline-none focus:ring-2 focus:ring-[#056db3]/20"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setJobDescription(suggestedDescription);
+                                setSuggestedDescription("");
+                              }}
+                              disabled={!suggestedDescription.trim()}
+                              className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#056db3] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#045a94] disabled:opacity-50"
+                            >
+                              <Check className="h-4 w-4" />
+                              Accept & edit description
+                            </button>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Urgency */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Urgency Level
-                        </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <label
-                            className={`rounded-xl border-2 p-3 text-left transition-all cursor-pointer ${
-                              urgency === "normal"
-                                ? "border-[#056db3] bg-blue-50"
-                                : "border-gray-200 bg-white hover:border-gray-300"
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="urgency"
-                              value="normal"
-                              checked={urgency === "normal"}
-                              onChange={(e) => setUrgency(e.target.value)}
-                              className="mr-2 accent-[#056db3]"
-                            />
-                            <span className="font-semibold text-gray-800">Normal</span>
-                            <p className="text-xs text-gray-500 mt-0.5">Within 2–3 days</p>
+                      {/* Urgency — hidden for fixed-price services */}
+                      {!isFixedPrice && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Urgency Level
                           </label>
-                          <label
-                            className={`rounded-xl border-2 p-3 text-left transition-all cursor-pointer ${
-                              urgency === "urgent"
-                                ? "border-[#f59e0b] bg-amber-50"
-                                : "border-gray-200 bg-white hover:border-gray-300"
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="urgency"
-                              value="urgent"
-                              checked={urgency === "urgent"}
-                              onChange={(e) => setUrgency(e.target.value)}
-                              className="mr-2 accent-[#f59e0b]"
-                            />
-                            <span className="font-semibold text-gray-800">Urgent</span>
-                            <p className="text-xs text-gray-500 mt-0.5">Within 24 hours (+15%)</p>
-                          </label>
-                          <label
-                            className={`rounded-xl border-2 p-3 text-left transition-all cursor-pointer ${
-                              urgency === "emergency"
-                                ? "border-red-500 bg-red-50"
-                                : "border-gray-200 bg-white hover:border-gray-300"
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="urgency"
-                              value="emergency"
-                              checked={urgency === "emergency"}
-                              onChange={(e) => setUrgency(e.target.value)}
-                              className="mr-2 accent-red-500"
-                            />
-                            <span className="font-semibold text-gray-800">Emergency</span>
-                            <p className="text-xs text-gray-500 mt-0.5">ASAP (+30%)</p>
-                          </label>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <label
+                              className={`rounded-xl border-2 p-3 text-left transition-all cursor-pointer ${
+                                urgency === "normal"
+                                  ? "border-[#056db3] bg-blue-50"
+                                  : "border-gray-200 bg-white hover:border-gray-300"
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="urgency"
+                                value="normal"
+                                checked={urgency === "normal"}
+                                onChange={(e) => setUrgency(e.target.value)}
+                                className="mr-2 accent-[#056db3]"
+                              />
+                              <span className="font-semibold text-gray-800">Normal</span>
+                              <p className="text-xs text-gray-500 mt-0.5">Within 2–3 days</p>
+                            </label>
+                            <label
+                              className={`rounded-xl border-2 p-3 text-left transition-all cursor-pointer ${
+                                urgency === "urgent"
+                                  ? "border-[#f59e0b] bg-amber-50"
+                                  : "border-gray-200 bg-white hover:border-gray-300"
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="urgency"
+                                value="urgent"
+                                checked={urgency === "urgent"}
+                                onChange={(e) => setUrgency(e.target.value)}
+                                className="mr-2 accent-[#f59e0b]"
+                              />
+                              <span className="font-semibold text-gray-800">Urgent</span>
+                              <p className="text-xs text-gray-500 mt-0.5">Within 24 hours (+15%)</p>
+                            </label>
+                            <label
+                              className={`rounded-xl border-2 p-3 text-left transition-all cursor-pointer ${
+                                urgency === "emergency"
+                                  ? "border-red-500 bg-red-50"
+                                  : "border-gray-200 bg-white hover:border-gray-300"
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="urgency"
+                                value="emergency"
+                                checked={urgency === "emergency"}
+                                onChange={(e) => setUrgency(e.target.value)}
+                                className="mr-2 accent-red-500"
+                              />
+                              <span className="font-semibold text-gray-800">Emergency</span>
+                              <p className="text-xs text-gray-500 mt-0.5">ASAP (+30%)</p>
+                            </label>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </form>
                   </div>
                 </section>
@@ -880,7 +1052,9 @@ function CreateBooking() {
                         {/* Base cost */}
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">
-                            {providerRate
+                            {isFixedPrice
+                              ? selectedService.service_name
+                              : providerRate
                               ? `KES ${providerRate.toLocaleString()} × ${durationHours} hr${durationHours > 1 ? "s" : ""}`
                               : "Service fee"}
                           </span>
@@ -889,8 +1063,8 @@ function CreateBooking() {
                           </span>
                         </div>
 
-                        {/* Urgency surcharge — show KES amount, not just % */}
-                        {urgency !== "normal" && (
+                        {/* Urgency surcharge — only in hourly mode */}
+                        {!isFixedPrice && urgency !== "normal" && (
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">
                               {urgency === "urgent" ? "Urgent surcharge (15%)" : "Emergency surcharge (30%)"}
@@ -908,9 +1082,10 @@ function CreateBooking() {
                               KES {totalCost.toLocaleString()}
                             </span>
                           </div>
-                          {/* Note clarifying the platform fee arrangement */}
                           <p className="text-xs text-gray-400 mt-1">
-                            Payment is collected after job completion. A service fee is deducted from the provider's payout.
+                            {isFixedPrice
+                              ? "Fixed price for this service. Payment is collected after job completion."
+                              : "Payment is collected after job completion. A service fee is deducted from the provider's payout."}
                           </p>
                         </div>
                       </div>
@@ -935,7 +1110,6 @@ function CreateBooking() {
                           )}
                         </button>
 
-                        {/* Hint text explaining why button is disabled */}
                         {!canSubmit && !submitting && missingFields.length > 0 && (
                           <p className="text-xs text-center text-gray-400">
                             Please select{" "}
@@ -1025,13 +1199,15 @@ function CreateBooking() {
                   {selectedDate && format(selectedDate, "EEE, MMM d")} at {selectedTime}
                 </span>
               </div>
-              <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-600">Duration</span>
-                <span className="font-medium text-gray-800">
-                  {durationHours} hour{durationHours > 1 ? "s" : ""}
-                </span>
-              </div>
-              {urgency !== "normal" && (
+              {!isFixedPrice && (
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Duration</span>
+                  <span className="font-medium text-gray-800">
+                    {durationHours} hour{durationHours > 1 ? "s" : ""}
+                  </span>
+                </div>
+              )}
+              {!isFixedPrice && urgency !== "normal" && (
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-gray-600">
                     {urgency === "urgent" ? "Urgent surcharge" : "Emergency surcharge"}

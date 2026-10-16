@@ -93,15 +93,6 @@ function getInitials(name) {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-function getProviderRing(booking) {
-  const provider = booking?.raw?.service_provider || booking?.raw?.provider || {};
-  const rating = provider.rating || null;
-  const isPremium = !!(provider.premium || provider.is_premium);
-  const tier = isPremium ? "gold" : rating ? "blue" : "gray";
-  const pct = rating ? Math.round((rating / 5) * 100) : 100;
-  return { tier, pct, rating };
-}
-
 function formatDateToWords(dateString) {
   if (!dateString) return "Date pending";
 
@@ -195,21 +186,17 @@ function getBookingRoute(booking) {
 // SMALL COMPONENTS
 // ─────────────────────────────────────────────
 
-function ProviderAvatar({ name, booking, size = 44 }) {
-  const { tier, pct } = getProviderRing(booking);
-  const ringColor = TIER_COLORS[tier];
+function ProviderAvatar({ name, size = 44 }) {
   const initials = getInitials(name);
 
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <div
-        className="h-full w-full rounded-full p-0.5"
-        style={{ background: `conic-gradient(${ringColor} ${pct}%, #e5e7eb ${pct}% 100%)` }}
-      >
-        <div className="flex h-full w-full items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
-          {initials}
-        </div>
-      </div>
+    <div
+      role="img"
+      aria-label={`${name || "Provider"} initials`}
+      className="flex shrink-0 items-center justify-center rounded-full bg-[#056db3] font-semibold text-white shadow-sm ring-2 ring-[#056db3]/15"
+      style={{ width: size, height: size, fontSize: Math.max(12, size * 0.32) }}
+    >
+      {initials}
     </div>
   );
 }
@@ -486,7 +473,6 @@ function ClientDashboard() {
               <div className="flex items-center gap-4">
                 <ProviderAvatar
                   name={lastCompleted.providerName || lastCompleted.worker}
-                  booking={lastCompleted}
                   size={48}
                 />
                 <div>
@@ -519,7 +505,6 @@ function ClientDashboard() {
                   <div className="flex min-w-0 items-center gap-4">
                     <ProviderAvatar
                       name={activeBooking.providerName || activeBooking.worker}
-                      booking={activeBooking}
                       size={56}
                     />
                     <div className="min-w-0">
@@ -631,12 +616,11 @@ function ClientDashboard() {
                     return (
                       <li
                         key={booking.id}
-                        className="flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
+                        className="dark-dashboard-hover flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="flex min-w-0 items-center gap-3">
                           <ProviderAvatar
                             name={booking.providerName || booking.worker}
-                            booking={booking}
                             size={44}
                           />
                           <div className="min-w-0">

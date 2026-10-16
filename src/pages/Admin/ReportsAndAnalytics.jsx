@@ -63,15 +63,13 @@ const ReportsAnalytics = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
 
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="min-w-0 flex-1 ml-0 lg:ml-72">
         <Navbar />
 
-        <main className="pt-24 px-6 pb-6">
-          <div className="min-h-screen bg-[#f8fafc]">
-            <div className="mx-auto max-w-[1400px] px-8 py-8">
+        <main className="px-4 pb-10 pt-24 sm:px-6 lg:px-8">
               {/* Page heading */}
               <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -82,11 +80,11 @@ const ReportsAnalytics = () => {
                     </>
                   ) : (
                     <>
-                      <h1 className="text-[30px] font-bold tracking-tight text-[#0f172a]">
+                      <h1 className="text-[30px] font-bold tracking-tight text-gray-800">
                         Reports & Analytics
                       </h1>
 
-                      <p className="mt-1 text-[16px] text-slate-500">
+                      <p className="mt-1 text-[16px] text-gray-600">
                         Comprehensive platform insights and performance
                         metrics
                       </p>
@@ -94,7 +92,7 @@ const ReportsAnalytics = () => {
                   )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   {loading ? (
                     <>
                       <div className="h-10 w-32 animate-pulse rounded-lg bg-gray-200" />
@@ -253,8 +251,6 @@ const ReportsAnalytics = () => {
                   />
                 </div>
               )}
-            </div>
-          </div>
         </main>
       </div>
     </div>

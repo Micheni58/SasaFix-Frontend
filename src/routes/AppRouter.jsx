@@ -3,7 +3,9 @@ import {
   Navigate,
   Routes,
   Route,
+  useLocation,
 } from "react-router-dom";
+import { useLayoutEffect } from "react";
 
 import Home from "../pages/Home";
 import Login from "../pages/Login";
@@ -38,7 +40,6 @@ import BookingsAndPayments from "../pages/Admin/BookingsAndPayments";
 import BookingsAndPaymentsDetails from "../pages/Admin/BookingsAndPaymentDetails";
 import PayoutDetails from "../pages/Admin/PayoutDetails";
 import Users from "../pages/Admin/Users";
-import ServiceProviders from "../pages/Admin/ServiceProviders";
 import Reviews from "../pages/ServiceProvider/Reviews";
 import CancelledJobDetails from "../pages/ServiceProvider/Jobs/CancelledJobDetails";
 import UpcomingBookingDetails from "../pages/Client/bookings/UpComingBookingDetails";
@@ -58,10 +59,22 @@ import EmailVerificationSent from "../pages/EmailVerificationSent";
 import ProviderEarnings from "../pages/ServiceProvider/Earnings";
 import AIAssistant from "../pages/ServiceProvider/AIAssistant";
 import AdminReportsDisputes from "../pages/Admin/AdminReportsDisputes";
+import AdminSubscriptions from "../pages/Admin/Subscriptions";
 import NotFound from "../pages/NotFound";
 import NotAuthorized from "../pages/NotAuthorized";
 import Categories from "../pages/Admin/Categories";
 import { getStoredUserRole } from "../utils/sidebarRole";
+import { syncThemeWithRoute } from "../utils/theme";
+
+function RouteThemeSync() {
+  const location = useLocation();
+
+  useLayoutEffect(() => {
+    syncThemeWithRoute(location.pathname);
+  }, [location.pathname]);
+
+  return null;
+}
 
 function RoleGuard({ allowedRoles, children }) {
   const token = localStorage.getItem("access_token");
@@ -85,6 +98,7 @@ const protectedRoute = (role, element) => (
 export default function AppRouter() {
   return (
     <Router>
+      <RouteThemeSync />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
@@ -138,6 +152,34 @@ export default function AppRouter() {
         <Route
           path="/admin/transactions"
           element={protectedRoute("admin", <AdminTransactions />)}
+        />
+        <Route
+          path="/admin/reports-disputes"
+          element={protectedRoute("admin", <AdminReportsDisputes />)}
+        />
+        <Route
+          path="/admin/analytics"
+          element={protectedRoute("admin", <ReportAndAnalytics />)}
+        />
+        <Route
+          path="/admin/payouts/:payoutId"
+          element={protectedRoute("admin", <PayoutDetails />)}
+        />
+        <Route
+          path="/admin/users"
+          element={protectedRoute("admin", <Users />)}
+        />
+        <Route
+          path="/admin/service-providers"
+          element={protectedRoute("admin", <ServiceProvidersManagement />)}
+        />
+        <Route
+          path="/admin/transactions"
+          element={protectedRoute("admin", <AdminTransactions />)}
+        />
+        <Route
+          path="/admin/subscriptions"
+          element={protectedRoute("admin", <AdminSubscriptions />)}
         />
         <Route
           path="/admin/reports-disputes"

@@ -18,8 +18,8 @@ const ServiceProvidersSkeleton = () => {
       </div>
 
       {/* Search/filter */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex gap-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <Skeleton className="h-12 flex-1" />
           <Skeleton className="h-12 w-10" />
           <Skeleton className="h-12 w-40" />
@@ -27,7 +27,8 @@ const ServiceProvidersSkeleton = () => {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="min-w-275">
         <div className="grid grid-cols-8 gap-4 bg-slate-50 px-6 py-4">
           {Array.from({ length: 8 }).map((_, index) => (
             <Skeleton key={index} className="h-4 w-20" />
@@ -43,6 +44,7 @@ const ServiceProvidersSkeleton = () => {
               <Skeleton className="h-10 w-10 rounded-full" />
               <Skeleton className="h-4 w-24" />
             </div>
+<<<<<<< HEAD
 
             <Skeleton className="h-4 w-24" />
 
@@ -59,6 +61,11 @@ const ServiceProvidersSkeleton = () => {
             <Skeleton className="h-6 w-16 rounded-full" />
           </div>
         ))}
+=======
+          )
+        )}
+        </div>
+>>>>>>> origin/development
       </div>
     </div>
   );

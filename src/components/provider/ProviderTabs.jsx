@@ -21,31 +21,32 @@ const tabs = [
 
 const ProviderTabs = ({ activeTab, setActiveTab }) => {
   return (
-    <div className="bg-white rounded-t-xl border border-gray-200 border-b-0 mt-8">
-      <div className="flex px-8">
+    <div className="mt-8 rounded-t-xl border border-gray-200 border-b-0 bg-white">
+      <div className="flex overflow-x-auto px-4 sm:px-6" role="tablist" aria-label="Provider profile sections">
         {tabs.map((tab) => {
           const active = activeTab === tab.id;
 
           return (
             <button
               key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => setActiveTab(tab.id)}
               className={`
                 relative
-                py-6
-                mr-12
-                text-lg
+                whitespace-nowrap py-4 mr-7 text-sm sm:mr-9 sm:text-base
                 font-semibold
                 transition-all
                 ${
-                  active ? "text-blue-600" : "text-gray-500 hover:text-blue-600"
+                  active ? "text-[#056db3]" : "text-gray-500 hover:text-[#056db3]"
                 }
               `}
             >
               {tab.label}
 
               {active && (
-                <span className="absolute left-0 bottom-0 h-1 w-full rounded-full bg-blue-600"></span>
+                <span className="absolute bottom-0 left-0 h-1 w-full rounded-full bg-[#056db3]"></span>
               )}
             </button>
           );

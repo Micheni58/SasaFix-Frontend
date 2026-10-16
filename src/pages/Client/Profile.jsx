@@ -4,7 +4,9 @@ import Navbar from "../../components/Navbar";
 import { useLocation } from "react-router-dom";
 import { getSidebarRole } from "../../utils/sidebarRole";
 import authService from "../../services/api";
+import apiClient from "../../api/apiClient";
 import { useToast } from "../../components/ui/ToastProvider";
+import ThemeSettings from "../../components/profile/ThemeSettings";
 
 const BRAND = "#056db3";
 const BRAND_DARK = "#04599a";
@@ -82,6 +84,7 @@ const NAV = [
   { id: "locations", label: "Saved Locations", icon: <PinIcon /> },
   { id: "notifications", label: "Notifications", icon: <BellIcon /> },
   { id: "security", label: "Security", icon: <LockIcon /> },
+  { id: "theme", label: "Theme", icon: <Ico circle={[12, 12, 4]} d="M12 2v2m0 16v2m10-10h-2M4 12H2m17.07 7.07-1.42-1.42M6.35 6.35 4.93 4.93m14.14 0-1.42 1.42M6.35 17.65l-1.42 1.42" /> },
   { id: "help", label: "Help & Support", icon: <HelpIcon /> },
 ];
 
@@ -155,19 +158,14 @@ const PersonalInfo = ({ user, onSaved }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("http://localhost:8000/api/users/me", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify(form),
+      const res = await apiClient.patch("/users/me", form, {
+        validateStatus: () => true,
       });
-      if (!res.ok) {
-        const e = await res.json();
+      if (res.status < 200 || res.status >= 300) {
+        const e = res.data;
         throw new Error(e.detail);
       }
-      const updated = await res.json();
+      const updated = res.data;
       localStorage.setItem("user", JSON.stringify({ ...user, ...updated }));
       onSaved?.({ ...user, ...updated });
       toast.success(
@@ -246,7 +244,7 @@ const PersonalInfo = ({ user, onSaved }) => {
       </p>
       <div className="flex items-center gap-5 mb-7">
         <div
-          className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0 overflow-hidden"
+          className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold shrink-0 overflow-hidden"
           style={{ backgroundColor: BRAND }}
         >
           {avatar ? (
@@ -280,7 +278,7 @@ const PersonalInfo = ({ user, onSaved }) => {
           />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label>First Name</Label>
           <input
@@ -370,16 +368,11 @@ const SavedLocations = ({ user }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("http://localhost:8000/api/users/me", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify(form),
+      const res = await apiClient.patch("/users/me", form, {
+        validateStatus: () => true,
       });
-      if (!res.ok) {
-        const e = await res.json();
+      if (res.status < 200 || res.status >= 300) {
+        const e = res.data;
         throw new Error(e.detail);
       }
       toast.success("Location saved");
@@ -395,7 +388,7 @@ const SavedLocations = ({ user }) => {
       <p className="text-sm text-gray-400 mb-6">
         Your default address for service bookings
       </p>
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label>City</Label>
           <input
@@ -454,7 +447,7 @@ const NotificationSettings = () => {
       </div>
       <button
         onClick={() => toggle(k)}
-        className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ml-4"
+        className="relative w-11 h-6 rounded-full transition-colors shrink-0 ml-4"
         style={{ backgroundColor: prefs[k] ? BRAND : "#d1d5db" }}
       >
         <span
@@ -529,19 +522,16 @@ const Security = () => {
     }
     setSaving(true);
     try {
-      const res = await fetch("http://localhost:8000/api/users/me/password", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({
+      const res = await apiClient.patch(
+        "/users/me/password",
+        {
           current_password: form.current_password,
           new_password: form.new_password,
-        }),
-      });
-      if (!res.ok) {
-        const e = await res.json();
+        },
+        { validateStatus: () => true },
+      );
+      if (res.status < 200 || res.status >= 300) {
+        const e = res.data;
         throw new Error(e.detail);
       }
       setForm({ current_password: "", new_password: "", confirm_password: "" });
@@ -663,11 +653,11 @@ const HelpSupport = () => (
         Our team is available Mon–Fri, 8am–6pm EAT.
       </p>
       <a
-        href="mailto:support@servicehub.co.ke"
+        href="mailto:info@sasafix.co.ke"
         className="text-sm font-semibold hover:underline"
         style={{ color: BRAND }}
       >
-        support@servicehub.co.ke
+        info@sasafix.co.ke
       </a>
     </div>
   </div>
@@ -696,15 +686,16 @@ function ClientProfile() {
     locations: <SavedLocations user={user} />,
     notifications: <NotificationSettings />,
     security: <Security />,
+    theme: <ThemeSettings />,
     help: <HelpSupport />,
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
       <Sidebar role={sidebarRole} />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="min-w-0 flex-1 ml-0 lg:ml-72">
         <Navbar />
-        <main className="pt-24 px-6 pb-6">
+        <main className="pt-24 px-4 pb-6 sm:px-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
               Profile & Settings
@@ -714,14 +705,14 @@ function ClientProfile() {
             </p>
           </div>
 
-          <div className="flex gap-5 items-start">
+          <div className="flex min-w-0 flex-col items-start gap-4 md:flex-row md:gap-5">
             {/* Settings nav */}
-            <div className="w-52 flex-shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
+            <div className="flex w-full min-w-0 shrink-0 gap-1 overflow-x-auto rounded-2xl border border-gray-100 bg-white p-2 shadow-sm md:w-52 md:flex-col md:overflow-visible">
               {NAV.map(({ id, label, icon }) => (
                 <button
                   key={id}
                   onClick={() => setActive(id)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left"
+                  className="flex w-auto shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors md:w-full md:gap-3"
                   style={{
                     backgroundColor:
                       active === id ? BRAND_LIGHT : "transparent",
@@ -737,7 +728,7 @@ function ClientProfile() {
             </div>
 
             {/* Active section */}
-            <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-7 min-h-96">
+            <div className="min-w-0 w-full flex-1 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 md:w-auto md:p-7 min-h-96">
               {sections[active]}
             </div>
           </div>

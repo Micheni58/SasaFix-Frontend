@@ -10,6 +10,12 @@ import {
   sendMessage as sendMessageApi,
 } from "../../api/messageService";
 
+const API = import.meta.env.VITE_API_URL || "/api";
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+});
+
 const BRAND = "#056db3";
 const BRAND_LIGHT = "#e8f3fb";
 

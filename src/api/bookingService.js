@@ -95,36 +95,16 @@ function normalizeBooking(apiBooking) {
     };
 }
 
-// ─────────────────────────────────────────────
-// USER CACHE
-// ─────────────────────────────────────────────
-
-const userCache = new Map();
-
-async function fetchUserById(id) {
-    if (!id) return null;
-    if (userCache.has(id)) return userCache.get(id);
-    try {
-        const resp = await client.get(`/users/${id}`);
-        userCache.set(id, resp.data);
-        return resp.data;
-    } catch (e) {
-        return null;
-    }
-}
-
-async function normalizeBookingAsync(apiBooking) {
-    const normalized = normalizeBooking(apiBooking);
-    if ((normalized.client === 'Client' || !normalized.client || normalized.client.toString().toLowerCase().startsWith('client #')) && normalized.clientId) {
-        const user = await fetchUserById(normalized.clientId);
-        if (user) {
-            normalized.client = user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || `Client #${normalized.clientId}`;
-            normalized.clientName = normalized.client;
-            normalized.clientInitials = (normalized.client || '').split(' ').map(s=>s[0]).slice(0,2).join('') || '--';
-            normalized.clientObj = user;
+function extractBookings(payload) {
+    if (Array.isArray(payload)) return payload;
+    for (const key of ["bookings", "data", "items", "results"]) {
+        if (Array.isArray(payload?.[key])) return payload[key];
+        if (payload?.[key] && typeof payload[key] === "object") {
+            const nested = extractBookings(payload[key]);
+            if (nested.length) return nested;
         }
     }
-    return normalized;
+    return [];
 }
 
 // ─────────────────────────────────────────────
@@ -139,8 +119,8 @@ export async function createBooking(bookingData) {
 export async function listClientBookings(clientId) {
     try {
         const resp = await client.get(`/bookings/client/${clientId}`);
-        const list = resp.data || [];
-        const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
+        const list = extractBookings(resp.data);
+        const results = list.map(normalizeBooking);
         return results;
     } catch (error) {
         if (error.response && error.response.status === 404) {
@@ -158,8 +138,8 @@ export async function listClientBookings(clientId) {
 export async function listProviderBookings(providerId) {
     try {
         const resp = await client.get(`/bookings/provider/${providerId}`);
-        const list = resp.data || [];
-        const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
+        const list = extractBookings(resp.data);
+        const results = list.map(normalizeBooking);
         return results;
     } catch (error) {
         if (error.response && error.response.status === 404) {
@@ -177,7 +157,7 @@ export async function listProviderBookings(providerId) {
 export async function getBooking(bookingId) {
     try {
         const resp = await client.get(`/bookings/${bookingId}`);
-        return normalizeBookingAsync(resp.data);
+        return normalizeBooking(resp.data);
     } catch (error) {
         if (error.response && error.response.status === 404) {
             return null;
@@ -189,8 +169,8 @@ export async function getBooking(bookingId) {
 export async function listActiveBookings() {
     try {
         const resp = await client.get(`/bookings/active`);
-        const list = resp.data || [];
-        const results = await Promise.all(list.map((b) => normalizeBookingAsync(b)));
+        const list = extractBookings(resp.data);
+        const results = list.map(normalizeBooking);
         return results;
     } catch (error) {
         if (error.response && error.response.status === 404) {

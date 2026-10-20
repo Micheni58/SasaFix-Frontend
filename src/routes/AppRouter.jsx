@@ -65,6 +65,12 @@ import NotAuthorized from "../pages/NotAuthorized";
 import Categories from "../pages/Admin/Categories";
 import { getStoredUserRole } from "../utils/sidebarRole";
 import { syncThemeWithRoute } from "../utils/theme";
+import ServiceProviders from "../pages/Admin/ServiceProviders";
+import CreateQuoteRequest from "../pages/Client/quotes/CreateQuoteRequest";
+import MyQuoteRequests from "../pages/Client/quotes/MyQuoteRequests";
+import QuoteRequestDetail from "../pages/Client/quotes/QuoteRequestDetail";
+import ProviderQuotes from "../pages/ServiceProvider/quotes/ProviderQuotes";
+import SubmitQuote from "../pages/ServiceProvider/quotes/SubmitQuote";
 
 function RouteThemeSync() {
   const location = useLocation();
@@ -255,6 +261,18 @@ export default function AppRouter() {
           path="/client/my-bookings/paid/:bookingId"
           element={protectedRoute("client", <PaidBookingDetails />)}
         />
+        <Route
+          path="/client/quotes/new"
+          element={protectedRoute("client", <CreateQuoteRequest />)}
+        />
+        <Route
+          path="/client/quotes"
+          element={protectedRoute("client", <MyQuoteRequests />)}
+        />
+        <Route
+          path="/client/quotes/:id"
+          element={protectedRoute("client", <QuoteRequestDetail />)}
+        />
 
         <Route
           path="/provider"
@@ -338,6 +356,15 @@ export default function AppRouter() {
         <Route
           path="/provider/my-jobs/reschedule-proposed/:id"
           element={protectedRoute("provider", <RescheduleProposedJobDetails />)}
+        />
+        
+        <Route
+          path="/provider/quotes"
+          element={protectedRoute("provider", <ProviderQuotes />)}
+        />
+        <Route
+          path="/provider/quotes/:requestId"
+          element={protectedRoute("provider", <SubmitQuote />)}
         />
 
         {/* Catch all - redirect to home */}

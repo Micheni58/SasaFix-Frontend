@@ -28,8 +28,8 @@ import { getStoredProviderId } from "../../utils/sidebarRole";
 
 // ── Status Colors ──
 const STATUS_STYLES = {
+  "New Request": "bg-amber-100 text-amber-800",
   "New Requests": "bg-amber-100 text-amber-800",
-  "Pending": "bg-amber-100 text-amber-800",
   "Accepted": "bg-sky-100 text-sky-800",
   "Upcoming": "bg-sky-100 text-sky-800",
   "In Progress": "bg-indigo-100 text-indigo-800",
@@ -188,6 +188,10 @@ function getBookingRoute(booking) {
 
 function getDisplayStatus(booking) {
   const status = booking.status || "Pending";
+
+  if (status === "Pending" || status === "New Requests") {
+    return "New Request";
+  }
   
   // All reschedule statuses show as "Rescheduled" in the dashboard
   if (status === "Reschedule Requested" || 
@@ -780,7 +784,7 @@ function ProviderDashboard() {
           {/* ── New Requests Alert ── */}
           {newRequests.length > 0 && (
             <section className="mb-8">
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between">
+              <div className="dark-provider-new-requests rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Inbox className="h-6 w-6 text-amber-600" />
                   <div>
@@ -919,11 +923,6 @@ function ProviderDashboard() {
                             <div className="min-w-0">
                               <p className="truncate font-semibold text-gray-800">{job.service || "Service unavailable"}</p>
                               <p className="truncate text-sm text-gray-500">{job.client || job.clientName || "Client"}</p>
-                              {isNewRequest && (
-                                <span className="inline-block mt-0.5 text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
-                                  New Request
-                                </span>
-                              )}
                               {isReschedulePending && (
                                 <span className="inline-block mt-0.5 text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
                                   Reschedule Pending

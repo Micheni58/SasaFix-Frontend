@@ -1,8 +1,8 @@
 // src/pages/ServiceDiscovery/ProviderProfilePage.jsx
 
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { ChevronLeft, MessageSquarePlus } from "lucide-react";
 
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
@@ -122,8 +122,6 @@ const ProviderProfilePage = () => {
         }
 
         const reviews = reviewResult.status === "fulfilled" ? reviewResult.value : [];
-        // Rating totals may include ratings without written reviews. Keep this
-        // count tied to review records, matching the count shown on search cards.
         profile.total_reviews = reviewResult.status === "fulfilled"
           ? reviews.length
           : Number(profile.total_reviews || 0);
@@ -162,10 +160,8 @@ const ProviderProfilePage = () => {
     return (
       <div className="provider-public-profile flex min-h-screen overflow-x-hidden bg-gray-50">
         <Sidebar role="client" />
-
         <div className="min-w-0 flex-1 ml-0 lg:ml-72">
           <Navbar />
-
           <main className="px-4 pb-6 pt-24 sm:px-6">
             <div className="rounded-xl border border-red-200 bg-red-50 p-10 text-red-600">
               {error || "Provider not found"}
@@ -196,7 +192,6 @@ const ProviderProfilePage = () => {
 
           <div className="mt-5 grid min-w-0 grid-cols-1 items-start gap-5 sm:mt-8 lg:grid-cols-3 lg:gap-6">
             <div className="lg:col-span-2">
-
               <ProviderTabs
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -217,21 +212,32 @@ const ProviderProfilePage = () => {
               {activeTab === "availability" && (
                 <AvailabilityTab provider={provider} />
               )}
-
             </div>
 
-            <div>
-
+            <div className="space-y-4">
+              {/* Existing booking sidebar */}
               <BookingSidebar provider={provider} />
 
+              {/* NEW: Request custom quote card */}
+              <div className="rounded-xl border border-blue-100 bg-blue-50 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-gray-900 mb-1.5">
+                  Have a custom job?
+                </h3>
+                <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+                  Need something that's not on the list? Send a direct request for a quote to {provider.first_name}.
+                </p>
+                <Link
+                  to={`/client/quotes/new?providerId=${provider.id}`}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#056db3] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#045a94] focus:outline-none focus:ring-2 focus:ring-[#056db3] focus:ring-offset-2"
+                >
+                  <MessageSquarePlus className="h-4 w-4" aria-hidden="true" />
+                  Request Custom Quote
+                </Link>
+              </div>
             </div>
-
           </div>
-
         </main>
-
       </div>
-
     </div>
   );
 };

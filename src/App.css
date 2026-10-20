@@ -91,6 +91,74 @@ html[data-theme="dark"] .dark-ai-insight-card h4 {
 	color: #93c5fd !important;
 }
 
+html[data-theme="dark"] .dark-ai-pro-tip {
+	background: linear-gradient(110deg, #102a43, #172554) !important;
+	border-color: #1e4970 !important;
+}
+
+html[data-theme="dark"] .dark-ai-pro-tip h4 {
+	color: #bfdbfe !important;
+}
+
+html[data-theme="dark"] .dark-ai-pro-tip p {
+	color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .dark-ai-pro-tip strong {
+	color: #fff !important;
+}
+
+html[data-theme="dark"] .dark-provider-new-requests {
+	background: linear-gradient(110deg, #7c2d12, #9a3412) !important;
+	border-color: #f97316 !important;
+}
+
+html[data-theme="dark"] .dark-provider-new-requests p,
+html[data-theme="dark"] .dark-provider-new-requests a {
+	color: #fff7ed !important;
+}
+
+html[data-theme="dark"] .dark-provider-new-requests svg {
+	color: #fdba74 !important;
+}
+
+html[data-theme="dark"] .dark-provider-requests-strip {
+	background-color: #102a43 !important;
+	border-color: #1e4970 !important;
+}
+
+html[data-theme="dark"] .dark-provider-requests-strip > span:last-child {
+	color: #bfdbfe !important;
+}
+
+html[data-theme="dark"] .dark-quote-photo-dropzone {
+	background-color: #111827 !important;
+	border-color: #64748b !important;
+}
+
+html[data-theme="dark"] .dark-quote-photo-dropzone:hover,
+html[data-theme="dark"] .dark-quote-photo-dropzone:focus-within {
+	background-color: #102a43 !important;
+	border-color: #60a5fa !important;
+}
+
+html[data-theme="dark"] .dark-quote-photo-dropzone > span:first-of-type {
+	color: #f3f4f6 !important;
+}
+
+html[data-theme="dark"] .dark-quote-photo-dropzone > span:first-of-type span {
+	color: #93c5fd !important;
+}
+
+html[data-theme="dark"] .dark-quote-photo-count {
+	background-color: #26364b !important;
+	color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .dark-quote-tips ul {
+	color: #d1d5db !important;
+}
+
 /* Keep pale hover surfaces readable throughout signed-in areas. */
 html[data-theme="dark"] [class~="hover:bg-gray-50"]:hover,
 html[data-theme="dark"] [class~="hover:bg-gray-100"]:hover {

@@ -195,8 +195,8 @@ const QuoteRequestDetail = () => {
                     <div key={quote.id} className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shadow-sm hover:border-[#056db3] transition-colors">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-[#056db3] font-bold">
-                            {quote.provider_name?.[0] || "P"}
+                          <div className="h-8 w-8 overflow-hidden rounded-full bg-blue-100 flex items-center justify-center text-[#056db3] font-bold">
+                            {quote.provider_photo_url ? <img src={quote.provider_photo_url} alt={quote.provider_name || "Provider"} className="h-full w-full object-cover" /> : quote.provider_name?.[0] || "P"}
                           </div>
                           <span className="font-semibold text-gray-900">{quote.provider_name}</span>
                           <span className="flex items-center text-xs text-yellow-600 bg-yellow-50 px-1.5 py-0.5 rounded">

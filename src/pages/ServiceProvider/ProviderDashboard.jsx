@@ -225,13 +225,14 @@ function getStatusSubtext(booking) {
 // COMPONENTS
 // ─────────────────────────────────────────────
 
-function ClientAvatar({ name, size = 44 }) {
+function ClientAvatar({ name, booking, size = 44 }) {
   const initials = getInitials(name);
+  const photoUrl = booking?.raw?.client_profile_photo_url;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <div className="h-full w-full rounded-full p-0.5" style={{ background: `conic-gradient(#056db3 100%, #e5e7eb 100%)` }}>
-        <div className="flex h-full w-full items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
-          {initials}
+      <div className="h-full w-full rounded-full">
+        <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
+          {photoUrl ? <img src={photoUrl} alt={name || "Client"} className="h-full w-full object-cover" /> : initials}
         </div>
       </div>
     </div>
@@ -817,7 +818,7 @@ function ProviderDashboard() {
               {activeJob ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
-                    <ClientAvatar name={activeJob.client || activeJob.clientName || `Client #${activeJob.clientId}`} size={48} />
+                    <ClientAvatar name={activeJob.client || activeJob.clientName || `Client #${activeJob.clientId}`} booking={activeJob} size={48} />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-gray-800 truncate">{activeJob.service}</p>
                       <p className="text-sm text-gray-500 truncate">{activeJob.client || activeJob.clientName || "Client"}</p>
@@ -919,7 +920,7 @@ function ProviderDashboard() {
                       return (
                         <li key={job.id} className="dark-dashboard-hover flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex min-w-0 items-center gap-3">
-                            <ClientAvatar name={job.client || job.clientName || `Client #${job.clientId}`} size={44} />
+                            <ClientAvatar name={job.client || job.clientName || `Client #${job.clientId}`} booking={job} size={44} />
                             <div className="min-w-0">
                               <p className="truncate font-semibold text-gray-800">{job.service || "Service unavailable"}</p>
                               <p className="truncate text-sm text-gray-500">{job.client || job.clientName || "Client"}</p>

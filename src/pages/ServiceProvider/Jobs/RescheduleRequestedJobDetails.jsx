@@ -104,6 +104,7 @@ function RescheduleRequestedJobDetails() {
           .toString()
           .trim()
           .toLowerCase();
+        const clientProfilePhotoUrl = b.client_profile_photo_url || b.raw?.client_profile_photo_url || null;
         
         const isProviderInitiated = ["provider", "service_provider", "service-provider"].includes(initiator);
         const isClientInitiated = ["client", "customer"].includes(initiator);
@@ -127,6 +128,7 @@ function RescheduleRequestedJobDetails() {
         if (isClientInitiated && rawStatus === "reschedule_requested") {
           setJob({
             ...b,
+            client_profile_photo_url: clientProfilePhotoUrl,
             isWaitingForProvider: true,
             isConfirmed: false,
           });
@@ -137,6 +139,7 @@ function RescheduleRequestedJobDetails() {
         if (isClientInitiated && (b.status === "Accepted" || b.status === "accepted") && hasRescheduleHistory) {
           setJob({
             ...b,
+            client_profile_photo_url: clientProfilePhotoUrl,
             isWaitingForProvider: false,
             isConfirmed: true,
           });
@@ -147,6 +150,7 @@ function RescheduleRequestedJobDetails() {
         if (rawStatus === "reschedule_requested") {
           setJob({
             ...b,
+            client_profile_photo_url: clientProfilePhotoUrl,
             isWaitingForProvider: true,
             isConfirmed: false,
           });
@@ -156,6 +160,7 @@ function RescheduleRequestedJobDetails() {
         // Default
         setJob({
           ...b,
+          client_profile_photo_url: clientProfilePhotoUrl,
           isWaitingForProvider: false,
           isConfirmed: false,
         });
@@ -474,8 +479,8 @@ function RescheduleRequestedJobDetails() {
               <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Client Information</h2>
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-2xl font-bold text-white">
-                    {job.client?.initials || getInitials(clientName)}
+                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-2xl font-bold text-white">
+                    {job.client_profile_photo_url ? <img src={job.client_profile_photo_url} alt={clientName} className="h-full w-full object-cover" /> : job.client?.initials || getInitials(clientName)}
                   </div>
                   <div>
                     <p className="text-lg font-semibold text-gray-800">{clientName}</p>

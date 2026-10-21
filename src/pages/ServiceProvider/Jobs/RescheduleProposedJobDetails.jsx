@@ -178,6 +178,7 @@ function RescheduleProposedJobDetails() {
           rescheduleReason: b.rescheduleReason || b.raw?.reschedule_reason || null,
           clientName: clientName,
           clientInitials: getInitials(clientName),
+          client_profile_photo_url: b.client_profile_photo_url || b.raw?.client_profile_photo_url || null,
           clientPhone: b.raw?.client?.phone || b.client_phone || '',
           clientEmail: b.raw?.client?.email || b.client_email || '',
           clientId: b.clientId || b.raw?.client_id || null,
@@ -485,8 +486,8 @@ function RescheduleProposedJobDetails() {
               <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Client Information</h2>
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-2xl font-bold text-white">
-                    {job.clientInitials}
+                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-2xl font-bold text-white">
+                    {job.client_profile_photo_url ? <img src={job.client_profile_photo_url} alt={job.clientName} className="h-full w-full object-cover" /> : job.clientInitials}
                   </div>
                   <div>
                     <p className="text-lg font-semibold text-gray-800">{job.clientName}</p>

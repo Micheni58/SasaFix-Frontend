@@ -198,10 +198,10 @@ function DetailRow({ label, value, isLast = false }) {
   );
 }
 
-function Avatar({ initials }) {
+function Avatar({ initials, photoUrl, name }) {
   return (
-    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-b from-[#b517ff] to-[#6f10f4] text-lg font-bold text-white">
-      {initials}
+    <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-linear-to-b from-[#b517ff] to-[#6f10f4] text-lg font-bold text-white">
+      {photoUrl ? <img src={photoUrl} alt={name || "User"} className="h-full w-full object-cover" /> : initials}
     </div>
   );
 }
@@ -411,6 +411,8 @@ function BookingsAndPaymentsDetails() {
         verified: data.raw?.service_provider?.is_verified || false,
         clientInitials: getInitials(clientName),
         providerInitials: getInitials(providerName),
+        client_profile_photo_url: data.raw?.client_profile_photo_url,
+        provider_profile_photo_url: data.raw?.service_provider?.profile_photo_url,
         clientId: data.clientId || data.raw?.client_id,
         providerId: data.serviceProviderId || data.raw?.service_provider_id,
         timeline: timelineItems,
@@ -720,7 +722,7 @@ function BookingsAndPaymentsDetails() {
                 </div>
 
                 <div className="flex flex-col items-center text-center">
-                  <Avatar initials={booking.clientInitials} />
+                  <Avatar initials={booking.clientInitials} photoUrl={booking.client_profile_photo_url} name={booking.client} />
                   <p className="mt-3 text-base font-bold text-gray-900">
                     {booking.client}
                   </p>
@@ -749,7 +751,7 @@ function BookingsAndPaymentsDetails() {
                 </div>
 
                 <div className="flex flex-col items-center text-center">
-                  <Avatar initials={booking.providerInitials} />
+                  <Avatar initials={booking.providerInitials} photoUrl={booking.provider_profile_photo_url} name={booking.provider} />
                   <p className="mt-3 text-base font-bold text-gray-900">
                     {booking.provider}
                   </p>

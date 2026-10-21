@@ -3,15 +3,15 @@
 import { Mail, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 
-export function ProviderInfoCard({ worker }) {
+export function ProviderInfoCard({ worker, photoUrl }) {
   return (
     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <h2 className="text-xl font-bold text-gray-800 mb-6">
         Provider Information
       </h2>
       <div className="flex items-center gap-4 mb-6">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-2xl font-bold text-white">
-          {worker.initials}
+        <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-2xl font-bold text-white">
+          {photoUrl ? <img src={photoUrl} alt={worker.name || "Provider"} className="h-full w-full object-cover" /> : worker.initials}
         </div>
         <div className="flex-1">
           <p className="text-lg font-semibold text-gray-800">{worker.name}</p>

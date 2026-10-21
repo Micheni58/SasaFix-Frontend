@@ -12,7 +12,7 @@ const authHeaders = () => ({
 const BRAND = "#056db3";
 
 // Avatar with initials
-const Avatar = ({ name }) => {
+const Avatar = ({ name, photoUrl }) => {
   const initials =
     name
       ?.split(" ")
@@ -33,10 +33,10 @@ const Avatar = ({ name }) => {
   const color = colors[name?.charCodeAt(0) % colors.length] || BRAND;
   return (
     <div
-      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+      className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden text-white text-sm font-bold shrink-0"
       style={{ backgroundColor: color }}
     >
-      {initials}
+      {photoUrl ? <img src={photoUrl} alt={name || "User"} className="h-full w-full object-cover" /> : initials}
     </div>
   );
 };
@@ -171,7 +171,7 @@ const UserModal = ({ user, onClose }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-4 mb-5">
-          <Avatar name={`${user.first_name} ${user.last_name}`} />
+          <Avatar name={`${user.first_name} ${user.last_name}`} photoUrl={user.profile_photo_url} />
           <div>
             <p className="font-bold text-gray-900">
               {user.first_name} {user.last_name}
@@ -464,6 +464,7 @@ function Users() {
                         <div className="flex items-center gap-3">
                           <Avatar
                             name={`${user.first_name} ${user.last_name}`}
+                            photoUrl={user.profile_photo_url}
                           />
                           <span className="text-sm font-semibold text-gray-800">
                             {user.first_name} {user.last_name}

@@ -549,7 +549,7 @@ const AIAssistant = () => {
               </div>
 
               {/* ── Quick Tips ── */}
-              <div className="mt-8 rounded-2xl bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-100 p-6">
+              <div className="dark-ai-pro-tip mt-8 rounded-2xl bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-100 p-6">
                 <div className="flex items-start gap-4">
                   <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#056db3] text-white">
                     <Lightbulb className="h-5 w-5" />

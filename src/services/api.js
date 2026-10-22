@@ -84,6 +84,10 @@ const authService = {
     return user ? JSON.parse(user) : null;
   },
 
+  setStoredUser: (user) => {
+    localStorage.setItem("user", JSON.stringify(user));
+  },
+
   getProviders: async () => {
     return fetchWithAuth("/providers", {
       method: "GET",

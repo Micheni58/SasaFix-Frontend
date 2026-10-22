@@ -3,9 +3,13 @@ import {
   Navigate,
   Routes,
   Route,
+  Outlet,
   useLocation,
 } from "react-router-dom";
 import { useLayoutEffect } from "react";
+import Navbar from "../components/Navbar";
+import Sidebar from "../layout/Sidebar";
+import { AuthenticatedLayoutProvider } from "../layout/AuthenticatedLayoutContext";
 
 import Home from "../pages/Home";
 import Login from "../pages/Login";
@@ -63,8 +67,14 @@ import AdminSubscriptions from "../pages/Admin/Subscriptions";
 import NotFound from "../pages/NotFound";
 import NotAuthorized from "../pages/NotAuthorized";
 import Categories from "../pages/Admin/Categories";
-import { getStoredUserRole } from "../utils/sidebarRole";
+import { getSidebarRole, getStoredUserRole } from "../utils/sidebarRole";
 import { syncThemeWithRoute } from "../utils/theme";
+import ServiceProviders from "../pages/Admin/ServiceProviders";
+import CreateQuoteRequest from "../pages/Client/quotes/CreateQuoteRequest";
+import MyQuoteRequests from "../pages/Client/quotes/MyQuoteRequests";
+import QuoteRequestDetail from "../pages/Client/quotes/QuoteRequestDetail";
+import ProviderQuotes from "../pages/ServiceProvider/quotes/ProviderQuotes";
+import SubmitQuote from "../pages/ServiceProvider/quotes/SubmitQuote";
 
 function RouteThemeSync() {
   const location = useLocation();
@@ -74,6 +84,23 @@ function RouteThemeSync() {
   }, [location.pathname]);
 
   return null;
+}
+
+function AuthenticatedLayout() {
+  const location = useLocation();
+  const role = getSidebarRole(location.pathname);
+
+  return (
+    <AuthenticatedLayoutProvider value>
+      <Sidebar role={role} shared />
+      <Navbar shared />
+      <main className="min-h-screen min-w-0 pt-20 lg:pl-72">
+        <div className="-mt-20 lg:-ml-72">
+          <Outlet />
+        </div>
+      </main>
+    </AuthenticatedLayoutProvider>
+  );
 }
 
 function RoleGuard({ allowedRoles, children }) {
@@ -112,11 +139,17 @@ export default function AppRouter() {
           element={<EmailVerificationSent />}
         />
         <Route
+          path="/providers/:providerId"
+          element={<ProviderProfilePage />}
+        />
+
+        {/* Protected/Dashboard Routes */}
+        <Route element={<AuthenticatedLayout />}>
+        <Route
           path="/admin/categories"
           element={protectedRoute("admin", <Categories />)}
         />
 
-        {/* Protected/Dashboard Routes */}
         <Route
           path="/admin"
           element={protectedRoute("admin", <AdminDashboard />)}
@@ -200,10 +233,6 @@ export default function AppRouter() {
           element={protectedRoute("client", <FindServices />)}
         />
         <Route
-          path="/providers/:providerId"
-          element={<ProviderProfilePage />}
-        />
-        <Route
           path="/client/messages"
           element={protectedRoute("client", <ClientMessages />)}
         />
@@ -254,6 +283,18 @@ export default function AppRouter() {
         <Route
           path="/client/my-bookings/paid/:bookingId"
           element={protectedRoute("client", <PaidBookingDetails />)}
+        />
+        <Route
+          path="/client/quotes/new"
+          element={protectedRoute("client", <CreateQuoteRequest />)}
+        />
+        <Route
+          path="/client/quotes"
+          element={protectedRoute("client", <MyQuoteRequests />)}
+        />
+        <Route
+          path="/client/quotes/:id"
+          element={protectedRoute("client", <QuoteRequestDetail />)}
         />
 
         <Route
@@ -339,6 +380,17 @@ export default function AppRouter() {
           path="/provider/my-jobs/reschedule-proposed/:id"
           element={protectedRoute("provider", <RescheduleProposedJobDetails />)}
         />
+        
+        <Route
+          path="/provider/quotes"
+          element={protectedRoute("provider", <ProviderQuotes />)}
+        />
+        <Route
+          path="/provider/quotes/:requestId"
+          element={protectedRoute("provider", <SubmitQuote />)}
+        />
+
+        </Route>
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<NotFound />} />

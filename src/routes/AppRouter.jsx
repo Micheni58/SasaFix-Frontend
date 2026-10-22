@@ -3,9 +3,13 @@ import {
   Navigate,
   Routes,
   Route,
+  Outlet,
   useLocation,
 } from "react-router-dom";
 import { useLayoutEffect } from "react";
+import Navbar from "../components/Navbar";
+import Sidebar from "../layout/Sidebar";
+import { AuthenticatedLayoutProvider } from "../layout/AuthenticatedLayoutContext";
 
 import Home from "../pages/Home";
 import Login from "../pages/Login";
@@ -63,7 +67,7 @@ import AdminSubscriptions from "../pages/Admin/Subscriptions";
 import NotFound from "../pages/NotFound";
 import NotAuthorized from "../pages/NotAuthorized";
 import Categories from "../pages/Admin/Categories";
-import { getStoredUserRole } from "../utils/sidebarRole";
+import { getSidebarRole, getStoredUserRole } from "../utils/sidebarRole";
 import { syncThemeWithRoute } from "../utils/theme";
 import ServiceProviders from "../pages/Admin/ServiceProviders";
 import CreateQuoteRequest from "../pages/Client/quotes/CreateQuoteRequest";
@@ -80,6 +84,23 @@ function RouteThemeSync() {
   }, [location.pathname]);
 
   return null;
+}
+
+function AuthenticatedLayout() {
+  const location = useLocation();
+  const role = getSidebarRole(location.pathname);
+
+  return (
+    <AuthenticatedLayoutProvider value>
+      <Sidebar role={role} shared />
+      <Navbar shared />
+      <main className="min-h-screen min-w-0 pt-20 lg:pl-72">
+        <div className="-mt-20 lg:-ml-72">
+          <Outlet />
+        </div>
+      </main>
+    </AuthenticatedLayoutProvider>
+  );
 }
 
 function RoleGuard({ allowedRoles, children }) {
@@ -118,11 +139,17 @@ export default function AppRouter() {
           element={<EmailVerificationSent />}
         />
         <Route
+          path="/providers/:providerId"
+          element={<ProviderProfilePage />}
+        />
+
+        {/* Protected/Dashboard Routes */}
+        <Route element={<AuthenticatedLayout />}>
+        <Route
           path="/admin/categories"
           element={protectedRoute("admin", <Categories />)}
         />
 
-        {/* Protected/Dashboard Routes */}
         <Route
           path="/admin"
           element={protectedRoute("admin", <AdminDashboard />)}
@@ -204,10 +231,6 @@ export default function AppRouter() {
         <Route
           path="/client/find-services"
           element={protectedRoute("client", <FindServices />)}
-        />
-        <Route
-          path="/providers/:providerId"
-          element={<ProviderProfilePage />}
         />
         <Route
           path="/client/messages"
@@ -366,6 +389,8 @@ export default function AppRouter() {
           path="/provider/quotes/:requestId"
           element={protectedRoute("provider", <SubmitQuote />)}
         />
+
+        </Route>
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<NotFound />} />

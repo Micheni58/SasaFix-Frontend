@@ -159,6 +159,12 @@ html[data-theme="dark"] .dark-quote-tips ul {
 	color: #d1d5db !important;
 }
 
+html[data-theme="dark"] .dark-quote-requests-table thead,
+html[data-theme="dark"] .dark-quote-requests-table thead tr,
+html[data-theme="dark"] .dark-quote-requests-table tbody tr + tr {
+	border-color: transparent !important;
+}
+
 /* Keep pale hover surfaces readable throughout signed-in areas. */
 html[data-theme="dark"] [class~="hover:bg-gray-50"]:hover,
 html[data-theme="dark"] [class~="hover:bg-gray-100"]:hover {

@@ -25,11 +25,12 @@ import {
 
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { useInsideAuthenticatedLayout } from "./AuthenticatedLayoutContext";
 
 // ── Key for sessionStorage ──
 const SCROLL_KEY = "sidebar_scroll";
 
-function Sidebar({ role = "client" }) {
+function SidebarContent({ role = "client" }) {
   const [isOpen, setIsOpen] = useState(false);
   const [managementOpen, setManagementOpen] = useState(false);
   const location = useLocation();
@@ -144,7 +145,7 @@ function Sidebar({ role = "client" }) {
         `}
       >
         {/* Logo */}
-        <div className="h-24 flex items-center px-8 border-b border-gray-100 shrink-0">
+        <div className="h-20 flex items-center px-8 border-b border-gray-100 shrink-0">
           <h1 className="text-3xl font-bold tracking-tight text-[#056db3]">
             SasaFix
           </h1>
@@ -259,6 +260,12 @@ function Sidebar({ role = "client" }) {
       </aside>
     </>
   );
+}
+
+function Sidebar({ role = "client", shared = false }) {
+  const insideAuthenticatedLayout = useInsideAuthenticatedLayout();
+  if (insideAuthenticatedLayout && !shared) return null;
+  return <SidebarContent role={role} />;
 }
 
 export default Sidebar;

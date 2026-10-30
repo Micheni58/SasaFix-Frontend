@@ -28,8 +28,8 @@ import { getStoredProviderId } from "../../utils/sidebarRole";
 
 // ── Status Colors ──
 const STATUS_STYLES = {
+  "New Request": "bg-amber-100 text-amber-800",
   "New Requests": "bg-amber-100 text-amber-800",
-  "Pending": "bg-amber-100 text-amber-800",
   "Accepted": "bg-sky-100 text-sky-800",
   "Upcoming": "bg-sky-100 text-sky-800",
   "In Progress": "bg-indigo-100 text-indigo-800",
@@ -188,6 +188,10 @@ function getBookingRoute(booking) {
 
 function getDisplayStatus(booking) {
   const status = booking.status || "Pending";
+
+  if (status === "Pending" || status === "New Requests") {
+    return "New Request";
+  }
   
   // All reschedule statuses show as "Rescheduled" in the dashboard
   if (status === "Reschedule Requested" || 
@@ -221,13 +225,14 @@ function getStatusSubtext(booking) {
 // COMPONENTS
 // ─────────────────────────────────────────────
 
-function ClientAvatar({ name, size = 44 }) {
+function ClientAvatar({ name, booking, size = 44 }) {
   const initials = getInitials(name);
+  const photoUrl = booking?.raw?.client_profile_photo_url;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <div className="h-full w-full rounded-full p-0.5" style={{ background: `conic-gradient(#056db3 100%, #e5e7eb 100%)` }}>
-        <div className="flex h-full w-full items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
-          {initials}
+      <div className="h-full w-full rounded-full">
+        <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
+          {photoUrl ? <img src={photoUrl} alt={name || "Client"} className="h-full w-full object-cover" /> : initials}
         </div>
       </div>
     </div>
@@ -780,7 +785,7 @@ function ProviderDashboard() {
           {/* ── New Requests Alert ── */}
           {newRequests.length > 0 && (
             <section className="mb-8">
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between">
+              <div className="dark-provider-new-requests rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Inbox className="h-6 w-6 text-amber-600" />
                   <div>
@@ -813,7 +818,7 @@ function ProviderDashboard() {
               {activeJob ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
-                    <ClientAvatar name={activeJob.client || activeJob.clientName || `Client #${activeJob.clientId}`} size={48} />
+                    <ClientAvatar name={activeJob.client || activeJob.clientName || `Client #${activeJob.clientId}`} booking={activeJob} size={48} />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-gray-800 truncate">{activeJob.service}</p>
                       <p className="text-sm text-gray-500 truncate">{activeJob.client || activeJob.clientName || "Client"}</p>
@@ -913,17 +918,12 @@ function ProviderDashboard() {
                       const isReschedulePending = job.status === "Reschedule Requested" || job.status === "Reschedule Proposed";
                       
                       return (
-                        <li key={job.id} className={`dark-dashboard-hover flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between ${isNewRequest ? "bg-amber-50/50" : ""}`}>
+                        <li key={job.id} className="dark-dashboard-hover flex flex-col gap-3 px-6 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex min-w-0 items-center gap-3">
-                            <ClientAvatar name={job.client || job.clientName || `Client #${job.clientId}`} size={44} />
+                            <ClientAvatar name={job.client || job.clientName || `Client #${job.clientId}`} booking={job} size={44} />
                             <div className="min-w-0">
                               <p className="truncate font-semibold text-gray-800">{job.service || "Service unavailable"}</p>
                               <p className="truncate text-sm text-gray-500">{job.client || job.clientName || "Client"}</p>
-                              {isNewRequest && (
-                                <span className="inline-block mt-0.5 text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
-                                  New Request
-                                </span>
-                              )}
                               {isReschedulePending && (
                                 <span className="inline-block mt-0.5 text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">
                                   Reschedule Pending

@@ -273,7 +273,9 @@ function BookingsAndPayments() {
         return {
           id: b.id,
           client: b.client_full_name || b.client || b.clientName || `Client #${b.client_id}`,
+          client_profile_photo_url: b.client_profile_photo_url,
           provider: b.provider_full_name || b.providerName || b.worker || `Provider #${b.service_provider_id}`,
+          provider_profile_photo_url: b.service_provider?.profile_photo_url || b.raw?.service_provider?.profile_photo_url || null,
           service: b.service_name || b.service || "Service Not Specified",
           date: b.scheduled_date || b.date || null,
           amount: Number(amount),
@@ -366,7 +368,7 @@ function BookingsAndPayments() {
   // ── Loading state with skeletons ──
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc] overflow-hidden">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc] overflow-hidden">
         <Sidebar role="admin" />
         <div className="flex-1 ml-0 lg:ml-72 min-w-0">
           <Navbar />
@@ -396,9 +398,9 @@ function BookingsAndPayments() {
   // ── Error state ──
   if (error) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="min-w-0 flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6">
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center max-w-2xl mx-auto">
@@ -421,7 +423,7 @@ function BookingsAndPayments() {
 
   // ── Main List View ──
   return (
-    <div className="flex min-h-screen bg-[#f8fafc] overflow-hidden">
+    <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc] overflow-hidden">
       <Sidebar role="admin" />
       <div className="flex-1 ml-0 lg:ml-72 min-w-0">
         <Navbar />
@@ -580,10 +582,20 @@ function BookingsAndPayments() {
                     {filteredBookings.map((row) => (
                       <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm font-medium text-gray-800 truncate max-w-30">
-                          {row.client}
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#056db3] text-xs font-semibold text-white">
+                              {row.client_profile_photo_url ? <img src={row.client_profile_photo_url} alt={row.client} className="h-full w-full object-cover" /> : (row.client || "?").split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
+                            </div>
+                            <span>{row.client}</span>
+                          </div>
                         </td>
                         <td className="px-3 py-3 text-sm font-medium text-gray-800 truncate max-w-30">
-                          {row.provider}
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#056db3] text-xs font-semibold text-white">
+                              {row.provider_profile_photo_url ? <img src={row.provider_profile_photo_url} alt={row.provider} className="h-full w-full object-cover" /> : (row.provider || "?").split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
+                            </div>
+                            <span>{row.provider}</span>
+                          </div>
                         </td>
                         <td className="px-3 py-3 text-sm text-gray-800 truncate max-w-30">
                           {row.service}

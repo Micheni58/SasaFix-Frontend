@@ -775,11 +775,11 @@ function MyJobs() {
                                             const isNewRequest = job.status === "Pending" || job.status === "New Requests";
 
                                             return (
-                                                <tr key={job.id} className={`border-b border-gray-100 align-middle hover:bg-gray-50 transition-colors ${isNewRequest ? "bg-amber-50/30" : ""}`}>
+                                                <tr key={job.id} className="dark-dashboard-hover border-b border-gray-100 align-middle transition-colors hover:bg-gray-50">
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
-                                                                {clientInitials}
+                                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#056db3] text-sm font-semibold text-white shadow-sm ring-2 ring-[#056db3]/15">
+                                                                {job.raw?.client_profile_photo_url ? <img src={job.raw.client_profile_photo_url} alt={clientName} className="h-full w-full object-cover" /> : clientInitials}
                                                             </div>
                                                             <span className="text-sm font-semibold text-gray-800">
                                                                 {clientName}

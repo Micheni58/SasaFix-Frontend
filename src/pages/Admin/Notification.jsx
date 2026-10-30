@@ -254,7 +254,7 @@ export default function AdminNotification() {
     // ── Loading state with skeletons ──
     if (loading) {
         return (
-            <div className="flex min-h-screen bg-[#f8fafc]">
+            <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="admin" />
                 <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
@@ -279,7 +279,7 @@ export default function AdminNotification() {
     // ── Error state ──
     if (error) {
         return (
-            <div className="flex min-h-screen bg-[#f8fafc]">
+            <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="admin" />
                 <div className="flex-1 ml-0 lg:ml-72">
                     <Navbar />
@@ -317,7 +317,7 @@ export default function AdminNotification() {
 
     // ── Main view ──
     return (
-        <div className="flex min-h-screen bg-[#f8fafc]">
+        <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="admin" />
             <div className="flex-1 ml-0 lg:ml-72">
                 <Navbar />
@@ -329,7 +329,7 @@ export default function AdminNotification() {
                                 <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
                                 <p className="mt-2 text-gray-600 max-w-2xl">Platform activity, reports, and important alerts</p>
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex flex-wrap justify-end gap-2">
                                 {unreadCount > 0 && (
                                     <button
                                         onClick={markAllRead}
@@ -401,7 +401,7 @@ export default function AdminNotification() {
                                         <div
                                             key={n.id}
                                             onClick={() => markRead(n.id)}
-                                            className={`flex items-center gap-4 rounded-lg px-4 py-3 cursor-pointer transition-colors border ${
+                                            className={`flex flex-wrap items-center gap-3 rounded-lg px-3 py-3 cursor-pointer transition-colors border sm:flex-nowrap sm:gap-4 sm:px-4 ${
                                                 n.read
                                                     ? `bg-white hover:bg-gray-50 border-gray-100`
                                                     : `bg-blue-50 hover:bg-blue-100 border-blue-200`
@@ -425,7 +425,7 @@ export default function AdminNotification() {
                                                 )}
                                             </div>
 
-                                            <div className="flex items-center gap-4 shrink-0">
+                                            <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-4">
                                                 <div className="text-xs text-gray-500">{n.timeAgo}</div>
                                                 {!n.read && (
                                                     <div className="h-2 w-2 rounded-full bg-[#056db3]" />

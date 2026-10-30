@@ -43,7 +43,10 @@ export function applyTheme(theme, user = getStoredUser()) {
 export function syncThemeWithRoute(pathname) {
   const user = getStoredUser();
   const hasSession = Boolean(localStorage.getItem("access_token") && user);
-  const isUserPage = /^\/(client|provider|admin)(\/|$)/.test(pathname) || pathname === "/profile";
+  const isUserPage =
+    /^\/(client|provider|admin)(\/|$)/.test(pathname) ||
+    pathname === "/profile" ||
+    /^\/providers\/[^/]+\/?$/.test(pathname);
 
   // Public pages and signed-out sessions always remain light; saved preference is retained.
   const theme = hasSession && isUserPage ? getThemePreference(user) : "light";

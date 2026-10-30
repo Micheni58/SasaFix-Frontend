@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import apiClient from "../../api/apiClient";
+import bookingService from "../../api/bookingService";
 
 const WEEK_DAYS = [
   "Monday",
@@ -22,60 +22,72 @@ const formatTime = (time) => {
   return `${displayHours}:${String(minutes).padStart(2, "0")} ${period}`;
 };
 
+const AvailabilitySkeleton = () => (
+  <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 p-4" aria-hidden="true">
+    <div className="space-y-2">
+      <div className="loading-skeleton h-4 w-24 rounded" />
+      <div className="loading-skeleton h-3 w-36 rounded" />
+    </div>
+    <div className="loading-skeleton h-6 w-24 rounded-full" />
+  </div>
+);
+
 const AvailabilityTab = ({ provider }) => {
+  const providerId = provider.id || provider.provider_id || provider.service_provider_id;
   const [availability, setAvailability] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let active = true;
+
     const loadAvailability = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const providerId =
-          provider.id || provider.provider_id || provider.service_provider_id;
-        const response = await apiClient.get(
-          `/providers/${providerId}/availability`,
-          { validateStatus: () => true },
-        );
-
-        if (response.status < 200 || response.status >= 300) {
-          throw new Error("Failed to load availability");
-        }
-
-        const data = response.data;
-        const slots = Array.isArray(data) ? data : data.availability || [];
+        const data = await bookingService.getProviderAvailability(providerId);
+        if (!active) return;
+        const slots = Array.isArray(data)
+          ? data
+          : data?.availability || data?.data?.availability || data?.data || [];
         setAvailability(
-          [...slots].sort(
-            (first, second) =>
-              WEEK_DAYS.indexOf(first.day_of_week) -
-              WEEK_DAYS.indexOf(second.day_of_week),
-          ),
+          (Array.isArray(slots) ? slots : [])
+            .map((slot) => ({
+              ...slot,
+              day_of_week: slot.day_of_week ?? slot.dayOfWeek ?? slot.day,
+              start_time: slot.start_time ?? slot.startTime,
+              end_time: slot.end_time ?? slot.endTime,
+              is_available: slot.is_available ?? slot.isAvailable,
+            }))
+            .sort((first, second) =>
+              WEEK_DAYS.indexOf(first.day_of_week) - WEEK_DAYS.indexOf(second.day_of_week),
+            ),
         );
       } catch (err) {
-        setError(err.message || "Failed to load availability");
+        if (active) setError(err.message || "Failed to load availability");
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
-    if (
-      provider?.id ||
-      provider?.provider_id ||
-      provider?.service_provider_id
-    ) {
-      loadAvailability();
+    if (providerId) loadAvailability();
+    else {
+      setAvailability([]);
+      setLoading(false);
     }
-  }, [provider]);
+
+    return () => {
+      active = false;
+    };
+  }, [providerId]);
 
   if (loading) {
     return (
       <div className="rounded-b-xl border border-gray-200 border-t-0 bg-white p-5 sm:p-6">
-        <h2 className="mb-5 text-xl font-bold">Availability</h2>
-
-        <div className="bg-gray-50 rounded-xl p-10 text-center">
-          <p className="text-gray-500">Loading availability...</p>
+        <h2 className="mb-5 text-xl font-bold text-gray-900">Availability</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="status" aria-label="Loading provider availability" aria-busy="true">
+          {Array.from({ length: 6 }).map((_, index) => <AvailabilitySkeleton key={index} />)}
         </div>
       </div>
     );

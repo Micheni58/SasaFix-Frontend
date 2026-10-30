@@ -58,7 +58,7 @@ const OverviewTab = ({ provider }) => {
             <p className="text-gray-500 text-sm">Jobs Completed</p>
 
             <p className="mt-2 text-lg font-semibold">
-              {provider.total_jobs_completed || 0}
+              {provider.total_jobs_completed ?? 0}
             </p>
           </div>
 
@@ -67,7 +67,7 @@ const OverviewTab = ({ provider }) => {
 
             <p className="mt-2 flex items-center gap-1.5 text-base font-semibold">
               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" aria-hidden="true" />
-              {provider.average_rating || "New"}
+              {Number(provider.average_rating) > 0 ? Number(provider.average_rating).toFixed(1) : "New"}
             </p>
           </div>
         </div>

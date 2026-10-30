@@ -71,11 +71,11 @@ function initials(name) {
 
 function PageShell({ children }) {
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="ml-72 flex-1">
+      <div className="ml-0 min-w-0 flex-1 lg:ml-72">
         <Navbar />
-        <main className="px-6 pb-6 pt-24">{children}</main>
+        <main className="min-w-0 px-4 pb-6 pt-24 sm:px-6">{children}</main>
       </div>
     </div>
   );
@@ -260,6 +260,7 @@ export default function PaidJobDetails() {
   const amount = Number(job.amountRaw || 0);
   const platformFee = Math.round(amount * 0.1);
   const clientName = job.clientName || job.client || job.raw?.client_full_name || "Client";
+  const clientPhotoUrl = job.client_profile_photo_url || job.raw?.client_profile_photo_url || null;
   const clientId = job.clientId || job.raw?.client_id;
   const clientEmail = job.raw?.client_email || job.raw?.client?.email;
   const clientPhone = job.raw?.client_phone || job.raw?.client?.phone_number;
@@ -314,7 +315,7 @@ export default function PaidJobDetails() {
 
       <section className="mb-8">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold text-gray-800">Payment Received</h1>
             <p className="mt-2 text-gray-600">Job #{job.id}</p>
           </div>
@@ -322,7 +323,7 @@ export default function PaidJobDetails() {
             <CheckCircle2 className="h-4 w-4" /> Paid
           </span>
         </div>
-        <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+        <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-700 sm:p-4">
           <Wallet className="h-5 w-5 shrink-0" />
           Payment has been processed. Your payout is <strong>{booking.totalPaid}</strong> after the platform fee.
         </div>
@@ -332,17 +333,17 @@ export default function PaidJobDetails() {
         <div className="space-y-6 lg:col-span-2">
           <BookingInfoCard booking={booking} />
 
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
             <h2 className="mb-6 text-xl font-bold text-gray-800">Client Details</h2>
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-[#056db3]">
-                {initials(clientName)}
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 font-semibold text-[#056db3]">
+                {clientPhotoUrl ? <img src={clientPhotoUrl} alt={clientName} className="h-full w-full object-cover" /> : initials(clientName)}
               </div>
-              <div className="min-w-0">
-                <p className="text-lg font-semibold text-gray-800">{clientName}</p>
+              <div className="wrap-break-word flex-1">
+                <p className="wrap-break-word text-lg font-semibold text-gray-800">{clientName}</p>
                 <div className="mt-3 space-y-2 text-sm text-gray-600">
-                  {clientEmail && <p className="flex items-center gap-2"><Mail className="h-4 w-4" />{clientEmail}</p>}
-                  {clientPhone && <p className="flex items-center gap-2"><Phone className="h-4 w-4" />{clientPhone}</p>}
+                  {clientEmail && <p className="flex min-w-0 items-start gap-2 break-all"><Mail className="mt-0.5 h-4 w-4 shrink-0" />{clientEmail}</p>}
+                  {clientPhone && <p className="flex min-w-0 items-start gap-2 wrap-break-word"><Phone className="mt-0.5 h-4 w-4 shrink-0" />{clientPhone}</p>}
                   {!clientEmail && !clientPhone && <p className="flex items-center gap-2"><User className="h-4 w-4" />Client contact details are unavailable.</p>}
                 </div>
               </div>
@@ -374,7 +375,7 @@ export default function PaidJobDetails() {
           />
         </div>
 
-        <aside className="h-fit space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm lg:sticky lg:top-6">
+        <aside className="h-fit min-w-0 space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 lg:sticky lg:top-6">
           <h2 className="text-xl font-bold text-gray-800">Actions</h2>
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center">
             <CheckCircle2 className="mx-auto mb-2 h-10 w-10 text-emerald-500" />
@@ -396,15 +397,15 @@ export default function PaidJobDetails() {
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-sm font-semibold text-gray-800 mb-3">Payout Summary</p>
             <ul className="space-y-2 text-sm text-gray-700">
-              <li className="flex justify-between">
+              <li className="flex flex-wrap justify-between gap-x-3 gap-y-1">
                 <span>Service Fee</span>
                 <span className="font-medium">{booking.serviceFee}</span>
               </li>
-              <li className="flex justify-between text-gray-500">
+              <li className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-gray-500">
                 <span>Platform Fee (10%)</span>
                 <span>- {booking.commission}</span>
               </li>
-              <li className="flex justify-between border-t border-gray-200 pt-2 font-bold text-emerald-600">
+              <li className="flex flex-wrap justify-between gap-x-3 gap-y-1 border-t border-gray-200 pt-2 font-bold text-emerald-600">
                 <span>Net Payout</span>
                 <span>{booking.totalPaid}</span>
               </li>

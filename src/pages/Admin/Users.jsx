@@ -12,7 +12,7 @@ const authHeaders = () => ({
 const BRAND = "#056db3";
 
 // Avatar with initials
-const Avatar = ({ name }) => {
+const Avatar = ({ name, photoUrl }) => {
   const initials =
     name
       ?.split(" ")
@@ -33,10 +33,10 @@ const Avatar = ({ name }) => {
   const color = colors[name?.charCodeAt(0) % colors.length] || BRAND;
   return (
     <div
-      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+      className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden text-white text-sm font-bold shrink-0"
       style={{ backgroundColor: color }}
     >
-      {initials}
+      {photoUrl ? <img src={photoUrl} alt={name || "User"} className="h-full w-full object-cover" /> : initials}
     </div>
   );
 };
@@ -137,8 +137,8 @@ const FilterIcon = () => (
 
 // Confirm modal
 const ConfirmModal = ({ msg, onConfirm, onCancel }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-    <div className="bg-white rounded-2xl p-6 shadow-xl w-80">
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+    <div className="w-full max-w-xs rounded-2xl bg-white p-6 shadow-xl">
       <p className="text-sm text-gray-700 font-medium mb-5">{msg}</p>
       <div className="flex gap-3">
         <button
@@ -163,15 +163,15 @@ const UserModal = ({ user, onClose }) => {
   if (!user) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl p-6 shadow-xl w-96"
+        className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-5 shadow-xl sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-4 mb-5">
-          <Avatar name={`${user.first_name} ${user.last_name}`} />
+          <Avatar name={`${user.first_name} ${user.last_name}`} photoUrl={user.profile_photo_url} />
           <div>
             <p className="font-bold text-gray-900">
               {user.first_name} {user.last_name}
@@ -200,7 +200,7 @@ const UserModal = ({ user, onClose }) => {
         ].map(([label, value]) => (
           <div
             key={label}
-            className="flex justify-between py-2 border-b border-gray-50 text-sm"
+            className="flex flex-wrap justify-between gap-x-3 py-2 border-b border-gray-50 text-sm"
           >
             <span className="text-gray-500">{label}</span>
             <span className="font-medium text-gray-800">{value}</span>
@@ -352,9 +352,9 @@ function Users() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="min-w-0 flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
           {viewUser && (
@@ -379,17 +379,17 @@ function Users() {
           </div>
 
           {/* Search + filter */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 flex items-center gap-3 mb-5">
+          <div className="mb-5 flex flex-col items-stretch gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center">
             <SearchIcon />
             <input
-              className="flex-1 text-sm outline-none text-gray-700 placeholder-gray-400"
+              className="min-w-0 flex-1 text-sm outline-none text-gray-700 placeholder-gray-400"
               placeholder="Search by name, email, or phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
             <FilterIcon />
             <select
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 outline-none"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 outline-none sm:w-auto"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -401,7 +401,8 @@ function Users() {
           </div>
 
           {/* Table */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
             {loading ? (
               <div className="flex items-center justify-center h-48 text-sm text-gray-400">
                 Loading users...
@@ -411,7 +412,7 @@ function Users() {
                 No users found.
               </div>
             ) : (
-              <table className="w-full">
+              <table className="w-full min-w-225">
                 <thead>
                   <tr className="border-b border-gray-100">
                     <th className="px-4 py-3 text-left">
@@ -463,6 +464,7 @@ function Users() {
                         <div className="flex items-center gap-3">
                           <Avatar
                             name={`${user.first_name} ${user.last_name}`}
+                            photoUrl={user.profile_photo_url}
                           />
                           <span className="text-sm font-semibold text-gray-800">
                             {user.first_name} {user.last_name}
@@ -536,6 +538,7 @@ function Users() {
                 </tbody>
               </table>
             )}
+            </div>
           </div>
 
           {/* Footer count */}

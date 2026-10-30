@@ -11,16 +11,16 @@ export function PaymentDetailsCard({
   isApproved,
 }) {
   return (
-    <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
       <h2 className="text-xl font-bold text-gray-800 mb-6">Payment Details</h2>
       <div className="space-y-4">
-        <div className="flex justify-between items-center py-2">
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 py-2">
           <span className="font-light text-gray-700">Service Cost</span>
           <span className="text-gray-800 font-semibold">
             {booking.serviceFee}
           </span>
         </div>
-        <div className="flex justify-between items-center py-2 border-b border-gray-300">
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 border-b border-gray-300 py-2">
           <span className="font-light text-gray-700">
             Platform Fee ({Math.round(booking.commissionRate * 100)}%)
           </span>
@@ -28,9 +28,9 @@ export function PaymentDetailsCard({
             {booking.commission}
           </span>
         </div>
-        <div className="flex justify-between items-center py-2">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
           <span className="font-semibold text-gray-700">Total Amount</span>
-          <span className="font-semibold text-green-600 text-2xl">
+          <span className="text-xl font-semibold text-green-600 sm:text-2xl">
             {booking.totalPaid}
           </span>
         </div>

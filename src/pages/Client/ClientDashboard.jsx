@@ -93,15 +93,6 @@ function getInitials(name) {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-function getProviderRing(booking) {
-  const provider = booking?.raw?.service_provider || booking?.raw?.provider || {};
-  const rating = provider.rating || null;
-  const isPremium = !!(provider.premium || provider.is_premium);
-  const tier = isPremium ? "gold" : rating ? "blue" : "gray";
-  const pct = rating ? Math.round((rating / 5) * 100) : 100;
-  return { tier, pct, rating };
-}
-
 function formatDateToWords(dateString) {
   if (!dateString) return "Date pending";
 
@@ -196,20 +187,21 @@ function getBookingRoute(booking) {
 // ─────────────────────────────────────────────
 
 function ProviderAvatar({ name, booking, size = 44 }) {
-  const { tier, pct } = getProviderRing(booking);
-  const ringColor = TIER_COLORS[tier];
   const initials = getInitials(name);
+  const photoUrl = booking?.raw?.service_provider?.profile_photo_url;
 
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <div
-        className="h-full w-full rounded-full p-0.5"
-        style={{ background: `conic-gradient(${ringColor} ${pct}%, #e5e7eb ${pct}% 100%)` }}
-      >
-        <div className="flex h-full w-full items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-sm font-bold text-white">
-          {initials}
-        </div>
-      </div>
+    <div
+      role="img"
+      aria-label={`${name || "Provider"} initials`}
+      className="flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#056db3] font-semibold text-white shadow-sm ring-2 ring-[#056db3]/15"
+      style={{ width: size, height: size, fontSize: Math.max(12, size * 0.32) }}
+    >
+      {photoUrl ? (
+        <img src={photoUrl} alt={name || "Provider"} className="h-full w-full object-cover" />
+      ) : (
+        initials
+      )}
     </div>
   );
 }

@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, memo, useCallback } from "react";
+import { useLocation } from "react-router-dom";
+import { Plus, Trash2, Pencil, X, Check, Loader2, Clock3 } from "lucide-react";
 import Sidebar from "../layout/Sidebar";
 import Navbar from "../components/Navbar";
-import { useLocation } from "react-router-dom";
 import { getSidebarRole, getStoredProviderId } from "../utils/sidebarRole";
 import authService from "../services/api";
 import apiClient from "../api/apiClient";
+import providerServiceApi from "../api/providerServiceApi";
 import { useToast } from "../components/ui/ToastProvider";
 import ThemeSettings from "../components/profile/ThemeSettings";
 
@@ -38,6 +40,10 @@ const BriefIcon = () => (
     d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"
     d2="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"
   />
+);
+
+const WrenchIcon = () => (
+  <Ico d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
 );
 
 const CalIcon = () => (
@@ -98,7 +104,14 @@ const Label = ({ children }) => (
   </label>
 );
 
-const PasswordField = ({ label, value, onChange, show, toggleShow, placeholder }) => (
+const PasswordField = ({
+  label,
+  value,
+  onChange,
+  show,
+  toggleShow,
+  placeholder,
+}) => (
   <div className="mb-4">
     <Label>{label}</Label>
 
@@ -150,6 +163,7 @@ const SERVICE_CATEGORIES = [
 const NAV = [
   { id: "personal", label: "Personal Info", icon: <UserIcon /> },
   { id: "professional", label: "Professional Info", icon: <BriefIcon /> },
+  { id: "services", label: "My Services", icon: <WrenchIcon /> },
   { id: "availability", label: "Availability", icon: <CalIcon /> },
   { id: "location", label: "Location", icon: <PinIcon /> },
   { id: "security", label: "Security", icon: <LockIcon /> },
@@ -171,6 +185,7 @@ const PersonalInfo = ({ user, onSaved }) => {
   });
 
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fileRef = useRef();
   const [avatar, setAvatar] = useState(null);
 
@@ -218,11 +233,69 @@ const PersonalInfo = ({ user, onSaved }) => {
 
       onSaved?.(mergedUser);
 
-      toast.success("Changes saved", "Your personal information has been updated.");
+      toast.success(
+        "Changes saved",
+        "Your personal information has been updated.",
+      );
     } catch (e) {
       toast.error("Save failed", e.message || "Please try again.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File too large", "Maximum size is 5MB.");
+      e.target.value = "";
+      return;
+    }
+
+    const preview = URL.createObjectURL(file);
+    setAvatar(preview); // instant preview
+    setUploading(true);
+
+    try {
+      const body = new FormData();
+      body.append("file", file);
+
+      const res = await fetch("http://localhost:8000/api/users/me/photo", {
+        method: "POST",
+        headers: {
+          // No Content-Type here: the browser sets the multipart boundary
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(
+          Array.isArray(err.detail)
+            ? err.detail.map((d) => d.msg).join(", ")
+            : err.detail || "Upload failed",
+        );
+      }
+
+      const { profile_photo_url } = await res.json();
+      const mergedUser = { ...user, profile_photo_url };
+
+      localStorage.setItem("user", JSON.stringify(mergedUser));
+      window.dispatchEvent(new Event("user-updated"));
+      setAvatar(profile_photo_url);
+      onSaved?.(mergedUser);
+
+      toast.success("Photo updated", "Your profile photo has been saved.");
+    } catch (err) {
+      setAvatar(user?.profile_photo_url || null); // roll back the preview
+      toast.error("Upload failed", err.message || "Please try again.");
+    } finally {
+      URL.revokeObjectURL(preview);
+      setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -238,7 +311,7 @@ const PersonalInfo = ({ user, onSaved }) => {
 
       <div className="flex items-center gap-5 mb-7">
         <div
-          className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0 overflow-hidden"
+          className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold shrink-0 overflow-hidden"
           style={{ backgroundColor: BRAND }}
         >
           {avatar ? (
@@ -255,13 +328,14 @@ const PersonalInfo = ({ user, onSaved }) => {
         <div>
           <button
             onClick={() => fileRef.current.click()}
-            className="px-4 py-1.5 text-sm font-semibold rounded-lg border-2 transition-colors hover:bg-blue-50"
+            disabled={uploading}
+            className="px-4 py-1.5 text-sm font-semibold rounded-lg border-2 transition-colors hover:bg-blue-50 disabled:opacity-60"
             style={{
               borderColor: BRAND,
               color: BRAND,
             }}
           >
-            Change Photo
+            {uploading ? "Uploading..." : "Change Photo"}
           </button>
 
           <p className="text-xs text-gray-400 mt-1.5">
@@ -273,18 +347,12 @@ const PersonalInfo = ({ user, onSaved }) => {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-
-              if (file) {
-                setAvatar(URL.createObjectURL(file));
-              }
-            }}
+            onChange={handlePhotoChange}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label>First Name</Label>
 
@@ -426,7 +494,10 @@ const ProfessionalInfo = () => {
 
   const handleSave = async () => {
     if (!providerId) {
-      toast.error("Provider profile not found", "Unable to save professional information.");
+      toast.error(
+        "Provider profile not found",
+        "Unable to save professional information.",
+      );
       return;
     }
 
@@ -448,7 +519,10 @@ const ProfessionalInfo = () => {
         throw new Error(e.detail || "Failed to update professional info");
       }
 
-      toast.success("Professional info updated", "Your professional details have been saved.");
+      toast.success(
+        "Professional info updated",
+        "Your professional details have been saved.",
+      );
     } catch (e) {
       toast.error("Save failed", e.message || "Please try again.");
     } finally {
@@ -488,7 +562,7 @@ const ProfessionalInfo = () => {
         </select>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label>Years of Experience</Label>
 
@@ -561,6 +635,395 @@ const ProfessionalInfo = () => {
 };
 
 // ─────────────────────────────────────────────────────────────
+// My Services
+// ─────────────────────────────────────────────────────────────
+
+const emptyForm = {
+  service_name: "",
+  description: "",
+  price: "",
+  duration_minutes: "",
+};
+
+const MyServices = () => {
+  const providerId = getStoredProviderId();
+  const toast = useToast();
+
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+
+  const loadServices = async () => {
+    if (!providerId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const data = await providerServiceApi.listAllProviderServices(providerId);
+      setServices(data);
+    } catch (error) {
+      toast.error(
+        "Failed to load services",
+        error.message || "Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadServices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providerId]);
+
+  const startAdd = () => {
+    setEditingId("new");
+    setForm(emptyForm);
+  };
+
+  const startEdit = (service) => {
+    setEditingId(service.id);
+    setForm({
+      service_name: service.service_name || "",
+      description: service.description || "",
+      price: service.price?.toString() || "",
+      duration_minutes: service.duration_minutes?.toString() || "",
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+  };
+
+  const handleSave = async () => {
+    if (!providerId) {
+      toast.error("Provider profile not found", "Unable to save.");
+      return;
+    }
+
+    if (!form.service_name.trim()) {
+      toast.warning("Missing service name", "Please enter a name.");
+      return;
+    }
+
+    const price = parseFloat(form.price);
+    if (!Number.isFinite(price) || price <= 0) {
+      toast.warning("Invalid price", "Please enter a price greater than 0.");
+      return;
+    }
+
+    const duration_minutes = form.duration_minutes
+      ? parseInt(form.duration_minutes, 10) || null
+      : null;
+
+    const payload = {
+      service_name: form.service_name.trim(),
+      description: form.description.trim() || null,
+      price,
+      duration_minutes,
+    };
+
+    setSaving(true);
+
+    try {
+      if (editingId === "new") {
+        await providerServiceApi.createProviderService(providerId, payload);
+      } else {
+        await providerServiceApi.updateProviderService(providerId, editingId, payload);
+      }
+
+      toast.success(
+        editingId === "new" ? "Service added" : "Service updated",
+        "Your service catalog has been updated.",
+      );
+
+      cancelEdit();
+      loadServices();
+    } catch (error) {
+      toast.error("Save failed", error.message || "Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (service) => {
+    if (!providerId) return;
+
+    const confirmed = window.confirm(
+      `Remove "${service.service_name}" from your catalog?`,
+    );
+    if (!confirmed) return;
+
+    try {
+      await providerServiceApi.deleteProviderService(providerId, service.id);
+
+      toast.success("Service removed", "It will no longer appear to clients.");
+      loadServices();
+    } catch (error) {
+      toast.error("Remove failed", error.message || "Please try again.");
+    }
+  };
+
+  const handleReactivate = async (service) => {
+    if (!providerId) return;
+
+    try {
+      await providerServiceApi.updateProviderService(providerId, service.id, {
+        is_active: true,
+      });
+
+      toast.success("Service reactivated", "It will show up to clients again.");
+      loadServices();
+    } catch (error) {
+      toast.error("Failed to reactivate", error.message || "Please try again.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">My Services</h2>
+        <p className="text-sm text-gray-400 mb-6">
+          Add the fixed-price services you offer to clients
+        </p>
+        <div className="bg-gray-50 rounded-xl p-10 text-center">
+          <p className="text-sm text-gray-500">Loading services...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 mb-1">My Services</h2>
+          <p className="text-sm text-gray-400">
+            Add the fixed-price services you offer to clients
+          </p>
+        </div>
+
+        {editingId === null && (
+          <button
+            onClick={startAdd}
+            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
+            style={{ backgroundColor: BRAND }}
+          >
+            <Plus className="h-4 w-4" />
+            Add Service
+          </button>
+        )}
+      </div>
+
+      {editingId !== null && (
+        <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-base font-semibold text-gray-800">
+              {editingId === "new" ? "New Service" : "Edit Service"}
+            </h3>
+            <button
+              onClick={cancelEdit}
+              className="rounded p-1 text-gray-400 hover:bg-white hover:text-gray-700"
+              aria-label="Cancel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mb-4">
+            <Label>Service Name</Label>
+            <input
+              className={inputCls}
+              value={form.service_name}
+              placeholder="e.g. Leaking Sink Repair"
+              onChange={(e) =>
+                setForm((p) => ({ ...p, service_name: e.target.value }))
+              }
+            />
+          </div>
+
+          <div className="mb-4">
+            <Label>Description (optional)</Label>
+            <textarea
+              className={inputCls}
+              rows={3}
+              value={form.description}
+              placeholder="Briefly describe what this service covers"
+              onChange={(e) =>
+                setForm((p) => ({ ...p, description: e.target.value }))
+              }
+              style={{ resize: "vertical" }}
+            />
+          </div>
+
+          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Price (KES)</Label>
+              <input
+                className={inputCls}
+                type="number"
+                min="0"
+                step="1"
+                value={form.price}
+                placeholder="e.g. 2500"
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, price: e.target.value }))
+                }
+              />
+            </div>
+
+            <div>
+              <Label>Estimated Duration (minutes, optional)</Label>
+              <input
+                className={inputCls}
+                type="number"
+                min="0"
+                step="15"
+                value={form.duration_minutes}
+                placeholder="e.g. 60"
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, duration_minutes: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 transition-colors"
+              style={{ backgroundColor: BRAND }}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4" />
+                  {editingId === "new" ? "Add Service" : "Save Changes"}
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={cancelEdit}
+              disabled={saving}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-white disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {services.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
+            <Plus className="h-6 w-6 text-[#056db3]" />
+          </div>
+          <h3 className="text-base font-semibold text-gray-800">
+            No services yet
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Add a fixed-price service so clients can book you instantly.
+          </p>
+          <button
+            onClick={startAdd}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
+            style={{ backgroundColor: BRAND }}
+          >
+            <Plus className="h-4 w-4" />
+            Add Your First Service
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {services.map((service) => (
+            <div
+              key={service.id}
+              className={`flex items-start justify-between gap-4 rounded-xl border p-4 transition-colors ${
+                service.is_active
+                  ? "border-gray-200 bg-white"
+                  : "border-gray-200 bg-gray-50 opacity-70"
+              }`}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    {service.service_name}
+                  </h3>
+                  {!service.is_active && (
+                    <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600">
+                      Hidden
+                    </span>
+                  )}
+                </div>
+
+                {service.description ? (
+                  <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                    {service.description}
+                  </p>
+                ) : null}
+
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                  <span className="font-semibold text-[#056db3]">
+                    KES {Number(service.price || 0).toLocaleString()}
+                  </span>
+                  {service.duration_minutes ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Clock3 className="h-3.5 w-3.5" />
+                      {service.duration_minutes} min
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-1">
+                {service.is_active ? (
+                  <>
+                    <button
+                      onClick={() => startEdit(service)}
+                      className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-blue-50 hover:text-[#056db3]"
+                      aria-label="Edit service"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+
+                    <button
+                      onClick={() => handleDelete(service)}
+                      className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600"
+                      aria-label="Remove service"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => handleReactivate(service)}
+                    className="rounded-lg px-3 py-1.5 text-xs font-semibold text-[#056db3] transition-colors hover:bg-blue-50"
+                  >
+                    Reactivate
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
 // Availability
 // ─────────────────────────────────────────────────────────────
 
@@ -624,7 +1087,10 @@ const Availability = () => {
           }),
         );
       } catch (error) {
-        toast.error("Failed to load availability", error.message || "Showing default availability.");
+        toast.error(
+          "Failed to load availability",
+          error.message || "Showing default availability.",
+        );
       } finally {
         setLoading(false);
       }
@@ -644,7 +1110,7 @@ const Availability = () => {
               enabled: !slot.enabled,
             }
           : slot,
-          ),
+      ),
     );
   };
 
@@ -689,7 +1155,10 @@ const Availability = () => {
         throw new Error(data.detail || "Failed to update availability");
       }
 
-      toast.success("Availability updated", "Your working hours have been saved.");
+      toast.success(
+        "Availability updated",
+        "Your working hours have been saved.",
+      );
     } catch (error) {
       toast.error("Save failed", error.message || "Please try again.");
     } finally {
@@ -709,8 +1178,8 @@ const Availability = () => {
         <div className="bg-gray-50 rounded-xl p-10 text-center">
           <p className="text-sm text-gray-500">Loading availability...</p>
         </div>
-        </div>
-      );
+      </div>
+    );
   }
 
   return (
@@ -744,7 +1213,7 @@ const Availability = () => {
               }}
             />
 
-            <span className="text-sm font-semibold text-gray-700 w-24 flex-shrink-0">
+            <span className="text-sm font-semibold text-gray-700 w-24 shrink-0">
               {slot.day_of_week}
             </span>
 
@@ -867,7 +1336,7 @@ const Location = ({ user }) => {
         Your service area shown to clients
       </p>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label>City</Label>
 
@@ -949,7 +1418,10 @@ const Security = memo(() => {
       e.preventDefault();
 
       if (newPassword !== confirmPassword) {
-        toast.warning("Passwords do not match", "Enter the same new password in both fields.");
+        toast.warning(
+          "Passwords do not match",
+          "Enter the same new password in both fields.",
+        );
         return;
       }
 
@@ -979,7 +1451,10 @@ const Security = memo(() => {
         setNewPassword("");
         setConfirmPassword("");
 
-        toast.success("Password changed", "Your password has been updated successfully.");
+        toast.success(
+          "Password changed",
+          "Your password has been updated successfully.",
+        );
       } catch (e) {
         toast.error("Password change failed", e.message || "Please try again.");
       } finally {
@@ -1160,7 +1635,8 @@ function Profile() {
           ...currentUser,
           provider_id: currentUser.provider_id ?? previousUser?.provider_id,
           service_provider_id:
-            currentUser.service_provider_id ?? previousUser?.service_provider_id,
+            currentUser.service_provider_id ??
+            previousUser?.service_provider_id,
         }));
       })
       .catch(() => {});
@@ -1168,28 +1644,23 @@ function Profile() {
 
   const sections = {
     personal: <PersonalInfo user={user} onSaved={setUser} />,
-
     professional: <ProfessionalInfo />,
-
+    services: <MyServices />,
     availability: <Availability />,
-
     location: <Location user={user} />,
-
     security: <Security />,
-
     theme: <ThemeSettings />,
-
     help: <HelpSupport />,
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
       <Sidebar role={sidebarRole} />
 
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="min-w-0 flex-1 ml-0 lg:ml-72">
         <Navbar />
 
-        <main className="pt-24 px-6 pb-6">
+        <main className="pt-24 px-4 pb-6 sm:px-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
               Profile & Settings
@@ -1200,14 +1671,14 @@ function Profile() {
             </p>
           </div>
 
-          <div className="flex gap-5 items-start">
+          <div className="flex min-w-0 flex-col items-start gap-4 md:flex-row md:gap-5">
             {/* Settings navigation */}
-            <div className="w-52 flex-shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
+            <div className="flex w-full min-w-0 shrink-0 gap-1 overflow-x-auto rounded-2xl border border-gray-100 bg-white p-2 shadow-sm md:w-52 md:flex-col md:overflow-visible">
               {NAV.map(({ id, label, icon }) => (
                 <button
                   key={id}
                   onClick={() => setActive(id)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left"
+                  className="flex w-auto shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors md:w-full md:gap-3"
                   style={{
                     backgroundColor:
                       active === id ? BRAND_LIGHT : "transparent",
@@ -1228,7 +1699,7 @@ function Profile() {
             </div>
 
             {/* Active section */}
-            <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-7 min-h-96">
+            <div className="min-w-0 w-full flex-1 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 md:w-auto md:p-7 min-h-96">
               {sections[active]}
             </div>
           </div>

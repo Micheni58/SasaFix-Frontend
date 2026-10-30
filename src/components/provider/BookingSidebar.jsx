@@ -2,6 +2,7 @@
 
 import { useNavigate } from "react-router-dom";
 import { Star } from "lucide-react";
+import { formatMemberSince } from "../../utils/providerProfile";
 
 const BookingSidebar = ({ provider }) => {
   const navigate = useNavigate();
@@ -9,7 +10,7 @@ const BookingSidebar = ({ provider }) => {
     provider.id || provider.provider_id || provider.service_provider_id;
 
   return (
-    <div className="sticky top-24">
+    <div className="lg:sticky lg:top-24">
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
         {/* Price */}
 
@@ -25,12 +26,12 @@ const BookingSidebar = ({ provider }) => {
           <button
             type="button"
             onClick={() => navigate(`/client/bookings/create/${providerId}`)}
-            className="w-full bg-blue-600 hover:bg-blue-700 transition text-white py-3 rounded-xl font-semibold text-base"
+            className="w-full rounded-xl bg-[#056db3] py-3 text-base font-semibold text-white transition hover:bg-[#045b96] focus:outline-none focus:ring-2 focus:ring-[#056db3] focus:ring-offset-2"
           >
             Book This Worker
           </button>
 
-          <button type="button" className="w-full rounded-lg border border-blue-600 py-3 text-sm font-semibold text-blue-600 transition hover:bg-blue-50">
+          <button type="button" className="w-full rounded-xl border-2 border-[#056db3] py-3 text-sm font-semibold text-[#056db3] transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-[#056db3] focus:ring-offset-2">
             Message Worker
           </button>
         </div>
@@ -56,7 +57,7 @@ const BookingSidebar = ({ provider }) => {
             <span className="text-gray-500">Completed Jobs</span>
 
             <span className="font-semibold text-gray-800">
-              {provider.total_jobs_completed || 0}
+              {provider.total_jobs_completed ?? 0}
             </span>
           </div>
 
@@ -64,7 +65,7 @@ const BookingSidebar = ({ provider }) => {
             <span className="text-gray-500">Member Since</span>
 
             <span className="font-semibold text-gray-800">
-              {provider.member_since || "-"}
+              {formatMemberSince(provider.member_since)}
             </span>
           </div>
 
@@ -73,7 +74,7 @@ const BookingSidebar = ({ provider }) => {
 
             <span className="inline-flex items-center gap-1 font-semibold text-yellow-600">
               <Star className="h-4 w-4 fill-current" aria-hidden="true" />
-              {provider.average_rating || "New"}
+              {Number(provider.average_rating) > 0 ? Number(provider.average_rating).toFixed(1) : "New"}
             </span>
           </div>
 
@@ -81,7 +82,7 @@ const BookingSidebar = ({ provider }) => {
             <span className="text-gray-500">Reviews</span>
 
             <span className="font-semibold text-gray-800">
-              {provider.total_reviews || 0}
+              {provider.total_reviews ?? 0}
             </span>
           </div>
         </div>

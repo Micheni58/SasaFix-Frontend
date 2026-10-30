@@ -34,7 +34,7 @@ const TopRatedProvidersTable = ({ providers = [] }) => {
             {providers.map((provider) => (
               <tr
                 key={provider.provider_id}
-                className="border-t border-slate-200"
+                className="border-t border-slate-200 transition-colors hover:bg-gray-50"
               >
                 <td className="px-6 py-4">
                   <div

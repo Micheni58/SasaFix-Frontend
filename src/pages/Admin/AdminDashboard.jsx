@@ -449,7 +449,9 @@ function AdminDashboard() {
             id: b.id,
             type: "Booking",
             worker: providerName,
+            provider_profile_photo_url: b.service_provider?.profile_photo_url || b.raw?.service_provider?.profile_photo_url || null,
             client: clientName,
+            client_profile_photo_url: b.client_profile_photo_url,
             service: b.service_name || b.service || "",
             amount: Number(amount),
             status: displayStatusFormatted,
@@ -528,9 +530,9 @@ function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="min-w-0 flex-1 ml-0 lg:ml-72">
           <Navbar />
           <main className="pt-24 px-6 pb-6">
             <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
@@ -562,7 +564,7 @@ function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
         <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
@@ -585,7 +587,7 @@ function AdminDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
       <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
@@ -791,8 +793,16 @@ function AdminDashboard() {
                           </td>
                           <td className="py-4 px-6">
                             <div>
-                              <div className="font-medium text-gray-800">
-                                {activity.worker} → {activity.client}
+                              <div className="flex items-center gap-2 font-medium text-gray-800">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#056db3] text-xs font-semibold text-white">
+                                  {activity.provider_profile_photo_url ? <img src={activity.provider_profile_photo_url} alt={activity.worker} className="h-full w-full object-cover" /> : (activity.worker || "?").split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
+                                </div>
+                                <span>{activity.worker}</span>
+                                <span>→</span>
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#056db3] text-xs font-semibold text-white">
+                                  {activity.client_profile_photo_url ? <img src={activity.client_profile_photo_url} alt={activity.client} className="h-full w-full object-cover" /> : (activity.client || "?").split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
+                              </div>
+                                <span>{activity.client}</span>
                               </div>
                               <div className="text-sm text-gray-500">{activity.service}</div>
                             </div>

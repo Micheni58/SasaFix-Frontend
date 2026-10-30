@@ -198,10 +198,10 @@ function DetailRow({ label, value, isLast = false }) {
   );
 }
 
-function Avatar({ initials }) {
+function Avatar({ initials, photoUrl, name }) {
   return (
-    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-b from-[#b517ff] to-[#6f10f4] text-lg font-bold text-white">
-      {initials}
+    <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-linear-to-b from-[#b517ff] to-[#6f10f4] text-lg font-bold text-white">
+      {photoUrl ? <img src={photoUrl} alt={name || "User"} className="h-full w-full object-cover" /> : initials}
     </div>
   );
 }
@@ -411,6 +411,8 @@ function BookingsAndPaymentsDetails() {
         verified: data.raw?.service_provider?.is_verified || false,
         clientInitials: getInitials(clientName),
         providerInitials: getInitials(providerName),
+        client_profile_photo_url: data.raw?.client_profile_photo_url,
+        provider_profile_photo_url: data.raw?.service_provider?.profile_photo_url,
         clientId: data.clientId || data.raw?.client_id,
         providerId: data.serviceProviderId || data.raw?.service_provider_id,
         timeline: timelineItems,
@@ -531,7 +533,7 @@ function BookingsAndPaymentsDetails() {
   // ── Loading state ──
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
         <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
@@ -546,7 +548,7 @@ function BookingsAndPaymentsDetails() {
   // ── Not Found state ──
   if (notFound || !booking) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
+      <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
         <div className="flex-1 ml-0 lg:ml-72">
           <Navbar />
@@ -571,7 +573,7 @@ function BookingsAndPaymentsDetails() {
 
   // ── Main Detail View ──
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
+    <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
       <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
@@ -617,7 +619,7 @@ function BookingsAndPaymentsDetails() {
           </div>
 
           {/* ── Summary Cards ── */}
-          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <SummaryCard
               icon={ArrowUpRight}
               iconBg="bg-[#dfe6ff]"
@@ -720,7 +722,7 @@ function BookingsAndPaymentsDetails() {
                 </div>
 
                 <div className="flex flex-col items-center text-center">
-                  <Avatar initials={booking.clientInitials} />
+                  <Avatar initials={booking.clientInitials} photoUrl={booking.client_profile_photo_url} name={booking.client} />
                   <p className="mt-3 text-base font-bold text-gray-900">
                     {booking.client}
                   </p>
@@ -749,7 +751,7 @@ function BookingsAndPaymentsDetails() {
                 </div>
 
                 <div className="flex flex-col items-center text-center">
-                  <Avatar initials={booking.providerInitials} />
+                  <Avatar initials={booking.providerInitials} photoUrl={booking.provider_profile_photo_url} name={booking.provider} />
                   <p className="mt-3 text-base font-bold text-gray-900">
                     {booking.provider}
                   </p>

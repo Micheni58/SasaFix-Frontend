@@ -65,6 +65,9 @@ import NotAuthorized from "../pages/NotAuthorized";
 import Categories from "../pages/Admin/Categories";
 import { getStoredUserRole } from "../utils/sidebarRole";
 import { syncThemeWithRoute } from "../utils/theme";
+import ServiceProviders from "../pages/Admin/ServiceProviders";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 
 function RouteThemeSync() {
   const location = useLocation();
@@ -103,6 +106,8 @@ export default function AppRouter() {
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/signup" element={<RoleSelection />} />
         <Route path="/signup/details" element={<SignUp />} />

@@ -63,6 +63,20 @@ const authService = {
 
     return data;
   },
+  forgotPassword: async (email) => {
+    return fetchWithAuth("/users/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  resetPassword: async (token, newPassword) => {
+    return fetchWithAuth("/users/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, new_password: newPassword }),
+    });
+  },
+
   getCurrentUser: async () => {
     return fetchWithAuth("/users/me", {
       method: "GET",

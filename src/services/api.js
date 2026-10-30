@@ -109,6 +109,13 @@ const authService = {
     });
   },
 
+  patch: async (endpoint, body = {}) => {
+    return fetchWithAuth(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  },
+
   // Generic PUT request
   put: async (endpoint, body = {}) => {
     return fetchWithAuth(endpoint, {

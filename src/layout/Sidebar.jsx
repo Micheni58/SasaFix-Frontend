@@ -254,6 +254,25 @@ function Sidebar({ role = "client" }) {
             </div>
           </div>
         )}
+        {role === "client" && (
+          <div className="border-t border-gray-100 p-4 shrink-0">
+            <div className="rounded-2xl bg-linear-to-br from-[#056db3] to-[#0b86d5] p-4 text-white">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldCheck size={18} />
+                <h3 className="font-semibold text-sm">SasaFix Premium</h3>
+              </div>
+              <p className="text-[11px] leading-5 text-blue-100 mb-3">
+                Unlock unlimited AI job-description improvements for KES 300/month.
+              </p>
+              <button
+                onClick={() => navigate("/client/subscription")}
+                className="w-full bg-white text-[#056db3] rounded-xl py-2.5 text-sm font-semibold hover:bg-gray-100 transition"
+              >
+                View Subscription
+              </button>
+            </div>
+          </div>
+        )}
       </aside>
     </>
   );

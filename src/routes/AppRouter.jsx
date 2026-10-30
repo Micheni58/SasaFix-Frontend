@@ -54,6 +54,7 @@ import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
 import ServiceProvidersManagement from "../pages/Admin/ServiceProvidersManagement";
 import Subscription from "../components/provider/Subscription";
+import ClientSubscription from "../pages/Client/Subscription";
 import VerifyEmail from "../pages/VerifyEmail";
 import EmailVerificationSent from "../pages/EmailVerificationSent";
 import ProviderEarnings from "../pages/ServiceProvider/Earnings";
@@ -147,35 +148,11 @@ export default function AppRouter() {
         />
         <Route
           path="/admin/service-providers"
-          element={protectedRoute("admin", <ServiceProviders />)}
-        />
-        <Route
-          path="/admin/transactions"
-          element={protectedRoute("admin", <AdminTransactions />)}
-        />
-        <Route
-          path="/admin/reports-disputes"
-          element={protectedRoute("admin", <AdminReportsDisputes />)}
+          element={protectedRoute("admin", <ServiceProvidersManagement />)}
         />
         <Route
           path="/admin/analytics"
           element={protectedRoute("admin", <ReportAndAnalytics />)}
-        />
-        <Route
-          path="/admin/payouts/:payoutId"
-          element={protectedRoute("admin", <PayoutDetails />)}
-        />
-        <Route
-          path="/admin/users"
-          element={protectedRoute("admin", <Users />)}
-        />
-        <Route
-          path="/admin/service-providers"
-          element={protectedRoute("admin", <ServiceProvidersManagement />)}
-        />
-        <Route
-          path="/admin/transactions"
-          element={protectedRoute("admin", <AdminTransactions />)}
         />
         <Route
           path="/admin/subscriptions"
@@ -185,15 +162,15 @@ export default function AppRouter() {
           path="/admin/reports-disputes"
           element={protectedRoute("admin", <AdminReportsDisputes />)}
         />
-        <Route
-          path="/admin/analytics"
-          element={protectedRoute("admin", <ReportAndAnalytics />)}
-        />
         {/* Client Routes */}
 
         <Route
           path="/client"
           element={protectedRoute("client", <ClientDashboard />)}
+        />
+        <Route
+          path="/client/subscription"
+          element={protectedRoute("client", <ClientSubscription />)}
         />
         <Route
           path="/client/find-services"

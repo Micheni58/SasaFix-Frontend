@@ -11,6 +11,11 @@ const configuredApiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$
 const clientAiPath = `${configuredApiBase.endsWith('/api') ? '' : '/api'}/ai/improve-job-description`;
 
 const aiService = {
+  async getClientAiUsage() {
+    const response = await apiClient.get('/client-subscriptions/ai-usage');
+    return response.data;
+  },
+
   /** Improve a client's rough booking request. */
   async improveJobDescription(description) {
     try {
@@ -21,11 +26,13 @@ const aiService = {
     } catch (error) {
       if (error.response) {
         const detail = error.response.data?.detail;
-        throw new Error(
+        const requestError = new Error(
           error.response.status === 503
             ? 'The AI backend could not generate a suggestion. Check the backend AI provider configuration and logs.'
             : detail || `The AI request failed with status ${error.response.status}.`
         );
+        requestError.status = error.response.status;
+        throw requestError;
       }
 
       throw new Error(

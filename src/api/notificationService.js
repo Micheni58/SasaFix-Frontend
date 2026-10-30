@@ -131,12 +131,14 @@ export async function createNotification(notificationData) {
 
 export async function markNotificationAsRead(notificationId) {
     const response = await client.patch(`/notifications/${notificationId}/read`);
+    window.dispatchEvent(new Event("notifications-updated"));
     return normalizeNotification(response.data);
 }
 
 export async function markAllNotificationsAsRead(userId) {
     const resolvedUserId = requireUserId(userId);
     const response = await client.patch(`/notifications/user/${resolvedUserId}/read-all`);
+    window.dispatchEvent(new Event("notifications-updated"));
     return response.data;
 }
 

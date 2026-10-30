@@ -492,7 +492,7 @@ function UpcomingBookingDetails() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               <BookingInfoCard booking={ui} />
-              <ProviderInfoCard worker={ui.workerObj} />
+              <ProviderInfoCard worker={ui.workerObj} photoUrl={booking.raw?.service_provider?.profile_photo_url} />
               <Timeline items={ui.timeline} />
               <PaymentDetailsCard
                 booking={ui}

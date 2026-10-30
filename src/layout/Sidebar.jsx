@@ -19,15 +19,18 @@ import {
   Flag,
   Tag,
   CreditCard,
+  FileText,
+  MessageSquare,
 } from "lucide-react";
 
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { useInsideAuthenticatedLayout } from "./AuthenticatedLayoutContext";
 
 // ── Key for sessionStorage ──
 const SCROLL_KEY = "sidebar_scroll";
 
-function Sidebar({ role = "client" }) {
+function SidebarContent({ role = "client" }) {
   const [isOpen, setIsOpen] = useState(false);
   const [managementOpen, setManagementOpen] = useState(false);
   const location = useLocation();
@@ -78,6 +81,7 @@ function Sidebar({ role = "client" }) {
     { name: "Dashboard", path: "/client", icon: <LayoutDashboard size={20} /> },
     { name: "Find Services", path: "/client/find-services", icon: <Search size={20} /> },
     { name: "My Bookings", path: "/client/my-bookings", icon: <CalendarDays size={20} /> },
+    { name: "My Quote Requests", path: "/client/quotes", icon: <FileText size={20} /> },
     { name: "Messages", path: "/client/messages", icon: <MessageCircle size={20} /> },
     { name: "My Transactions", path: "/client/transactions", icon: <Wallet size={20} /> },
     { name: "Notifications", path: "/client/notifications", icon: <Bell size={20} /> },
@@ -87,6 +91,7 @@ function Sidebar({ role = "client" }) {
   const providerLinks = [
     { name: "Dashboard", path: "/provider", icon: <LayoutDashboard size={20} /> },
     { name: "My Jobs", path: "/provider/my-jobs", icon: <Briefcase size={20} /> },
+    { name: "Quotes", path: "/provider/quotes", icon: <MessageSquare size={20} /> },
     { name: "Availability", path: "/provider/availability", icon: <CalendarDays size={20} /> },
     { name: "My Reviews", path: "/provider/my-reviews", icon: <Star size={20} /> },
     { name: "Notifications", path: "/provider/notifications", icon: <Bell size={20} /> },
@@ -140,18 +145,17 @@ function Sidebar({ role = "client" }) {
         `}
       >
         {/* Logo */}
-        <div className="h-24 flex items-center px-8 border-b border-gray-100 shrink-0">
+        <div className="h-20 flex items-center px-8 border-b border-gray-100 shrink-0">
           <h1 className="text-3xl font-bold tracking-tight text-[#056db3]">
             SasaFix
           </h1>
         </div>
 
-        {/* Nav — overflow-y-auto only when content exceeds height */}
+        {/* Nav */}
         <nav
           ref={navRef}
           className="flex-1 overflow-y-auto overscroll-contain px-5 py-6 space-y-1"
         >
-          {/* Regular links */}
           {links.map((link) => (
             <NavLink
               key={link.path}
@@ -181,7 +185,7 @@ function Sidebar({ role = "client" }) {
             </NavLink>
           ))}
 
-          {/* ── Management Dropdown (admin only) ── */}
+          {/* Management Dropdown (admin only) */}
           {role === "admin" && (
             <div>
               <button
@@ -206,7 +210,6 @@ function Sidebar({ role = "client" }) {
                 />
               </button>
 
-              {/* Sub-links — no animation, instant expand to avoid layout shift */}
               {(managementOpen || isManagementActive) && (
                 <div className="mt-1 ml-4 pl-4 border-l-2 border-blue-100 space-y-1">
                   {managementLinks.map((link) => (
@@ -254,9 +257,34 @@ function Sidebar({ role = "client" }) {
             </div>
           </div>
         )}
+        {role === "client" && (
+          <div className="border-t border-gray-100 p-4 shrink-0">
+            <div className="rounded-2xl bg-linear-to-br from-[#056db3] to-[#0b86d5] p-4 text-white">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldCheck size={18} />
+                <h3 className="font-semibold text-sm">SasaFix Premium</h3>
+              </div>
+              <p className="text-[11px] leading-5 text-blue-100 mb-3">
+                Unlock unlimited AI job-description improvements for KES 300/month.
+              </p>
+              <button
+                onClick={() => navigate("/client/subscription")}
+                className="w-full bg-white text-[#056db3] rounded-xl py-2.5 text-sm font-semibold hover:bg-gray-100 transition"
+              >
+                View Subscription
+              </button>
+            </div>
+          </div>
+        )}
       </aside>
     </>
   );
+}
+
+function Sidebar({ role = "client", shared = false }) {
+  const insideAuthenticatedLayout = useInsideAuthenticatedLayout();
+  if (insideAuthenticatedLayout && !shared) return null;
+  return <SidebarContent role={role} />;
 }
 
 export default Sidebar;

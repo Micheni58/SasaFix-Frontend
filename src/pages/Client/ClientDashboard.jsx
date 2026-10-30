@@ -186,17 +186,22 @@ function getBookingRoute(booking) {
 // SMALL COMPONENTS
 // ─────────────────────────────────────────────
 
-function ProviderAvatar({ name, size = 44 }) {
+function ProviderAvatar({ name, booking, size = 44 }) {
   const initials = getInitials(name);
+  const photoUrl = booking?.raw?.service_provider?.profile_photo_url;
 
   return (
     <div
       role="img"
       aria-label={`${name || "Provider"} initials`}
-      className="flex shrink-0 items-center justify-center rounded-full bg-[#056db3] font-semibold text-white shadow-sm ring-2 ring-[#056db3]/15"
+      className="flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#056db3] font-semibold text-white shadow-sm ring-2 ring-[#056db3]/15"
       style={{ width: size, height: size, fontSize: Math.max(12, size * 0.32) }}
     >
-      {initials}
+      {photoUrl ? (
+        <img src={photoUrl} alt={name || "Provider"} className="h-full w-full object-cover" />
+      ) : (
+        initials
+      )}
     </div>
   );
 }
@@ -473,6 +478,7 @@ function ClientDashboard() {
               <div className="flex items-center gap-4">
                 <ProviderAvatar
                   name={lastCompleted.providerName || lastCompleted.worker}
+                  booking={lastCompleted}
                   size={48}
                 />
                 <div>
@@ -505,6 +511,7 @@ function ClientDashboard() {
                   <div className="flex min-w-0 items-center gap-4">
                     <ProviderAvatar
                       name={activeBooking.providerName || activeBooking.worker}
+                      booking={activeBooking}
                       size={56}
                     />
                     <div className="min-w-0">
@@ -621,6 +628,7 @@ function ClientDashboard() {
                         <div className="flex min-w-0 items-center gap-3">
                           <ProviderAvatar
                             name={booking.providerName || booking.worker}
+                            booking={booking}
                             size={44}
                           />
                           <div className="min-w-0">

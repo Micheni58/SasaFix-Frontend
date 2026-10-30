@@ -157,6 +157,7 @@ function CreateBooking() {
   const [suggestedDescription, setSuggestedDescription] = useState("");
   const [isImprovingDescription, setIsImprovingDescription] = useState(false);
   const [descriptionAiError, setDescriptionAiError] = useState("");
+  const [aiUsage, setAiUsage] = useState(null);
   const [urgency, setUrgency] = useState("normal");
   const [providerId, setProviderId] = useState(null);
   const [providerName, setProviderName] = useState("");
@@ -186,8 +187,18 @@ function CreateBooking() {
 
   const isFixedPrice = Boolean(selectedService);
 
+  useEffect(() => {
+    aiService.getClientAiUsage()
+      .then(setAiUsage)
+      .catch(() => {});
+  }, []);
+
   const improveJobDescription = async () => {
     if (!jobDescription.trim()) return;
+    if (aiUsage && !aiUsage.is_premium && aiUsage.remaining_uses <= 0) {
+      setDescriptionAiError("You have used your 3 free AI improvements. Upgrade to Premium for unlimited access.");
+      return;
+    }
 
     setIsImprovingDescription(true);
     setDescriptionAiError("");
@@ -196,10 +207,17 @@ function CreateBooking() {
     try {
       const result = await aiService.improveJobDescription(jobDescription.trim());
       setSuggestedDescription(result.improved_description || "");
+      setAiUsage((current) => ({
+        ...current,
+        ...result,
+      }));
       if (!result.improved_description) {
         setDescriptionAiError("AI did not return a suggestion. Please try again.");
       }
     } catch (aiError) {
+      if (aiError.status === 403 || aiError.status === 429) {
+        setAiUsage((current) => ({ ...current, remaining_uses: 0, is_premium: false }));
+      }
       setDescriptionAiError(
         aiError.message || aiError.detail || "Unable to improve the description right now. Please try again."
       );
@@ -912,13 +930,22 @@ function CreateBooking() {
                           <button
                             type="button"
                             onClick={improveJobDescription}
-                            disabled={!jobDescription.trim() || isImprovingDescription}
+                            disabled={!jobDescription.trim() || isImprovingDescription || Boolean(aiUsage && !aiUsage.is_premium && aiUsage.remaining_uses <= 0)}
                             className="inline-flex items-center gap-1.5 rounded-lg border border-[#056db3]/20 bg-blue-50 px-3 py-2 text-sm font-medium text-[#056db3] transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Sparkles className={`h-4 w-4 ${isImprovingDescription ? "animate-pulse" : ""}`} />
                             {isImprovingDescription ? "Improving..." : "Improve with AI"}
                           </button>
                         </div>
+                        {aiUsage && !aiUsage.is_premium && aiUsage.remaining_uses > 0 && (
+                          <p className="mt-2 text-xs text-gray-500">{aiUsage.remaining_uses} of {aiUsage.free_limit || 3} free AI improvements remaining.</p>
+                        )}
+                        {aiUsage && !aiUsage.is_premium && aiUsage.remaining_uses <= 0 && (
+                          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                            <span>Your free AI improvements are used.</span>
+                            <button type="button" onClick={() => navigate("/client/subscription")} className="font-semibold text-[#056db3] underline">Upgrade for KES 300/month</button>
+                          </div>
+                        )}
 
                         {descriptionAiError && (
                           <p role="alert" className="mt-2 text-sm text-red-600">

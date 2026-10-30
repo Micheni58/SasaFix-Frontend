@@ -20,6 +20,24 @@ const subscriptionService = {
       `/subscriptions/payment/${paymentId}`
     );
   },
+
+  getClientCurrent: async () => {
+    return authService.get("/client-subscriptions/me");
+  },
+
+  upgradeClient: async (phoneNumber) => {
+    return authService.post("/client-subscriptions/upgrade", {
+      phone_number: phoneNumber,
+    });
+  },
+
+  getClientPaymentStatus: async (paymentId) => {
+    return authService.get(`/client-subscriptions/payment/${paymentId}`);
+  },
+
+  getClientAiUsage: async () => {
+    return authService.get("/client-subscriptions/ai-usage");
+  },
 };
 
 export default subscriptionService;

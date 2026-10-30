@@ -260,6 +260,7 @@ export default function PaidJobDetails() {
   const amount = Number(job.amountRaw || 0);
   const platformFee = Math.round(amount * 0.1);
   const clientName = job.clientName || job.client || job.raw?.client_full_name || "Client";
+  const clientPhotoUrl = job.client_profile_photo_url || job.raw?.client_profile_photo_url || null;
   const clientId = job.clientId || job.raw?.client_id;
   const clientEmail = job.raw?.client_email || job.raw?.client?.email;
   const clientPhone = job.raw?.client_phone || job.raw?.client?.phone_number;
@@ -335,14 +336,14 @@ export default function PaidJobDetails() {
           <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
             <h2 className="mb-6 text-xl font-bold text-gray-800">Client Details</h2>
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-[#056db3]">
-                {initials(clientName)}
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 font-semibold text-[#056db3]">
+                {clientPhotoUrl ? <img src={clientPhotoUrl} alt={clientName} className="h-full w-full object-cover" /> : initials(clientName)}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="break-words text-lg font-semibold text-gray-800">{clientName}</p>
+              <div className="wrap-break-word flex-1">
+                <p className="wrap-break-word text-lg font-semibold text-gray-800">{clientName}</p>
                 <div className="mt-3 space-y-2 text-sm text-gray-600">
                   {clientEmail && <p className="flex min-w-0 items-start gap-2 break-all"><Mail className="mt-0.5 h-4 w-4 shrink-0" />{clientEmail}</p>}
-                  {clientPhone && <p className="flex min-w-0 items-start gap-2 break-words"><Phone className="mt-0.5 h-4 w-4 shrink-0" />{clientPhone}</p>}
+                  {clientPhone && <p className="flex min-w-0 items-start gap-2 wrap-break-word"><Phone className="mt-0.5 h-4 w-4 shrink-0" />{clientPhone}</p>}
                   {!clientEmail && !clientPhone && <p className="flex items-center gap-2"><User className="h-4 w-4" />Client contact details are unavailable.</p>}
                 </div>
               </div>

@@ -3,9 +3,13 @@ import {
   Navigate,
   Routes,
   Route,
+  Outlet,
   useLocation,
 } from "react-router-dom";
 import { useLayoutEffect } from "react";
+import Navbar from "../components/Navbar";
+import Sidebar from "../layout/Sidebar";
+import { AuthenticatedLayoutProvider } from "../layout/AuthenticatedLayoutContext";
 
 import Home from "../pages/Home";
 import Login from "../pages/Login";
@@ -54,6 +58,7 @@ import PaidBookingDetails from "../pages/Client/bookings/PaidBookingDetails";
 import ProviderProfilePage from "../pages/ServiceDiscovery/ProviderProfile";
 import ServiceProvidersManagement from "../pages/Admin/ServiceProvidersManagement";
 import Subscription from "../components/provider/Subscription";
+import ClientSubscription from "../pages/Client/Subscription";
 import VerifyEmail from "../pages/VerifyEmail";
 import EmailVerificationSent from "../pages/EmailVerificationSent";
 import ProviderEarnings from "../pages/ServiceProvider/Earnings";
@@ -63,11 +68,16 @@ import AdminSubscriptions from "../pages/Admin/Subscriptions";
 import NotFound from "../pages/NotFound";
 import NotAuthorized from "../pages/NotAuthorized";
 import Categories from "../pages/Admin/Categories";
-import { getStoredUserRole } from "../utils/sidebarRole";
+import { getSidebarRole, getStoredUserRole } from "../utils/sidebarRole";
 import { syncThemeWithRoute } from "../utils/theme";
 import ServiceProviders from "../pages/Admin/ServiceProviders";
 import ForgotPassword from "../pages/ForgotPassword";
 import ResetPassword from "../pages/ResetPassword";
+import CreateQuoteRequest from "../pages/Client/quotes/CreateQuoteRequest";
+import MyQuoteRequests from "../pages/Client/quotes/MyQuoteRequests";
+import QuoteRequestDetail from "../pages/Client/quotes/QuoteRequestDetail";
+import ProviderQuotes from "../pages/ServiceProvider/quotes/ProviderQuotes";
+import SubmitQuote from "../pages/ServiceProvider/quotes/SubmitQuote";
 
 function RouteThemeSync() {
   const location = useLocation();
@@ -77,6 +87,23 @@ function RouteThemeSync() {
   }, [location.pathname]);
 
   return null;
+}
+
+function AuthenticatedLayout() {
+  const location = useLocation();
+  const role = getSidebarRole(location.pathname);
+
+  return (
+    <AuthenticatedLayoutProvider value>
+      <Sidebar role={role} shared />
+      <Navbar shared />
+      <main className="min-h-screen min-w-0 pt-20 lg:pl-72">
+        <div className="-mt-20 lg:-ml-72">
+          <Outlet />
+        </div>
+      </main>
+    </AuthenticatedLayoutProvider>
+  );
 }
 
 function RoleGuard({ allowedRoles, children }) {
@@ -117,233 +144,236 @@ export default function AppRouter() {
           element={<EmailVerificationSent />}
         />
         <Route
-          path="/admin/categories"
-          element={protectedRoute("admin", <Categories />)}
-        />
-
-        {/* Protected/Dashboard Routes */}
-        <Route
-          path="/admin"
-          element={protectedRoute("admin", <AdminDashboard />)}
-        />
-        <Route
-          path="/admin/settings"
-          element={protectedRoute("admin", <AdminSettings />)}
-        />
-        <Route
-          path="/admin/notifications"
-          element={protectedRoute("admin", <AdminNotification />)}
-        />
-        <Route
-          path="/admin/bookings-payments"
-          element={protectedRoute("admin", <BookingsAndPayments />)}
-        />
-        <Route
-          path="/admin/bookings-payments/:bookingId"
-          element={protectedRoute("admin", <BookingsAndPaymentsDetails />)}
-        />
-        <Route
-          path="/admin/payouts/:payoutId"
-          element={protectedRoute("admin", <PayoutDetails />)}
-        />
-        <Route
-          path="/admin/users"
-          element={protectedRoute("admin", <Users />)}
-        />
-        <Route
-          path="/admin/service-providers"
-          element={protectedRoute("admin", <ServiceProviders />)}
-        />
-        <Route
-          path="/admin/transactions"
-          element={protectedRoute("admin", <AdminTransactions />)}
-        />
-        <Route
-          path="/admin/reports-disputes"
-          element={protectedRoute("admin", <AdminReportsDisputes />)}
-        />
-        <Route
-          path="/admin/analytics"
-          element={protectedRoute("admin", <ReportAndAnalytics />)}
-        />
-        <Route
-          path="/admin/payouts/:payoutId"
-          element={protectedRoute("admin", <PayoutDetails />)}
-        />
-        <Route
-          path="/admin/users"
-          element={protectedRoute("admin", <Users />)}
-        />
-        <Route
-          path="/admin/service-providers"
-          element={protectedRoute("admin", <ServiceProvidersManagement />)}
-        />
-        <Route
-          path="/admin/transactions"
-          element={protectedRoute("admin", <AdminTransactions />)}
-        />
-        <Route
-          path="/admin/subscriptions"
-          element={protectedRoute("admin", <AdminSubscriptions />)}
-        />
-        <Route
-          path="/admin/reports-disputes"
-          element={protectedRoute("admin", <AdminReportsDisputes />)}
-        />
-        <Route
-          path="/admin/analytics"
-          element={protectedRoute("admin", <ReportAndAnalytics />)}
-        />
-        {/* Client Routes */}
-
-        <Route
-          path="/client"
-          element={protectedRoute("client", <ClientDashboard />)}
-        />
-        <Route
-          path="/client/find-services"
-          element={protectedRoute("client", <FindServices />)}
-        />
-        <Route
           path="/providers/:providerId"
           element={<ProviderProfilePage />}
         />
-        <Route
-          path="/client/messages"
-          element={protectedRoute("client", <ClientMessages />)}
-        />
-        <Route
-          path="/client/transactions"
-          element={protectedRoute("client", <ClientTransactions />)}
-        />
-        <Route
-          path="/client/notifications"
-          element={protectedRoute("client", <ClientNotification />)}
-        />
-        <Route
-          path="/client/profile"
-          element={protectedRoute("client", <ClientProfile />)}
-        />
-        <Route
-          path="/client/my-bookings"
-          element={protectedRoute("client", <MyBookings />)}
-        />
-        <Route
-          path="/client/bookings/create/:providerId"
-          element={protectedRoute("client", <CreateBooking />)}
-        />
-        <Route
-          path="/client/my-bookings/in-progress/:bookingId"
-          element={protectedRoute("client", <InProgressBookingDetails />)}
-        />
-        <Route
-          path="/client/my-bookings/completed/:bookingId"
-          element={protectedRoute("client", <CompletedBookingDetails />)}
-        />
-        <Route
-          path="/client/my-bookings/cancelled/:bookingId"
-          element={protectedRoute("client", <CancelledBookingDetails />)}
-        />
-        <Route
-          path="/client/my-bookings/upcoming/:bookingId"
-          element={protectedRoute("client", <UpcomingBookingDetails />)}
-        />
-        <Route
-          path="/client/my-bookings/reschedule-requested/:bookingId"
-          element={protectedRoute("client", <RescheduleRequestedDetails />)}
-        />
-        <Route
-          path="/client/my-bookings/reschedule-proposed/:bookingId"
-          element={protectedRoute("client", <RescheduleProposedDetails />)}
-        />
-        <Route
-          path="/client/my-bookings/paid/:bookingId"
-          element={protectedRoute("client", <PaidBookingDetails />)}
-        />
 
-        <Route
-          path="/provider"
-          element={protectedRoute("provider", <ProviderDashboard />)}
-        />
-        <Route
-          path="/provider/messages"
-          element={protectedRoute("provider", <ClientMessages />)}
-        />
-        <Route
-          path="/provider/earnings"
-          element={protectedRoute("provider", <ProviderEarnings />)}
-        />
-        <Route
-          path="/provider/profile"
-          element={protectedRoute("provider", <Profile />)}
-        />
-        <Route
-          path="/provider/availability"
-          element={protectedRoute("provider", <Availability />)}
-        />
-        <Route
-          path="/provider/notifications"
-          element={protectedRoute("provider", <ProviderNotification />)}
-        />
-        <Route
-          path="/provider/my-reviews"
-          element={protectedRoute("provider", <Reviews />)}
-        />
-        <Route
-          path="/provider/subscription"
-          element={protectedRoute("provider", <Subscription />)}
-        />
-        <Route
-          path="/provider/ai-assistant"
-          element={protectedRoute("provider", <AIAssistant />)}
-        />
+        {/* Protected/Dashboard Routes */}
+        <Route element={<AuthenticatedLayout />}>
+          <Route
+            path="/admin/categories"
+            element={protectedRoute("admin", <Categories />)}
+          />
 
-        <Route
-          path="/provider/subscription"
-          element={protectedRoute("provider", <Subscription />)}
-        />
+          <Route
+            path="/admin"
+            element={protectedRoute("admin", <AdminDashboard />)}
+          />
+          <Route
+            path="/admin/settings"
+            element={protectedRoute("admin", <AdminSettings />)}
+          />
+          <Route
+            path="/admin/notifications"
+            element={protectedRoute("admin", <AdminNotification />)}
+          />
+          <Route
+            path="/admin/bookings-payments"
+            element={protectedRoute("admin", <BookingsAndPayments />)}
+          />
+          <Route
+            path="/admin/bookings-payments/:bookingId"
+            element={protectedRoute("admin", <BookingsAndPaymentsDetails />)}
+          />
+          <Route
+            path="/admin/payouts/:payoutId"
+            element={protectedRoute("admin", <PayoutDetails />)}
+          />
+          <Route
+            path="/admin/users"
+            element={protectedRoute("admin", <Users />)}
+          />
+          <Route
+            path="/admin/service-providers"
+            element={protectedRoute("admin", <ServiceProvidersManagement />)}
+          />
+          <Route
+            path="/admin/analytics"
+            element={protectedRoute("admin", <ReportAndAnalytics />)}
+          />
+          <Route
+            path="/admin/subscriptions"
+            element={protectedRoute("admin", <AdminSubscriptions />)}
+          />
+          <Route
+            path="/admin/reports-disputes"
+            element={protectedRoute("admin", <AdminReportsDisputes />)}
+          />
+          {/* Client Routes */}
 
-        <Route path="/profile" element={<Profile />} />
+          <Route
+            path="/client"
+            element={protectedRoute("client", <ClientDashboard />)}
+          />
+          <Route
+            path="/client/subscription"
+            element={protectedRoute("client", <ClientSubscription />)}
+          />
+          <Route
+            path="/client/find-services"
+            element={protectedRoute("client", <FindServices />)}
+          />
+          <Route
+            path="/client/messages"
+            element={protectedRoute("client", <ClientMessages />)}
+          />
+          <Route
+            path="/client/transactions"
+            element={protectedRoute("client", <ClientTransactions />)}
+          />
+          <Route
+            path="/client/notifications"
+            element={protectedRoute("client", <ClientNotification />)}
+          />
+          <Route
+            path="/client/profile"
+            element={protectedRoute("client", <ClientProfile />)}
+          />
+          <Route
+            path="/client/my-bookings"
+            element={protectedRoute("client", <MyBookings />)}
+          />
+          <Route
+            path="/client/bookings/create/:providerId"
+            element={protectedRoute("client", <CreateBooking />)}
+          />
+          <Route
+            path="/client/my-bookings/in-progress/:bookingId"
+            element={protectedRoute("client", <InProgressBookingDetails />)}
+          />
+          <Route
+            path="/client/my-bookings/completed/:bookingId"
+            element={protectedRoute("client", <CompletedBookingDetails />)}
+          />
+          <Route
+            path="/client/my-bookings/cancelled/:bookingId"
+            element={protectedRoute("client", <CancelledBookingDetails />)}
+          />
+          <Route
+            path="/client/my-bookings/upcoming/:bookingId"
+            element={protectedRoute("client", <UpcomingBookingDetails />)}
+          />
+          <Route
+            path="/client/my-bookings/reschedule-requested/:bookingId"
+            element={protectedRoute("client", <RescheduleRequestedDetails />)}
+          />
+          <Route
+            path="/client/my-bookings/reschedule-proposed/:bookingId"
+            element={protectedRoute("client", <RescheduleProposedDetails />)}
+          />
+          <Route
+            path="/client/my-bookings/paid/:bookingId"
+            element={protectedRoute("client", <PaidBookingDetails />)}
+          />
+          <Route
+            path="/client/quotes/new"
+            element={protectedRoute("client", <CreateQuoteRequest />)}
+          />
+          <Route
+            path="/client/quotes"
+            element={protectedRoute("client", <MyQuoteRequests />)}
+          />
+          <Route
+            path="/client/quotes/:id"
+            element={protectedRoute("client", <QuoteRequestDetail />)}
+          />
 
-        <Route
-          path="/provider/my-jobs"
-          element={protectedRoute("provider", <MyJobs />)}
-        />
-        <Route
-          path="/provider/my-jobs/new/:id"
-          element={protectedRoute("provider", <NewJobRequestDetails />)}
-        />
-        <Route
-          path="/provider/my-jobs/accepted/:id"
-          element={protectedRoute("provider", <AcceptedJobDetails />)}
-        />
-        <Route
-          path="/provider/my-jobs/in-progress/:id"
-          element={protectedRoute("provider", <InProgressJobDetails />)}
-        />
-        <Route
-          path="/provider/my-jobs/completed/:id"
-          element={protectedRoute("provider", <CompletedJobDetails />)}
-        />
-        <Route
-          path="/provider/my-jobs/paid/:id"
-          element={protectedRoute("provider", <PaidJobDetails />)}
-        />
-        <Route
-          path="/provider/my-jobs/cancelled/:id"
-          element={protectedRoute("provider", <CancelledJobDetails />)}
-        />
-        <Route
-          path="/provider/my-jobs/reschedule-requested/:id"
-          element={protectedRoute(
-            "provider",
-            <RescheduleRequestedJobDetails />,
-          )}
-        />
-        <Route
-          path="/provider/my-jobs/reschedule-proposed/:id"
-          element={protectedRoute("provider", <RescheduleProposedJobDetails />)}
-        />
+          <Route
+            path="/provider"
+            element={protectedRoute("provider", <ProviderDashboard />)}
+          />
+          <Route
+            path="/provider/messages"
+            element={protectedRoute("provider", <ClientMessages />)}
+          />
+          <Route
+            path="/provider/earnings"
+            element={protectedRoute("provider", <ProviderEarnings />)}
+          />
+          <Route
+            path="/provider/profile"
+            element={protectedRoute("provider", <Profile />)}
+          />
+          <Route
+            path="/provider/availability"
+            element={protectedRoute("provider", <Availability />)}
+          />
+          <Route
+            path="/provider/notifications"
+            element={protectedRoute("provider", <ProviderNotification />)}
+          />
+          <Route
+            path="/provider/my-reviews"
+            element={protectedRoute("provider", <Reviews />)}
+          />
+          <Route
+            path="/provider/subscription"
+            element={protectedRoute("provider", <Subscription />)}
+          />
+          <Route
+            path="/provider/ai-assistant"
+            element={protectedRoute("provider", <AIAssistant />)}
+          />
+
+          <Route
+            path="/provider/subscription"
+            element={protectedRoute("provider", <Subscription />)}
+          />
+
+          <Route path="/profile" element={<Profile />} />
+
+          <Route
+            path="/provider/my-jobs"
+            element={protectedRoute("provider", <MyJobs />)}
+          />
+          <Route
+            path="/provider/my-jobs/new/:id"
+            element={protectedRoute("provider", <NewJobRequestDetails />)}
+          />
+          <Route
+            path="/provider/my-jobs/accepted/:id"
+            element={protectedRoute("provider", <AcceptedJobDetails />)}
+          />
+          <Route
+            path="/provider/my-jobs/in-progress/:id"
+            element={protectedRoute("provider", <InProgressJobDetails />)}
+          />
+          <Route
+            path="/provider/my-jobs/completed/:id"
+            element={protectedRoute("provider", <CompletedJobDetails />)}
+          />
+          <Route
+            path="/provider/my-jobs/paid/:id"
+            element={protectedRoute("provider", <PaidJobDetails />)}
+          />
+          <Route
+            path="/provider/my-jobs/cancelled/:id"
+            element={protectedRoute("provider", <CancelledJobDetails />)}
+          />
+          <Route
+            path="/provider/my-jobs/reschedule-requested/:id"
+            element={protectedRoute(
+              "provider",
+              <RescheduleRequestedJobDetails />,
+            )}
+          />
+          <Route
+            path="/provider/my-jobs/reschedule-proposed/:id"
+            element={protectedRoute(
+              "provider",
+              <RescheduleProposedJobDetails />,
+            )}
+          />
+
+          <Route
+            path="/provider/quotes"
+            element={protectedRoute("provider", <ProviderQuotes />)}
+          />
+          <Route
+            path="/provider/quotes/:requestId"
+            element={protectedRoute("provider", <SubmitQuote />)}
+          />
+        </Route>
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<NotFound />} />

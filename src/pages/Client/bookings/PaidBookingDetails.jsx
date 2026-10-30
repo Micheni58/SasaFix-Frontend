@@ -331,7 +331,7 @@ function PaidBookingDetails() {
             {/* ── Main Content ── */}
             <div className="lg:col-span-2 space-y-6">
               <BookingInfoCard booking={ui} />
-              <ProviderInfoCard worker={ui.worker} />
+              <ProviderInfoCard worker={ui.worker} photoUrl={booking.raw?.service_provider?.profile_photo_url} />
               <Timeline items={ui.timeline} />
               <PaymentDetailsCard
                 booking={ui}

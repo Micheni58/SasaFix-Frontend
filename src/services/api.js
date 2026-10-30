@@ -98,6 +98,10 @@ const authService = {
     return user ? JSON.parse(user) : null;
   },
 
+  setStoredUser: (user) => {
+    localStorage.setItem("user", JSON.stringify(user));
+  },
+
   getProviders: async () => {
     return fetchWithAuth("/providers", {
       method: "GET",
@@ -115,6 +119,13 @@ const authService = {
   post: async (endpoint, body = {}) => {
     return fetchWithAuth(endpoint, {
       method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
+
+  patch: async (endpoint, body = {}) => {
+    return fetchWithAuth(endpoint, {
+      method: "PATCH",
       body: JSON.stringify(body),
     });
   },

@@ -204,9 +204,11 @@ function Reviews() {
                         const rating = ratingsByBookingId.get(Number(review.bookingId));
 
                         let clientName = `Client #${review.clientId}`;
+                        let clientPhotoUrl = null;
                         try {
                             const booking = await bookingService.getBooking(review.bookingId);
                             if (booking?.clientName) clientName = booking.clientName;
+                            clientPhotoUrl = booking?.client_profile_photo_url || booking?.raw?.client_profile_photo_url || null;
                         } catch {
                             // booking fetch failed — use fallback name
                         }
@@ -216,6 +218,7 @@ function Reviews() {
                             bookingId: review.bookingId,
                             initials: getInitials(clientName),
                             name: clientName,
+                            photoUrl: clientPhotoUrl,
                             date: formatDate(review.createdAt),
                             rating: rating ? Math.round(rating.score) : 0,
                             ratingScore: rating ? rating.score : 0,
@@ -423,8 +426,8 @@ function Reviews() {
                                         {/* Review Header */}
                                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                             <div className="flex items-start gap-4">
-                                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-base font-bold text-blue-700">
-                                                    {review.initials}
+                                                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-blue-100 text-base font-bold text-blue-700">
+                                                    {review.photoUrl ? <img src={review.photoUrl} alt={review.name} className="h-full w-full object-cover" /> : review.initials}
                                                 </div>
                                                 <div>
                                                     <p className="text-base font-semibold text-gray-900">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  Mail, Phone, Calendar, Clock3, MapPin,
+  ArrowLeft, Mail, Phone, Calendar, Clock3, MapPin,
   MessageSquare, Flag, Loader2, CheckCircle2,
   RotateCcw, AlertCircle, Info
 } from "lucide-react";
@@ -257,6 +257,7 @@ function NewJobRequestDetails() {
             phone: b.raw?.client?.phone || b.client_phone || '',
             email: b.raw?.client?.email || b.client_email || ''
           },
+          client_profile_photo_url: b.client_profile_photo_url || b.raw?.client_profile_photo_url || null,
           clientBookingCount: clientBookingCount,
           serviceFeeDisplay: `KES ${serviceFeeRaw.toLocaleString()}`,
           serviceFeeRaw: serviceFeeRaw,
@@ -412,6 +413,12 @@ function NewJobRequestDetails() {
       <div className="flex-1 ml-0 lg:ml-72">
         <Navbar />
         <main className="pt-24 px-6 pb-6">
+          <button
+            onClick={() => navigate("/provider/my-jobs")}
+            className="mb-4 flex items-center gap-2 text-sm font-medium text-[#056db3] hover:underline"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to My Jobs
+          </button>
           {/* ── Header ── */}
           <section className="mb-8">
             <div className="flex justify-between items-start mb-6">
@@ -470,8 +477,8 @@ function NewJobRequestDetails() {
               <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Client Information</h2>
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-2xl font-bold text-white">
-                    {job.client.initials}
+                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-linear-to-b from-[#3b82f6] to-[#1d4ed8] text-2xl font-bold text-white">
+                    {job.client_profile_photo_url ? <img src={job.client_profile_photo_url} alt={job.client.name} className="h-full w-full object-cover" /> : job.client.initials}
                   </div>
                   <div>
                     <p className="text-lg font-semibold text-gray-800">{job.client.name}</p>

@@ -144,7 +144,7 @@ const LoginForm = () => {
         }
 
         .lf-input-wrap:focus-within {
-          border-color: #04599a;i
+          border-color: #04599a;
           box-shadow: 0 0 0 3px rgba(79,53,245,0.1);
         }
 
@@ -298,7 +298,11 @@ const LoginForm = () => {
               />
               Remember me
             </label>
-            <button type="button" className="lf-forgot">
+            <button
+              type="button"
+              className="lf-forgot"
+              onClick={() => navigate("/forgot-password")}
+            >
               Forgot Password?
             </button>
           </div>

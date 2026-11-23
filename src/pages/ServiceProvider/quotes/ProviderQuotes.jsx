@@ -135,10 +135,10 @@ const ProviderQuotes = () => {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-0 lg:ml-72 min-w-0">
+      <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="pt-24 px-4 sm:px-6 pb-10">
-          <div className="max-w-4xl mx-auto">
+        <main className="pt-20 px-4 sm:px-6 pb-10">
+          <div className="w-full min-w-0">
 
             {/* Header */}
             <div className="mb-6">

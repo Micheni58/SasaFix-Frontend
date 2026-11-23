@@ -100,9 +100,9 @@ const MyQuoteRequests = () => {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="px-4 pb-10 pt-24 sm:px-6">
+        <main className="px-4 pb-10 pt-20 sm:px-6">
           <div className="mx-auto max-w-6xl">
             <header className="mb-7 flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -150,78 +150,55 @@ const MyQuoteRequests = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="hidden overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm xl:block">
-                      <table className="dark-quote-requests-table w-full table-fixed text-left text-sm">
-                      <thead className="border-b border-gray-200 bg-gray-50 text-gray-500">
-                        <tr>
-                          <th scope="col" className="w-[34%] px-4 py-4 font-medium">Title</th>
-                          <th scope="col" className="w-[24%] px-3 py-4 font-medium">Category</th>
-                          <th scope="col" className="w-[14%] px-2 py-4 text-center font-medium">Quotes</th>
-                          <th scope="col" className="w-[22%] px-2 py-4 font-medium">Status</th>
-                          <th scope="col" className="w-[6%] px-2 py-4"><span className="sr-only">Open request</span></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {requests.map((req) => (
-                          <tr
-                            key={req.id}
-                            tabIndex={0}
-                            role="link"
-                            aria-label={`View ${req.title}`}
-                            className="cursor-pointer transition-colors hover:bg-gray-50 focus:bg-blue-50 focus:outline-none"
-                            onClick={() => navigate(`/client/quotes/${req.id}`)}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                navigate(`/client/quotes/${req.id}`);
-                              }
-                            }}
-                          >
-                            <td className="wrap-break-word px-4 py-4 font-semibold text-gray-900">{req.title}</td>
-                            <td className="wrap-break-word px-3 py-4 text-gray-600">{req.service_category}</td>
-                            <td className="px-2 py-4 text-center">
-                              <span className="inline-flex min-h-7 min-w-7 items-center justify-center rounded-full bg-gray-100 px-2 text-xs font-semibold text-gray-700">
-                                {req.quotes_count || 0}
-                              </span>
-                            </td>
-                            <td className="px-2 py-4">
-                              <span className={`inline-flex max-w-full items-center truncate rounded-full px-2 py-1 text-xs font-semibold capitalize ${STATUS_COLORS[req.status] || "bg-gray-100 text-gray-700"}`}>
-                                {req.status}
-                              </span>
-                            </td>
-                            <td className="px-2 py-4 text-right">
-                              <ChevronRight className="inline h-4 w-4 text-gray-400" />
-                            </td>
+                    <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+                      <table className="dark-quote-requests-table w-full min-w-160 text-left text-sm">
+                        <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                          <tr>
+                            <th scope="col" className="px-5 py-4">Request</th>
+                            <th scope="col" className="px-4 py-4">Category</th>
+                            <th scope="col" className="px-4 py-4 text-center">Quotes</th>
+                            <th scope="col" className="px-4 py-4">Status</th>
+                            <th scope="col" className="px-4 py-4 text-right"><span className="sr-only">Open request</span></th>
                           </tr>
-                        ))}
-                      </tbody>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {requests.map((req) => (
+                            <tr
+                              key={req.id}
+                              tabIndex={0}
+                              role="link"
+                              aria-label={`View ${req.title}`}
+                              className="cursor-pointer transition-colors hover:bg-blue-50/50 focus:bg-blue-50 focus:outline-none"
+                              onClick={() => navigate(`/client/quotes/${req.id}`)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  navigate(`/client/quotes/${req.id}`);
+                                }
+                              }}
+                            >
+                              <td className="max-w-0 px-5 py-4">
+                                <span className="block truncate font-semibold text-gray-900">{req.title}</span>
+                                <span className="mt-1 block text-xs text-gray-400">Request #{req.id}</span>
+                              </td>
+                              <td className="px-4 py-4 text-gray-600">{req.service_category}</td>
+                              <td className="px-4 py-4 text-center">
+                                <span className="inline-flex min-h-7 min-w-7 items-center justify-center rounded-full bg-blue-50 px-2 text-xs font-semibold text-[#056db3]">
+                                  {req.quotes_count || 0}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4">
+                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${STATUS_COLORS[req.status] || "bg-gray-100 text-gray-700"}`}>
+                                  {req.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4 text-right">
+                                <ChevronRight className="inline h-4 w-4 text-gray-400" />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
                       </table>
-                    </div>
-                    <div className="space-y-3 xl:hidden">
-                      {requests.map((req) => (
-                        <button
-                          key={req.id}
-                          type="button"
-                          onClick={() => navigate(`/client/quotes/${req.id}`)}
-                          className="block w-full rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-200 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-blue-100 sm:p-5"
-                        >
-                          <span className="flex min-w-0 items-start justify-between gap-3">
-                            <span className="min-w-0">
-                              <span className="block wrap-break-word font-semibold text-gray-900">{req.title}</span>
-                              <span className="mt-1 block wrap-break-word text-sm text-gray-500">{req.service_category}</span>
-                            </span>
-                            <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-gray-400" />
-                          </span>
-                          <span className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3">
-                            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${STATUS_COLORS[req.status] || "bg-gray-100 text-gray-700"}`}>
-                              {req.status}
-                            </span>
-                            <span className="text-xs font-medium text-gray-500">
-                              {req.quotes_count || 0} {(req.quotes_count || 0) === 1 ? "quote" : "quotes"} received
-                            </span>
-                          </span>
-                        </button>
-                      ))}
                     </div>
                   </>
                 )}

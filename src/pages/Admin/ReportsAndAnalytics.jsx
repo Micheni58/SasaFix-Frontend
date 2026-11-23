@@ -66,10 +66,10 @@ const ReportsAnalytics = () => {
     <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
 
-      <div className="min-w-0 flex-1 ml-0 lg:ml-72">
+      <div className="min-w-0 flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300">
         <Navbar />
 
-        <main className="px-4 pb-10 pt-24 sm:px-6 lg:px-8">
+        <main className="px-4 pb-10 pt-20 sm:px-6 lg:px-8">
               {/* Page heading */}
               <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
                 <div>

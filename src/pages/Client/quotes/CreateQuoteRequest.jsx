@@ -184,7 +184,7 @@ const CreateQuoteRequest = () => {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="ml-0 min-w-0 flex-1 lg:ml-72">
+      <div className="ml-16 min-w-0 flex-1 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300">
         <Navbar />
         <main className="mx-auto w-full max-w-5xl px-4 pb-12 pt-20 sm:px-6">
           <button

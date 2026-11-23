@@ -97,8 +97,8 @@ function AuthenticatedLayout() {
     <AuthenticatedLayoutProvider value>
       <Sidebar role={role} shared />
       <Navbar shared />
-      <main className="min-h-screen min-w-0 pt-20 lg:pl-72">
-        <div className="-mt-20 lg:-ml-72">
+      <main className="min-h-screen min-w-0 overflow-x-hidden pt-24">
+        <div className="-mt-20">
           <Outlet />
         </div>
       </main>

@@ -30,7 +30,7 @@ const Avatar = ({ name, photoUrl, size = 10 }) => {
         src={photoUrl}
         alt={name || "avatar"}
         onError={() => setFailed(true)}
-        className="rounded-full object-cover flex-shrink-0"
+        className="rounded-full object-cover shrink-0"
         style={{ width: size * 4, height: size * 4 }}
       />
     );
@@ -58,7 +58,7 @@ const Avatar = ({ name, photoUrl, size = 10 }) => {
 
   return (
     <div
-      className={`w-${size} h-${size} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0`}
+      className={`w-${size} h-${size} rounded-full flex items-center justify-center text-white font-bold shrink-0`}
       style={{
         backgroundColor: color,
         width: size * 4,
@@ -339,10 +339,10 @@ function Messages() {
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role={sidebarRole} />
 
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
         <Navbar />
 
-        <main className="pt-24 px-6 pb-6">
+        <main className="min-w-0 pt-20 px-3 pb-6 sm:px-6">
           {/* Page heading */}
           <div className="mb-5">
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
@@ -367,7 +367,7 @@ function Messages() {
 
           {/* Main messaging panel */}
           <div
-            className="flex gap-0 bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden"
+            className="flex min-w-0 gap-0 bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden"
             style={{
               height: "calc(100vh - 200px)",
             }}
@@ -376,7 +376,7 @@ function Messages() {
             {/* CONVERSATION LIST */}
             {/* ──────────────────────────────────────────────── */}
 
-            <div className="w-80 flex-shrink-0 border-r border-gray-100 flex flex-col">
+            <div className={`${activeConvo ? "hidden md:flex" : "flex"} w-full min-w-0 border-r border-gray-100 flex-col md:w-80 md:shrink-0`}>
               {/* Search */}
               <div className="p-3 border-b border-gray-100">
                 <input
@@ -415,7 +415,7 @@ function Messages() {
                       <button
                         key={convo.id}
                         onClick={() => openConvo(convo)}
-                        className="w-full flex items-start gap-3 px-4 py-3.5 border-b border-gray-50 text-left transition-colors hover:bg-gray-50"
+                        className={`w-full flex items-start gap-3 px-4 py-3.5 border-b border-gray-50 text-left transition-colors hover:bg-gray-50 ${isActive ? "dark-message-conversation-active" : ""}`}
                         style={{
                           backgroundColor: isActive ? BRAND_LIGHT : undefined,
                         }}
@@ -438,7 +438,7 @@ function Messages() {
                               {convo.other_name}
                             </span>
 
-                            <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                            <span className="text-xs text-gray-400 shrink-0 ml-2">
                               {formatTime(convo.last_message_at)}
                             </span>
                           </div>
@@ -456,7 +456,7 @@ function Messages() {
 
                             {convo.unread_count > 0 && (
                               <span
-                                className="ml-2 w-5 h-5 rounded-full text-xs font-bold text-white flex items-center justify-center flex-shrink-0"
+                                className="ml-2 w-5 h-5 rounded-full text-xs font-bold text-white flex items-center justify-center shrink-0"
                                 style={{
                                   backgroundColor: BRAND,
                                 }}
@@ -477,7 +477,7 @@ function Messages() {
             {/* MESSAGE THREAD */}
             {/* ──────────────────────────────────────────────── */}
 
-            <div className="flex-1 flex flex-col">
+            <div className={`${activeConvo ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col`}>
               {!activeConvo ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-300">
                   <MsgIcon />
@@ -489,15 +489,22 @@ function Messages() {
               ) : (
                 <>
                   {/* Thread header */}
-                  <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3">
+                  <div className="px-3 py-3.5 border-b border-gray-100 flex min-w-0 items-center gap-3 sm:px-5">
+                    <button
+                      type="button"
+                      onClick={() => setActiveConvo(null)}
+                      className="shrink-0 rounded-lg px-2 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100 md:hidden"
+                    >
+                      Back
+                    </button>
                     <Avatar
                       name={activeConvo.other_name}
                       photoUrl={activeConvo.other_photo_url}
                       size={9}
                     />
 
-                    <div>
-                      <p className="font-semibold text-gray-900 text-sm">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-gray-900 text-sm">
                         {activeConvo.other_name}
                       </p>
 
@@ -516,7 +523,7 @@ function Messages() {
                   </div>
 
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
+                  <div className="min-w-0 flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-3 sm:px-5">
                     {loadingMessages ? (
                       <div className="flex items-center justify-center h-full text-sm text-gray-400">
                         Loading messages...
@@ -556,7 +563,7 @@ function Messages() {
                                 isMe ? "justify-end" : "justify-start"
                               }`}
                             >
-                              <div className="max-w-xs lg:max-w-md xl:max-w-lg">
+                              <div className="min-w-0 max-w-xs wrap-break-word lg:max-w-md xl:max-w-lg">
                                 {!isMe && (
                                   <p className="text-xs text-gray-400 mb-1 ml-1">
                                     {msg.sender_name}
@@ -564,7 +571,7 @@ function Messages() {
                                 )}
 
                                 <div
-                                  className={`px-4 py-2.5 rounded-2xl text-sm ${
+                                  className={`wrap-break-word px-4 py-2.5 rounded-2xl text-sm ${
                                     isMe
                                       ? "text-white rounded-br-sm"
                                       : "bg-gray-100 text-gray-800 rounded-bl-sm"
@@ -623,9 +630,9 @@ function Messages() {
                       </p>
                     </div>
                   ) : (
-                    <div className="px-4 py-3 border-t border-gray-100 flex items-end gap-3">
+                    <div className="px-3 py-3 border-t border-gray-100 flex min-w-0 items-end gap-3 sm:px-4">
                       <textarea
-                        className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl outline-none resize-none focus:border-blue-400 transition-colors"
+                        className="min-w-0 flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl outline-none resize-none focus:border-blue-400 transition-colors"
                         placeholder="Type a message..."
                         rows={1}
                         value={draft}
@@ -639,7 +646,7 @@ function Messages() {
                       <button
                         onClick={sendMessage}
                         disabled={!draft.trim() || sending}
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white transition-colors disabled:opacity-40 flex-shrink-0"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white transition-colors disabled:opacity-40 shrink-0"
                         style={{
                           backgroundColor: BRAND,
                         }}

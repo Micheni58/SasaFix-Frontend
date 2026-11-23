@@ -1,7 +1,7 @@
 // src/pages/ServiceDiscovery/FindServices.jsx
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Sparkles, ArrowRight, Map as MapIcon } from "lucide-react";
+import { Search, Sparkles, ArrowRight, Map as MapIcon, SlidersHorizontal } from "lucide-react";
 import { useSearchParams, Link } from "react-router-dom";
 
 import FilterSidebar from "../../components/filters/FilterSidebar";
@@ -12,8 +12,12 @@ import { useProviderSearch } from "../../hooks/userProviderSearch";
 import Sidebar from "../../layout/Sidebar";
 import Navbar from "../../components/Navbar";
 
-// Auto-fill grid: as many columns as fit (min 280px each), stretched to fill the row.
-const CARD_GRID = "grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4";
+// Mobile: 3 cards per row. From sm up: original auto-fill grid (min 280px each).
+const CARD_GRID =
+  "grid grid-cols-3 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] sm:gap-4";
+
+// Shrinks each card on mobile only. Raise 0.62 for bigger cards, lower it for smaller.
+const CARD_CELL = "min-w-0 max-sm:[zoom:0.62]";
 
 const ProviderCardSkeleton = () => (
   <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" aria-hidden="true">
@@ -57,14 +61,15 @@ const FindServices = () => {
   const [searchParams] = useSearchParams();
 
   const [showMap, setShowMap] = useState(false);
+  const [showFilters, setShowFilters] = useState(false); // mobile filter toggle
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
-  
+
   // Guard against infinite re-render loops if `set` is not memoized in the hook
   const lastSearchRef = useRef(null);
 
   useEffect(() => {
     const search = searchParams.get("search") || "";
-    
+
     // Only sync and set if the URL search actually changed
     if (lastSearchRef.current === search) return;
     lastSearchRef.current = search;
@@ -90,7 +95,8 @@ const FindServices = () => {
     <div className="service-discovery-page flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
       <Sidebar role="client" />
 
-      <div className="flex-1 ml-0 lg:ml-72 min-w-0">
+      {/* ml-16 = always-visible mobile strip; desktop follows --sidebar-w (set by Sidebar.jsx) */}
+      <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
         <Navbar />
 
         <main className="mx-auto w-full min-w-0 max-w-[1600px] px-4 pb-6 pt-20 sm:px-6">
@@ -159,17 +165,30 @@ const FindServices = () => {
             </div>
           </section>
 
-          {/* Main Grid */}
-          <div className="flex items-start gap-3 sm:gap-5">
-            {/* Filter sidebar */}
-            <FilterSidebar
-              filters={filters}
-              categories={categories}
-              onSet={set}
-              onSetLocation={setLocation}
-              onClearLocation={clearLocation}
-              onReset={reset}
-            />
+          {/* Main Grid: stacked on mobile, side-by-side from lg up */}
+          <div className="flex flex-col items-stretch gap-3 sm:gap-5 lg:flex-row lg:items-start">
+            {/* Mobile-only filter toggle */}
+            <button
+              onClick={() => setShowFilters((prev) => !prev)}
+              className="flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 lg:hidden"
+            >
+              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+              {showFilters ? "Hide Filters" : "Show Filters"}
+            </button>
+
+            {/* Filter sidebar: collapsible on mobile, always visible on desktop */}
+            <div
+              className={`${showFilters ? "block" : "hidden"} w-full lg:block lg:w-auto lg:shrink-0`}
+            >
+              <FilterSidebar
+                filters={filters}
+                categories={categories}
+                onSet={set}
+                onSetLocation={setLocation}
+                onClearLocation={clearLocation}
+                onReset={reset}
+              />
+            </div>
 
             {/* Content */}
             <div className="min-w-0 flex-1">
@@ -220,7 +239,9 @@ const FindServices = () => {
 
                       <div className={CARD_GRID}>
                         {premiumProviders.map((provider) => (
-                          <ProviderCard key={provider.id} provider={provider} featured />
+                          <div key={provider.id} className={CARD_CELL}>
+                            <ProviderCard provider={provider} featured />
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -235,7 +256,9 @@ const FindServices = () => {
                       aria-busy="true"
                     >
                       {Array.from({ length: 6 }).map((_, index) => (
-                        <ProviderCardSkeleton key={index} />
+                        <div key={index} className={CARD_CELL}>
+                          <ProviderCardSkeleton />
+                        </div>
                       ))}
                     </div>
                   )}
@@ -244,7 +267,9 @@ const FindServices = () => {
                   {!loading && providers.length > 0 && (
                     <div className={CARD_GRID}>
                       {providers.map((provider) => (
-                        <ProviderCard key={provider.id} provider={provider} />
+                        <div key={provider.id} className={CARD_CELL}>
+                          <ProviderCard provider={provider} />
+                        </div>
                       ))}
                     </div>
                   )}

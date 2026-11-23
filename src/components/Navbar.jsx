@@ -152,8 +152,10 @@ function NavbarContent() {
       className="
         fixed
         top-0
-        left-0
-        lg:left-72
+        left-16
+        lg:left-(--sidebar-w,18rem)
+        transition-[left]
+        duration-300
         right-0
         h-20
         bg-white

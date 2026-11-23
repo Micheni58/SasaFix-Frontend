@@ -13,7 +13,7 @@ const SubscriptionSkeleton = () => {
 
       <div className="space-y-3 text-center">
         <Skeleton className="mx-auto h-10 w-80" />
-        <Skeleton className="mx-auto h-5 w-[420px]" />
+        <Skeleton className="mx-auto h-5 w-105" />
       </div>
 
 

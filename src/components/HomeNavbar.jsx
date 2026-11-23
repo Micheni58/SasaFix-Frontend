@@ -2,9 +2,8 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import Brand from "./Brand";
-import ServiceSearch from "./ServiceSearch";
 
-export default function HomeNavbar({ fixed = true, showSearch = true, authVariant = false }) {
+export default function HomeNavbar({ fixed = true, authVariant = false }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
 
@@ -35,11 +34,6 @@ export default function HomeNavbar({ fixed = true, showSearch = true, authVarian
         ) : (
           <>
             <Brand light={false} />
-            {showSearch && (
-              <div className="hidden flex-1 justify-center md:flex">
-                <ServiceSearch compact />
-              </div>
-            )}
             <div className="hidden items-center gap-2 sm:flex">
               <Link to="/" className={linkClass(pathname === "/")}>Home</Link>
               <Link to="/about" className={linkClass(pathname === "/about")}>About</Link>
@@ -60,8 +54,7 @@ export default function HomeNavbar({ fixed = true, showSearch = true, authVarian
 
       {!authVariant && menuOpen && (
         <div className="border-t border-white/40 bg-white/50 p-4 backdrop-blur-xl backdrop-saturate-150 sm:hidden">
-          {showSearch && <ServiceSearch compact />}
-          <div className={`${showSearch ? "mt-3" : ""} grid grid-cols-2 gap-3`}>
+          <div className="grid grid-cols-2 gap-3">
             <Link to="/" className={`${linkClass(pathname === "/")} border border-white/50 text-center backdrop-blur-sm`}>Home</Link>
             <Link to="/about" className={`${linkClass(pathname === "/about")} border border-white/50 text-center backdrop-blur-sm`}>About</Link>
             <Link to="/login" className={`${linkClass(pathname === "/login")} border border-white/50 text-center backdrop-blur-sm`}>Sign In</Link>

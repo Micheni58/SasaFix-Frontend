@@ -152,9 +152,9 @@ export default function Availability() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="pt-24 px-6 pb-6">
+        <main className="pt-20 px-6 pb-6">
           <section className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">

@@ -370,9 +370,9 @@ function BookingsAndPayments() {
     return (
       <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc] overflow-hidden">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-0 lg:ml-72 min-w-0">
+        <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full overflow-x-hidden">
+          <main className="pt-20 px-6 pb-6 max-w-7xl mx-auto w-full overflow-x-hidden">
             <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
               <div>
                 <div className="h-9 w-64 animate-pulse rounded bg-gray-200" />
@@ -400,9 +400,9 @@ function BookingsAndPayments() {
     return (
       <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="min-w-0 flex-1 ml-0 lg:ml-72">
+        <div className="min-w-0 flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300">
           <Navbar />
-          <main className="pt-24 px-6 pb-6">
+          <main className="pt-20 px-6 pb-6">
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-8 text-center max-w-2xl mx-auto">
               <AlertCircle className="mx-auto h-16 w-16 text-amber-500" />
               <h3 className="mt-4 text-xl font-semibold text-amber-700">Unable to Load Data</h3>
@@ -425,9 +425,9 @@ function BookingsAndPayments() {
   return (
     <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc] overflow-hidden">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-0 lg:ml-72 min-w-0">
+      <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full overflow-x-hidden">
+        <main className="pt-20 px-6 pb-6 max-w-7xl mx-auto w-full overflow-x-hidden">
           {/* ── Page Header ── */}
           <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
             <div>

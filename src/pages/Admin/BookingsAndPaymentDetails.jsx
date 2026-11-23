@@ -535,9 +535,9 @@ function BookingsAndPaymentsDetails() {
     return (
       <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
+          <main className="pt-20 px-6 pb-6 max-w-7xl mx-auto w-full">
             <LoadingSkeleton />
           </main>
         </div>
@@ -550,9 +550,9 @@ function BookingsAndPaymentsDetails() {
     return (
       <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
+          <main className="pt-20 px-6 pb-6 max-w-7xl mx-auto w-full">
             <button
               onClick={handleBack}
               className="mb-6 flex items-center gap-2 text-sm font-medium text-[#056db3] hover:underline"
@@ -575,9 +575,9 @@ function BookingsAndPaymentsDetails() {
   return (
     <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="pt-24 px-6 pb-6 max-w-7xl mx-auto w-full">
+        <main className="pt-20 px-6 pb-6 max-w-7xl mx-auto w-full">
           {/* ── Header ── */}
           <div className="mb-6">
             <button

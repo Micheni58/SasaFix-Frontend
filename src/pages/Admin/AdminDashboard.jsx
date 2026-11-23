@@ -532,9 +532,9 @@ function AdminDashboard() {
     return (
       <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="min-w-0 flex-1 ml-0 lg:ml-72">
+        <div className="min-w-0 flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300">
           <Navbar />
-          <main className="pt-24 px-6 pb-6">
+          <main className="pt-20 px-6 pb-6">
             <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
               <div>
                 <div className="h-9 w-64 animate-pulse rounded bg-gray-200 mb-2" />
@@ -566,9 +566,9 @@ function AdminDashboard() {
     return (
       <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="pt-24 px-6 pb-6">
+          <main className="pt-20 px-6 pb-6">
             <div className="flex flex-col items-center justify-center h-64">
               <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
               <p className="text-lg text-gray-700">Failed to load dashboard</p>
@@ -589,9 +589,9 @@ function AdminDashboard() {
   return (
     <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="pt-24 px-6 pb-6">
+        <main className="pt-20 px-6 pb-6">
 
           <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
             <div>

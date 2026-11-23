@@ -23,7 +23,7 @@ import AvailabilityTab from "../../components/provider/AvailabilityTab";
 const ProviderProfileSkeleton = () => (
   <div className="provider-public-profile flex min-h-screen overflow-x-hidden bg-gray-50">
     <Sidebar role="client" />
-    <div className="min-w-0 flex-1 ml-0 lg:ml-72">
+    <div className="min-w-0 flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300">
       <Navbar />
       <main className="px-4 pb-6 pt-24 sm:px-6" role="status" aria-label="Loading provider profile" aria-busy="true">
         <div className="loading-skeleton mb-5 h-4 w-36 rounded" />
@@ -160,7 +160,7 @@ const ProviderProfilePage = () => {
     return (
       <div className="provider-public-profile flex min-h-screen overflow-x-hidden bg-gray-50">
         <Sidebar role="client" />
-        <div className="min-w-0 flex-1 ml-0 lg:ml-72">
+        <div className="min-w-0 flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300">
           <Navbar />
           <main className="px-4 pb-6 pt-24 sm:px-6">
             <div className="rounded-xl border border-red-200 bg-red-50 p-10 text-red-600">
@@ -176,7 +176,7 @@ const ProviderProfilePage = () => {
     <div className="provider-public-profile flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
       <Sidebar role="client" />
 
-      <div className="min-w-0 flex-1 ml-0 lg:ml-72">
+      <div className="min-w-0 flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300">
         <Navbar />
 
         <main className="min-w-0 px-4 pb-6 pt-24 sm:px-6">

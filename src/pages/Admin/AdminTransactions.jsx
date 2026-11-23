@@ -489,9 +489,9 @@ function AdminTransactions() {
     return (
       <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-0 lg:ml-72 min-w-0">
+        <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="pt-24 px-4 sm:px-6 pb-6 max-w-7xl mx-auto">
+          <main className="pt-20 px-4 sm:px-6 pb-6 max-w-7xl mx-auto">
             <div className="mb-8">
               <div className="h-9 w-56 animate-pulse rounded bg-gray-200" />
               <div className="mt-2 h-5 w-72 animate-pulse rounded bg-gray-200" />
@@ -513,9 +513,9 @@ function AdminTransactions() {
   return (
     <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-0 lg:ml-72 min-w-0">
+      <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="pt-24 px-4 sm:px-6 pb-6 max-w-7xl mx-auto">
+        <main className="pt-20 px-4 sm:px-6 pb-6 max-w-7xl mx-auto">
           {/* ── Page Header ── */}
           <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
             <div>

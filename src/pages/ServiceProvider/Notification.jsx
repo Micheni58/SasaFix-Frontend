@@ -265,9 +265,9 @@ export default function ProviderNotification() {
         return (
             <div className="flex min-h-screen w-full overflow-x-hidden bg-[#f8fafc]">
                 <Sidebar role="provider" />
-                <div className="min-w-0 flex-1 ml-0 lg:ml-72">
+                <div className="min-w-0 flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300">
                     <Navbar />
-                    <main className="min-w-0 pt-24 px-6 pb-6">
+                    <main className="min-w-0 pt-20 px-6 pb-6">
                         <div className="mx-auto w-full min-w-0 max-w-5xl">
                             <NotificationSkeleton />
                         </div>
@@ -280,9 +280,9 @@ export default function ProviderNotification() {
     return (
         <div className="flex min-h-screen w-full overflow-x-hidden bg-[#f8fafc]">
             <Sidebar role="provider" />
-            <div className="min-w-0 flex-1 ml-0 lg:ml-72">
+            <div className="min-w-0 flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300">
                 <Navbar />
-                <main className="min-w-0 pt-24 px-6 pb-6">
+                <main className="min-w-0 pt-20 px-6 pb-6">
                     <div className="mx-auto w-full min-w-0 max-w-5xl">
                         {/* ── Page Header ── */}
                     <section className="mb-6 flex items-center justify-between flex-wrap gap-4">

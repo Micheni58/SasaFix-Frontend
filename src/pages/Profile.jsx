@@ -1657,10 +1657,10 @@ function Profile() {
     <div className="flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
       <Sidebar role={sidebarRole} />
 
-      <div className="min-w-0 flex-1 ml-0 lg:ml-72">
+      <div className="min-w-0 flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300">
         <Navbar />
 
-        <main className="pt-24 px-4 pb-6 sm:px-6">
+        <main className="pt-20 px-4 pb-6 sm:px-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
               Profile & Settings

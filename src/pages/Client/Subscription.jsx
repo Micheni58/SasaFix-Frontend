@@ -95,9 +95,9 @@ const ClientSubscription = () => {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="client" />
-        <div className="ml-0 flex-1 lg:ml-72">
+        <div className="ml-16 flex-1 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="px-8 pb-10 pt-24">
+          <main className="min-w-0 px-4 pb-10 pt-20 sm:px-8">
             <SubscriptionSkeleton />
           </main>
         </div>
@@ -109,9 +109,9 @@ const ClientSubscription = () => {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="client" />
-        <div className="ml-0 flex-1 lg:ml-72">
+        <div className="ml-16 flex-1 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="px-8 pb-10 pt-24">
+          <main className="min-w-0 px-4 pb-10 pt-20 sm:px-8">
             <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-600">
               {error}
             </div>
@@ -124,13 +124,13 @@ const ClientSubscription = () => {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="ml-0 flex-1 lg:ml-72">
+      <div className="ml-16 flex-1 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="px-8 pb-12 pt-24">
+        <main className="min-w-0 px-4 pb-12 pt-20 sm:px-8">
           {isPremium ? (
             <>
               <div className="mb-8 text-center">
-                <h1 className="subscription-page-heading text-[36px] font-bold tracking-tight text-[#111827]">
+                <h1 className="subscription-page-heading text-3xl font-bold tracking-tight text-[#111827] sm:text-[36px]">
                   Your Subscription
                 </h1>
                 <p className="mt-2 text-[17px] text-slate-500">
@@ -151,7 +151,7 @@ const ClientSubscription = () => {
 
               <div className="mx-auto max-w-3xl">
                 <div className="overflow-hidden rounded-2xl border border-orange-300 bg-white shadow-sm">
-                  <div className="bg-linear-to-r from-orange-400 to-amber-500 px-8 py-8 text-center text-white">
+                  <div className="bg-linear-to-r from-orange-400 to-amber-500 px-5 py-8 text-center text-white sm:px-8">
                     <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/20">
                       <Crown className="h-7 w-7" />
                     </div>
@@ -159,11 +159,11 @@ const ClientSubscription = () => {
                     <h2 className="mt-2 text-3xl font-bold">Premium Plan</h2>
                     <p className="mt-2 text-white/90">You are already enjoying Premium benefits</p>
                   </div>
-                  <div className="p-8">
+                  <div className="p-5 sm:p-8">
                     <div className="mb-8 text-center">
                       <p className="text-sm text-slate-500">Subscription Fee</p>
                       <div className="mt-2">
-                        <span className="text-5xl font-bold text-slate-900">KES 300</span>
+                        <span className="text-4xl font-bold text-slate-900 sm:text-5xl">KES 300</span>
                         <span className="text-slate-500">/month</span>
                       </div>
                       <p className="mt-2 font-medium text-green-600">Unlimited AI job-description improvements</p>
@@ -185,7 +185,7 @@ const ClientSubscription = () => {
           ) : (
             <>
               <div className="mb-8 text-center">
-                <h1 className="subscription-page-heading text-[36px] font-bold tracking-tight text-[#111827]">
+                <h1 className="subscription-page-heading text-3xl font-bold tracking-tight text-[#111827] sm:text-[36px]">
                   Upgrade to Premium
                 </h1>
                 <p className="mt-2 text-[17px] text-slate-500">
@@ -206,7 +206,7 @@ const ClientSubscription = () => {
                 </div>
               </div>
 
-              <div className="mb-8 rounded-xl border border-green-200 bg-green-50 p-7">
+              <div className="mb-8 rounded-xl border border-green-200 bg-green-50 p-4 sm:p-7">
                 <div className="mb-6 flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-green-600" />
                   <h2 className="text-lg font-semibold text-slate-800">Your AI Usage</h2>
@@ -231,10 +231,10 @@ const ClientSubscription = () => {
               </div>
 
               <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+                <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
                   <div className="text-center">
                     <h2 className="text-2xl font-semibold text-slate-800">Free Plan</h2>
-                    <div className="mt-4"><span className="text-5xl font-bold text-slate-900">KES 0</span><span className="text-slate-500">/month</span></div>
+                    <div className="mt-4"><span className="text-4xl font-bold text-slate-900 sm:text-5xl">KES 0</span><span className="text-slate-500">/month</span></div>
                     <p className="mt-3 text-sm text-slate-500">Try AI job-description improvements</p>
                   </div>
                   <div className="mt-8 space-y-5">
@@ -246,11 +246,11 @@ const ClientSubscription = () => {
                   <button disabled className="mt-8 h-11 w-full rounded-lg border-2 border-blue-300 text-sm font-medium text-blue-400">Current Plan</button>
                 </div>
 
-                <div className="relative rounded-xl bg-linear-to-br from-orange-400 to-amber-500 p-8 text-white shadow-sm">
+                <div className="relative min-w-0 rounded-xl bg-linear-to-br from-orange-400 to-amber-500 p-5 text-white shadow-sm sm:p-8">
                   <div className="subscription-recommended-badge absolute right-4 top-4 rounded-full bg-white px-4 py-1 text-xs font-medium text-orange-600">♕ RECOMMENDED</div>
-                  <div className="text-center">
+                  <div className="pt-8 text-center sm:pt-0">
                     <h2 className="text-2xl font-semibold">Premium Plan</h2>
-                    <div className="mt-4"><span className="text-5xl font-bold">KES 300</span><span>/month</span></div>
+                    <div className="mt-4"><span className="text-4xl font-bold sm:text-5xl">KES 300</span><span>/month</span></div>
                     <p className="mt-3 text-sm text-white/90">Unlimited AI help for your service requests</p>
                   </div>
                   <div className="mt-8 space-y-5">
@@ -272,7 +272,7 @@ const ClientSubscription = () => {
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                 <div className="p-6"><h2 className="text-xl font-semibold text-slate-800">Detailed Feature Comparison</h2></div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[560px]">
+                  <table className="w-full min-w-140">
                     <thead><tr className="border-t border-slate-200 bg-slate-50">
                       <th className="px-6 py-4 text-left text-sm font-medium text-slate-700">Feature</th>
                       <th className="px-6 py-4 text-center text-sm font-medium text-slate-700">Free</th>

@@ -291,9 +291,9 @@ export default function ClientNotification() {
         return (
             <div className="flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
                 <Sidebar role="client" />
-                <div className="min-w-0 flex-1 ml-0 lg:ml-72">
+                <div className="min-w-0 flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300">
                     <Navbar />
-                    <main className="min-w-0 px-4 pb-6 pt-24 sm:px-6">
+                    <main className="min-w-0 px-4 pb-6 pt-20 sm:px-6">
                         <div className="max-w-5xl mx-auto">
                             <section className="mb-6">
                                 <SkeletonHeader />
@@ -314,9 +314,9 @@ export default function ClientNotification() {
     return (
         <div className="flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
             <Sidebar role="client" />
-            <div className="min-w-0 flex-1 ml-0 lg:ml-72">
+            <div className="min-w-0 flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300">
                 <Navbar />
-                <main className="min-w-0 px-4 pb-6 pt-24 sm:px-6">
+                <main className="min-w-0 px-4 pb-6 pt-20 sm:px-6">
                     <div className="max-w-5xl mx-auto">
                         {/* ── Page Header ── */}
                         <section className="mb-6 flex items-center justify-between flex-wrap gap-4">

@@ -274,9 +274,9 @@ const SubmitQuote = () => {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="pt-24 px-4 sm:px-6 pb-10">
+          <main className="pt-20 px-4 sm:px-6 pb-10">
             <SubmitQuoteSkeleton />
           </main>
         </div>
@@ -288,9 +288,9 @@ const SubmitQuote = () => {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="pt-24 px-4 sm:px-6 flex items-center justify-center">
+          <main className="pt-20 px-4 sm:px-6 flex items-center justify-center">
             <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-8 max-w-md text-center">
               <AlertCircle className="h-10 w-10 mx-auto mb-3 text-red-500" />
               <p className="font-semibold text-lg mb-2">Cannot submit quote</p>
@@ -337,9 +337,9 @@ const SubmitQuote = () => {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="pt-24 px-4 sm:px-6 pb-10">
+        <main className="pt-20 px-4 sm:px-6 pb-10">
           <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
             {/* Left: Request Details */}
             <div className="lg:col-span-3 space-y-4">

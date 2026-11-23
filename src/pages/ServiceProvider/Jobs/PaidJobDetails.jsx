@@ -73,9 +73,9 @@ function PageShell({ children }) {
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="ml-0 min-w-0 flex-1 lg:ml-72">
+      <div className="ml-16 min-w-0 flex-1 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300">
         <Navbar />
-        <main className="min-w-0 px-4 pb-6 pt-24 sm:px-6">{children}</main>
+        <main className="min-w-0 px-4 pb-6 pt-20 sm:px-6">{children}</main>
       </div>
     </div>
   );

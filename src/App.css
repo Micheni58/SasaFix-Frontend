@@ -165,6 +165,21 @@ html[data-theme="dark"] .dark-quote-requests-table tbody tr + tr {
 	border-color: transparent !important;
 }
 
+/* Keep quote tables calm and readable in dark mode; hide the first row separator. */
+.dark-client-quotes-table tbody > tr:first-child + tr {
+	border-top-color: transparent !important;
+}
+
+html[data-theme="dark"] .dark-quote-requests-table tbody tr:hover,
+html[data-theme="dark"] .dark-quote-requests-table tbody tr:focus,
+html[data-theme="dark"] .dark-client-quotes-table tbody tr:hover {
+	background-color: #1b2a3d !important;
+}
+
+html[data-theme="dark"] .dark-message-conversation-active {
+	background-color: #173554 !important;
+}
+
 /* Keep pale hover surfaces readable throughout signed-in areas. */
 html[data-theme="dark"] [class~="hover:bg-gray-50"]:hover,
 html[data-theme="dark"] [class~="hover:bg-gray-100"]:hover {

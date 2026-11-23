@@ -558,9 +558,9 @@ function CreateBooking() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="client" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="pt-24 px-4 sm:px-6 pb-6">
+          <main className="pt-20 px-4 sm:px-6 pb-6">
             <div className="max-w-7xl mx-auto">
               <div className="mb-6">
                 <div className="h-8 w-40 bg-gray-200 rounded animate-pulse" />
@@ -587,9 +587,9 @@ function CreateBooking() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="client" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="pt-24 px-4 sm:px-6 pb-6">
+          <main className="pt-20 px-4 sm:px-6 pb-6">
             <div className="max-w-4xl mx-auto">
               <div className="bg-white rounded-xl shadow-sm border border-red-200 p-8 text-center">
                 <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600">
@@ -615,9 +615,9 @@ function CreateBooking() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="pt-24 px-4 sm:px-6 pb-6">
+        <main className="pt-20 px-4 sm:px-6 pb-6">
           <div className="max-w-7xl mx-auto">
 
             {/* ── Header ── */}

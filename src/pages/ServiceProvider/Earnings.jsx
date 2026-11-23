@@ -513,9 +513,9 @@ function ProviderEarnings() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role={sidebarRole} />
-                <div className="flex-1 w-full lg:ml-72 transition-all duration-300 min-w-0">
+                <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
                     <Navbar />
-                    <main className="pt-20 md:pt-24 px-4 sm:px-6 pb-10 space-y-6 max-w-7xl mx-auto">
+                    <main className="pt-20 px-4 sm:px-6 pb-10 space-y-6 max-w-7xl mx-auto">
                         {/* Loading skeletons... */}
                         <div className="animate-pulse">
                             <div className="h-8 w-48 bg-gray-200 rounded mb-2" />
@@ -591,9 +591,9 @@ function ProviderEarnings() {
         return (
             <div className="flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role={sidebarRole} />
-                <div className="flex-1 w-full lg:ml-72 transition-all duration-300 min-w-0">
+                <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
                     <Navbar />
-                    <main className="pt-20 md:pt-24 px-4 sm:px-6 pb-10 max-w-7xl mx-auto">
+                    <main className="pt-20 px-4 sm:px-6 pb-10 max-w-7xl mx-auto">
                         <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
                             <AlertCircle className="mx-auto h-12 w-12 text-red-500" />
                             <h3 className="mt-2 text-lg font-semibold text-red-700">Error Loading Earnings</h3>
@@ -616,9 +616,9 @@ function ProviderEarnings() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role={sidebarRole} />
-            <div className="flex-1 w-full lg:ml-72 transition-all duration-300 min-w-0">
+            <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
                 <Navbar />
-                <main className="pt-20 md:pt-24 px-3 sm:px-6 pb-10 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
+                <main className="pt-20 px-3 sm:px-6 pb-10 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>

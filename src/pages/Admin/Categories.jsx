@@ -623,10 +623,10 @@ function Categories() {
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
 
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
         <Navbar />
 
-        <main className="pt-24 px-6 pb-6">
+        <main className="pt-20 px-6 pb-6">
           <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">

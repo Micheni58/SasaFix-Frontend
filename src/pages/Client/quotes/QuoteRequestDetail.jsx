@@ -93,7 +93,7 @@ const QuoteRequestDetail = () => {
   if (loading) return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-0 lg:ml-72 pt-24 px-4 sm:px-6">
+      <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0 pt-24 px-4 sm:px-6">
         <DetailSkeleton />
       </div>
     </div>
@@ -106,9 +106,9 @@ const QuoteRequestDetail = () => {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="pt-24 px-4 sm:px-6 pb-10">
+        <main className="pt-20 px-4 sm:px-6 pb-10">
           <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Left Column - Request Info & Quotes */}
@@ -190,37 +190,59 @@ const QuoteRequestDetail = () => {
                   )}
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {quotes.map(quote => (
-                    <div key={quote.id} className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shadow-sm hover:border-[#056db3] transition-colors">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="h-8 w-8 overflow-hidden rounded-full bg-blue-100 flex items-center justify-center text-[#056db3] font-bold">
-                            {quote.provider_photo_url ? <img src={quote.provider_photo_url} alt={quote.provider_name || "Provider"} className="h-full w-full object-cover" /> : quote.provider_name?.[0] || "P"}
-                          </div>
-                          <span className="font-semibold text-gray-900">{quote.provider_name}</span>
-                          <span className="flex items-center text-xs text-yellow-600 bg-yellow-50 px-1.5 py-0.5 rounded">
-                            <Star className="h-3 w-3 mr-0.5 fill-current" /> {quote.provider_rating.toFixed(1)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 mt-2 bg-gray-50 p-3 rounded-lg">{quote.message}</p>
-                        <div className="mt-3 flex items-center gap-4 text-xs font-medium text-gray-500">
-                          <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {quote.estimated_duration_hours ? `${quote.estimated_duration_hours} hrs` : 'Duration not specified'}</span>
-                        </div>
-                      </div>
-                      <div className="text-left sm:text-right w-full sm:w-auto mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-gray-100">
-                        <div className="text-xl font-bold text-[#056db3] mb-3">KES {quote.amount.toLocaleString()}</div>
-                        {quote.status === 'pending' && request.status === 'open' ? (
-                          <div className="flex gap-2">
-                            <button onClick={() => setPendingAction({ type: "reject", quoteId: quote.id })} disabled={actionLoading} className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50">Reject</button>
-                            <button onClick={() => setPendingAction({ type: "accept", quoteId: quote.id })} disabled={actionLoading} className="px-3 py-1.5 text-xs font-medium text-white bg-[#056db3] rounded-lg hover:bg-[#045a94] disabled:opacity-50">Accept</button>
-                          </div>
-                        ) : (
-                          <span className="text-sm font-medium capitalize text-gray-500">{quote.status}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+                  <table className="dark-client-quotes-table w-full min-w-180 border-collapse text-left">
+                    <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <tr>
+                        <th scope="col" className="whitespace-nowrap px-4 py-3.5 sm:px-5">Provider</th>
+                        <th scope="col" className="px-4 py-3.5 sm:px-5">Quote details</th>
+                        <th scope="col" className="whitespace-nowrap px-4 py-3.5 sm:px-5">Duration</th>
+                        <th scope="col" className="whitespace-nowrap px-4 py-3.5 text-right sm:px-5">Price</th>
+                        <th scope="col" className="whitespace-nowrap px-4 py-3.5 text-right sm:px-5">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {quotes.map((quote) => (
+                        <tr key={quote.id} className="transition-colors hover:bg-blue-50/40">
+                          <td className="whitespace-nowrap px-4 py-4 sm:px-5">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 font-bold text-[#056db3]">
+                                {quote.provider_photo_url ? <img src={quote.provider_photo_url} alt={quote.provider_name || "Provider"} className="h-full w-full object-cover" /> : quote.provider_name?.[0] || "P"}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-900">{quote.provider_name}</p>
+                                <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-yellow-50 px-2 py-0.5 text-xs font-medium text-yellow-700">
+                                  <Star className="h-3 w-3 fill-current" /> {quote.provider_rating.toFixed(1)}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="max-w-md whitespace-normal px-4 py-4 text-sm leading-6 text-gray-600 sm:px-5">
+                            {quote.message}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-600 sm:px-5">
+                            <span className="inline-flex items-center gap-1.5">
+                              <Clock className="h-4 w-4 text-gray-400" />
+                              {quote.estimated_duration_hours ? `${quote.estimated_duration_hours} hrs` : "Duration not specified"}
+                            </span>
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 text-right sm:px-5">
+                            <span className="text-base font-bold text-[#056db3]">KES {quote.amount.toLocaleString()}</span>
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 text-right sm:px-5">
+                            {quote.status === 'pending' && request.status === 'open' ? (
+                              <div className="inline-flex items-center gap-2">
+                                <button onClick={() => setPendingAction({ type: "reject", quoteId: quote.id })} disabled={actionLoading} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50">Reject</button>
+                                <button onClick={() => setPendingAction({ type: "accept", quoteId: quote.id })} disabled={actionLoading} className="rounded-lg bg-[#056db3] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#045a94] disabled:opacity-50">Accept</button>
+                              </div>
+                            ) : (
+                              <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold capitalize text-gray-600">{quote.status}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>

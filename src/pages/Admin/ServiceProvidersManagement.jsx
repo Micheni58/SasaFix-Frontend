@@ -235,10 +235,10 @@ const ServiceProvidersManagement = () => {
     <div className="admin-layout-shell flex min-h-screen overflow-x-hidden bg-[#f8fafc]">
       <Sidebar role="admin" />
 
-      <div className="ml-0 min-w-0 flex-1 lg:ml-72">
+      <div className="ml-16 min-w-0 flex-1 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300">
         <Navbar />
 
-        <main className="admin-page-main px-4 pb-10 pt-24 sm:px-6 lg:px-8">
+        <main className="admin-page-main px-4 pb-10 pt-20 sm:px-6 lg:px-8">
           {loading ? (
             <ServiceProvidersSkeleton />
           ) : (

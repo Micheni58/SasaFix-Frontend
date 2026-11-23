@@ -690,9 +690,9 @@ function ProviderDashboard() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="px-6 pb-6 pt-24">
+        <main className="px-6 pb-6 pt-20">
           {/* ── Header ── */}
           <section className="mb-8">
             <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

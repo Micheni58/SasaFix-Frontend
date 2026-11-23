@@ -166,11 +166,11 @@ export default function Subscriptions() {
   return (
     <div className="admin-layout-shell min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="ml-0 min-w-0 lg:ml-72">
+      <div className="ml-16 min-w-0 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300">
         <Navbar />
-        <main className="px-4 pb-10 pt-28 sm:px-6 lg:px-8">
+        <main className="px-4 pb-10 pt-20 sm:px-6 lg:px-8">
           {notice && (
-            <div className="fixed left-4 right-4 top-24 z-50 rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white shadow-lg sm:left-auto sm:right-6">
+            <div className="fixed left-16 right-4 top-24 z-50 rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white shadow-lg lg:left-auto lg:right-6">
               {notice}
             </div>
           )}

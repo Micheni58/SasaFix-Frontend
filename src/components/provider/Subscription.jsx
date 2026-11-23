@@ -260,7 +260,7 @@ const Subscription = () => {
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
 
-        <div className="ml-0 lg:ml-72 flex-1">
+        <div className="ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 flex-1 min-w-0">
           <Navbar />
 
           <main className="px-8 pb-10 pt-24">
@@ -276,7 +276,7 @@ const Subscription = () => {
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="provider" />
 
-        <div className="ml-0 lg:ml-72 flex-1">
+        <div className="ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 flex-1 min-w-0">
           <Navbar />
 
           <main className="px-8 pb-10 pt-24">
@@ -295,7 +295,7 @@ const Subscription = () => {
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="provider" />
 
-      <div className="ml-0 lg:ml-72 flex-1">
+      <div className="ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 flex-1 min-w-0">
         <Navbar />
 
         <main className="px-8 pb-12 pt-24">

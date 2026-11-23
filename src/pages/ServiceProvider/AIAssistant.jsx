@@ -365,9 +365,9 @@ const AIAssistant = () => {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="px-8 pb-8 pt-28">
+          <main className="px-8 pb-8 pt-20">
             <div className="max-w-6xl mx-auto">
               <div className="mb-8">
                 <div className="h-4 w-32 rounded bg-gray-200 animate-pulse" />
@@ -399,7 +399,7 @@ const AIAssistant = () => {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
           <Navbar />
           <div className="flex items-center justify-center h-96 px-8">
             <div className="text-center p-8 bg-white rounded-2xl shadow-sm max-w-md border border-gray-100">
@@ -434,7 +434,7 @@ const AIAssistant = () => {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
           <Navbar />
           <div className="flex items-center justify-center h-96">
             <div className="text-center p-8 bg-white rounded-2xl shadow-sm max-w-md border border-gray-100">
@@ -467,9 +467,9 @@ const AIAssistant = () => {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar role="provider" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="px-8 pb-8 pt-28">
+          <main className="px-8 pb-8 pt-20">
             <div className="max-w-6xl mx-auto">
               {/* ── Header ── */}
               <div className="mb-8">
@@ -573,9 +573,9 @@ const AIAssistant = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar role="provider" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="px-8 pb-8 pt-28">
+        <main className="px-8 pb-8 pt-20">
           <div className="max-w-4xl mx-auto">
             {/* ── Back Button ── */}
             <div className="mb-6">

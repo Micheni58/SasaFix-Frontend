@@ -64,9 +64,9 @@ function RescheduleProposedSkeleton() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="pt-24 px-6 pb-6">
+        <main className="pt-20 px-6 pb-6">
           <div className="animate-pulse">
             <section className="mb-8">
               <div className="flex justify-between items-start mb-6">
@@ -180,9 +180,9 @@ function RescheduleProposedDetails() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="client" />
-        <div className="flex-1 ml-0 lg:ml-72">
+        <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="pt-24 px-6 pb-6 flex items-center justify-center">
+          <main className="pt-20 px-6 pb-6 flex items-center justify-center">
             <div className="text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <p className="text-red-500">Error: {error || "Booking not found"}</p>
@@ -221,9 +221,9 @@ function RescheduleProposedDetails() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="client" />
-      <div className="flex-1 ml-0 lg:ml-72">
+      <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="pt-24 px-6 pb-6">
+        <main className="pt-20 px-6 pb-6">
           <button
             onClick={handleBack}
             className="mb-4 flex items-center gap-2 text-sm font-medium text-[#056db3] hover:underline"

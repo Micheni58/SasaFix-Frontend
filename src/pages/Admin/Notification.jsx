@@ -256,9 +256,9 @@ export default function AdminNotification() {
         return (
             <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="admin" />
-                <div className="flex-1 ml-0 lg:ml-72">
+                <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
                     <Navbar />
-                    <main className="pt-24 px-6 pb-6">
+                    <main className="pt-20 px-6 pb-6">
                         <div className="max-w-5xl mx-auto">
                             <section className="mb-6">
                                 <SkeletonHeader />
@@ -281,9 +281,9 @@ export default function AdminNotification() {
         return (
             <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
                 <Sidebar role="admin" />
-                <div className="flex-1 ml-0 lg:ml-72">
+                <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
                     <Navbar />
-                    <main className="pt-24 px-6 pb-6">
+                    <main className="pt-20 px-6 pb-6">
                         <div className="max-w-5xl mx-auto">
                             <section className="mb-6 flex items-center justify-between flex-wrap gap-4">
                                 <div>
@@ -319,9 +319,9 @@ export default function AdminNotification() {
     return (
         <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="admin" />
-            <div className="flex-1 ml-0 lg:ml-72">
+            <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
                 <Navbar />
-                <main className="pt-24 px-6 pb-6">
+                <main className="pt-20 px-6 pb-6">
                     <div className="max-w-5xl mx-auto">
                         {/* ── Page Header ── */}
                         <section className="mb-6 flex items-center justify-between flex-wrap gap-4">

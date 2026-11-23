@@ -309,9 +309,9 @@ function Reviews() {
     return (
         <div className="flex min-h-screen bg-[#f8fafc]">
             <Sidebar role="provider" />
-            <div className="flex-1 ml-0 lg:ml-72">
+            <div className="flex-1 ml-16 lg:ml-(--sidebar-w,18rem) transition-[margin] duration-300 min-w-0">
                 <Navbar />
-                <main className="pt-24 px-6 pb-6">
+                <main className="pt-20 px-6 pb-6">
 
                     {/* Header */}
                     <div className="mb-8">

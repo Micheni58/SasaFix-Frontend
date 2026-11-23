@@ -702,9 +702,9 @@ function AdminReportsDisputes() {
     return (
       <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
         <Sidebar role="admin" />
-        <div className="flex-1 ml-0 lg:ml-72 min-w-0">
+        <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
           <Navbar />
-          <main className="pt-24 px-4 sm:px-6 pb-10 max-w-7xl mx-auto">
+          <main className="pt-20 px-4 sm:px-6 pb-10 max-w-7xl mx-auto">
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-1">
                 <div className="h-10 w-10 rounded-xl bg-gray-200 animate-pulse" />
@@ -748,9 +748,9 @@ function AdminReportsDisputes() {
   return (
     <div className="admin-layout-shell flex min-h-screen bg-[#f8fafc]">
       <Sidebar role="admin" />
-      <div className="flex-1 ml-0 lg:ml-72 min-w-0">
+      <div className="flex-1 ml-16 lg:ml-[var(--sidebar-w,18rem)] transition-[margin] duration-300 min-w-0">
         <Navbar />
-        <main className="pt-24 px-4 sm:px-6 pb-10 max-w-7xl mx-auto">
+        <main className="pt-20 px-4 sm:px-6 pb-10 max-w-7xl mx-auto">
           {/* ── Page Header ── */}
           <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
             <div>
